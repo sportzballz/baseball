@@ -31,15 +31,11 @@ functions:
   get-baseball-data:
     handler: get-data.main
     timeout: 90
-#    environment:
-#      eid: ${env:EXCHANGE_ID}
-#      key: ${env:API_KEY}
-#      secret: ${env:API_SECRET}
     events:
       - schedule: rate(1 hour)
 plugins:
   - serverless-python-requirements
 
-custom:
-  pythonRequirements:
-    dockerizePip: non-linux
+#custom:
+#  pythonRequirements:
+#    dockerizePip: non-linux
