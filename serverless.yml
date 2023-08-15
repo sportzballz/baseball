@@ -19,13 +19,13 @@ provider:
   stage: live
   region: us-east-1
   lambdaHashingVersion: 20201221
-  iam:
-    role:
-      managedPolicies:
-        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
-        - arn:aws:iam::aws:policy/AmazonSNSFullAccess
-        - arn:aws:iam::aws:policy/AmazonEventBridgeFullAccess
-        - arn:aws:iam::aws:policy/AmazonTimestreamFullAccess
+#  iam:
+#    role:
+#      managedPolicies:
+#        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+#        - arn:aws:iam::aws:policy/AmazonSNSFullAccess
+#        - arn:aws:iam::aws:policy/AmazonEventBridgeFullAccess
+#        - arn:aws:iam::aws:policy/AmazonTimestreamFullAccess
 
 functions:
   get-baseball-data:
