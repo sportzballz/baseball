@@ -16,7 +16,6 @@ service: sportzballz-get-data
 provider:
   name: aws
   runtime: python3.8
-  stage: live
   region: us-east-1
   lambdaHashingVersion: 20201221
   iam:
@@ -36,6 +35,6 @@ functions:
 plugins:
   - serverless-python-requirements
 
-#custom:
-#  pythonRequirements:
-#    dockerizePip: non-linux
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
