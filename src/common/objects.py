@@ -15,10 +15,10 @@ class Prediction:
     def get_string(self):
         if self.odds > 0:
             # return f"odds(+{self.odds}) {self.winning_team} over {self.losing_team} on {self.gameDate}.  WP: {self.winning_pitcher}\n"
-            return f"odds(+{self.odds}) {self.winning_team}\n"
+            return f"+{self.odds}\t{self.winning_team}\n"
         else:
             # return f"odds({self.odds}) {self.winning_team} over {self.losing_team} on {self.gameDate}.  WP: {self.winning_pitcher}\n"
-            return f"odds({self.odds}) {self.winning_team} \n"
+            return f"{self.odds}\t{self.winning_team} \n"
 
     def to_csv(self):
         print(f"{self.odds},{self.winning_team},{self.losing_team},{self.gameDate},{self.winning_pitcher}")
