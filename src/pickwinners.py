@@ -25,6 +25,3 @@ def main(event, context):
     # print_csv(winners)
     # print_str(winners)
     post_to_slack(winners)
-
-
-main(None, None)
