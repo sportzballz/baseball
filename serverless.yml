@@ -11,29 +11,23 @@
 #
 # Happy Coding!
 
-service: sportzballz-get-data
+service: sportzballz-baseball
+
+frameworkVersion: '3'
 
 provider:
   name: aws
   runtime: python3.9
   region: us-east-1
-  lambdaHashingVersion: 20201221
-#  iam:
-#    role:
-#      managedPolicies:
-#        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
-#        - arn:aws:iam::aws:policy/AmazonSNSFullAccess
-#        - arn:aws:iam::aws:policy/AmazonEventBridgeFullAccess
-#        - arn:aws:iam::aws:policy/AmazonTimestreamFullAccess
 
 functions:
   get-baseball-data:
-    handler: get-data.main
+    handler: src.pick-winners.main
     timeout: 90
     events:
       - schedule: rate(1 hour)
-plugins:
-  - serverless-python-requirements
+#plugins:
+#  - serverless-python-requirements
 
 custom:
   pythonRequirements:
