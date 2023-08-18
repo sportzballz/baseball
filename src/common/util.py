@@ -159,7 +159,7 @@ def select_winner(adv_score, game_data, odds_data):
             for result in odds_data['results']:
                 if result['teams']['home']['team'] == winning_team:
                     if len(result['odds']) > 0:
-                        odds = result['odds'].pop(0)['moneyline']['current']['awayOdds']
+                        odds = result['odds'].pop(0)['moneyline']['current']['homeOdds']
                     else:
                         odds = 0
                     return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, odds)
