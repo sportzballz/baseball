@@ -1,5 +1,5 @@
-from src.analysis.pitching.pitching import *
-from src.analysis.batting.batting import *
+from src.analysis.pitching.pitchingevaluation import *
+from src.analysis.batting.battingevaluation import *
 from src.common.util import *
 from src.connector.sportsbook import *
 from src.connector.stats import *
