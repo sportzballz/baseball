@@ -22,8 +22,7 @@ jobs:
     - name: serverless deploy
       uses: serverless/github-action@master
       with:
-#        args: -c "serverless plugin install -n serverless-python-requirements && serverless deploy --verbose"
-        args: -c "serverless deploy --verbose"
+        args: -c "serverless plugin install -n serverless-python-requirements && serverless deploy --verbose"
         entrypoint: /bin/bash
       env:
          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
