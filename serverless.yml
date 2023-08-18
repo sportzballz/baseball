@@ -15,7 +15,7 @@ service: sportzballz-get-data
 
 provider:
   name: aws
-  runtime: python3.10
+  runtime: python3.9
   region: us-east-1
   lambdaHashingVersion: 20201221
 #  iam:
