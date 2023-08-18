@@ -17,7 +17,7 @@ frameworkVersion: '3'
 
 provider:
   name: aws
-  runtime: python3.9
+  runtime: python3.10
   region: us-east-1
 
 functions:
