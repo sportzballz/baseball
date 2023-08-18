@@ -142,7 +142,7 @@ def print_str(winners):
 
 def post_to_slack(winners):
     today = str(date.today())
-    winner_str = "f{today}\n"
+    winner_str = f"{today}\n"
     for winner in winners:
         if winner.winning_team != '-':
             winner_str = winner_str + winner.get_string()
