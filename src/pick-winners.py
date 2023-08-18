@@ -3,7 +3,6 @@ from src.analysis.batting import *
 from src.common.util import *
 from src.connector.sportsbook import *
 from src.connector.stats import *
-from src.connector.slack import *
 
 
 def main(event, context):
@@ -11,9 +10,9 @@ def main(event, context):
     odds_data = get_odds()
     winners = []
     for team in teams:
-        todays_game_list = get_todays_game(team.id)
-        if len(todays_game_list) > 0:
-            todays_game = todays_game_list.pop(0)
+        todays_games = get_todays_games(team.id)
+        if len(todays_games) > 0:
+            todays_game = todays_games.pop(0)
             game_id = todays_game['game_id']
             game_data = statsapi.get("game", {"gamePk": game_id})
             if todays_game['home_name'] == team.name:

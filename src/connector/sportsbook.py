@@ -12,7 +12,7 @@ def get_odds():
         'X-RapidAPI-Host': "sportspage-feeds.p.rapidapi.com"
     }
     today = str(date.today())
-    conn.request("GET", "/games?odds=moneyline&status=scheduled&league=MLB&date="+today, headers=headers)
+    conn.request("GET", "/games?odds=moneyline&status=scheduled&league=MLB&date=" + today, headers=headers)
 
     res = conn.getresponse()
     data = res.read()

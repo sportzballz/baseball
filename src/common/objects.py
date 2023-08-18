@@ -24,6 +24,7 @@ class Prediction:
     def get_csv(self):
         return f",{self.odds},{self.winning_team},{self.losing_team},{self.gameDate},{self.winning_pitcher}"
 
+
 class PitchingMatchup:
     def __init__(self, whip_advantage: int, win_percentage_advantage: int):
         self.whip_advantage = whip_advantage
