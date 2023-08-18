@@ -39,15 +39,18 @@ def evaluate_whip(adv_score, home_stats, away_stats):
 
 
 def evaluate_pitching_matchup(adv_score, game_data):
-    away_pitcher_name = game_data['gameData']['probablePitchers']['away']['fullName']
-    home_pitcher_name = game_data['gameData']['probablePitchers']['home']['fullName']
-    away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
-    home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
-    away_pitcher_stats = get_pitcher_stats(away_pitcher_id)
-    home_pitcher_stats = get_pitcher_stats(home_pitcher_id)
-    home_stats = home_pitcher_stats.get('stats').pop(0).get('stats')
-    away_stats = away_pitcher_stats.get('stats').pop(0).get('stats')
+    try:
+        # away_pitcher_name = game_data['gameData']['probablePitchers']['away']['fullName']
+        # home_pitcher_name = game_data['gameData']['probablePitchers']['home']['fullName']
+        away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
+        home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
+        away_pitcher_stats = get_pitcher_stats(away_pitcher_id)
+        home_pitcher_stats = get_pitcher_stats(home_pitcher_id)
+        home_stats = home_pitcher_stats.get('stats').pop(0).get('stats')
+        away_stats = away_pitcher_stats.get('stats').pop(0).get('stats')
 
-    adv_score = evaluate_whip(adv_score, home_stats, away_stats)
-    adv_score = evaluate_pitcher_win_percentage(adv_score, home_stats, away_stats)
+        adv_score = evaluate_whip(adv_score, home_stats, away_stats)
+        adv_score = evaluate_pitcher_win_percentage(adv_score, home_stats, away_stats)
+    except Exception as e:
+        print(e)
     return adv_score

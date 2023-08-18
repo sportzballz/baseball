@@ -149,35 +149,40 @@ def post_to_slack(winners):
 
 
 def select_winner(adv_score, game_data, odds_data):
-    game_date = game_data['gameData']['datetime']['officialDate']
-    if adv_score.home > adv_score.away:
-        winning_team = game_data['gameData']['teams']['home']['name']
-        losing_team = game_data['gameData']['teams']['away']['name']
-        winning_pitcher = game_data['gameData']['probablePitchers']['home']['fullName']
-        losing_pitcher = game_data['gameData']['probablePitchers']['away']['fullName']
-        for result in odds_data['results']:
-            if result['teams']['home']['team'] == winning_team:
-                if len(result['odds']) > 0:
-                    odds = result['odds'].pop(0)['moneyline']['current']['awayOdds']
-                else:
-                    odds = 0
-                return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, odds)
-        return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, 0)
-    elif adv_score.away > adv_score.home:
-        winning_team = game_data['gameData']['teams']['away']['name']
-        losing_team = game_data['gameData']['teams']['home']['name']
-        winning_pitcher = game_data['gameData']['probablePitchers']['away']['fullName']
-        losing_pitcher = game_data['gameData']['probablePitchers']['home']['fullName']
-        for result in odds_data['results']:
-            if result['teams']['away']['team'] == winning_team:
-                if len(result['odds']) > 0:
-                    odds = result['odds'].pop(0)['moneyline']['current']['awayOdds']
-                else:
-                    odds = 0
-                return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, odds)
-        return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, 0)
-    else:
-        away_team = game_data['gameData']['teams']['away']['name']
-        home_team = game_data['gameData']['teams']['home']['name']
-        print(f"No advantage in {away_team} at {home_team} on {game_date}")
+    try:
+        game_date = game_data['gameData']['datetime']['officialDate']
+        if adv_score.home > adv_score.away:
+            winning_team = game_data['gameData']['teams']['home']['name']
+            losing_team = game_data['gameData']['teams']['away']['name']
+            winning_pitcher = game_data['gameData']['probablePitchers']['home']['fullName']
+            losing_pitcher = game_data['gameData']['probablePitchers']['away']['fullName']
+            for result in odds_data['results']:
+                if result['teams']['home']['team'] == winning_team:
+                    if len(result['odds']) > 0:
+                        odds = result['odds'].pop(0)['moneyline']['current']['awayOdds']
+                    else:
+                        odds = 0
+                    return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, odds)
+            return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, 0)
+        elif adv_score.away > adv_score.home:
+            winning_team = game_data['gameData']['teams']['away']['name']
+            losing_team = game_data['gameData']['teams']['home']['name']
+            winning_pitcher = game_data['gameData']['probablePitchers']['away']['fullName']
+            losing_pitcher = game_data['gameData']['probablePitchers']['home']['fullName']
+            for result in odds_data['results']:
+                if result['teams']['away']['team'] == winning_team:
+                    if len(result['odds']) > 0:
+                        odds = result['odds'].pop(0)['moneyline']['current']['awayOdds']
+                    else:
+                        odds = 0
+                    return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, odds)
+            return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, 0)
+        else:
+            away_team = game_data['gameData']['teams']['away']['name']
+            home_team = game_data['gameData']['teams']['home']['name']
+            print(f"No advantage in {away_team} at {home_team} on {game_date}")
+            return Prediction('-', '-', '-', '-', game_date, 0)
+    except Exception as e:
+        print(e)
         return Prediction('-', '-', '-', '-', game_date, 0)
+
