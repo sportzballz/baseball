@@ -22,9 +22,9 @@ def main():
                 adv_score = evaluate_hitting_matchup(adv_score, game_data)
                 winners.append(select_winner(adv_score, game_data, odds_data))
 
-    write_csv(winners)
-    print_csv(winners)
-    print_str(winners)
+    # write_csv(winners)
+    # print_csv(winners)
+    # print_str(winners)
     post_to_slack(winners)
 
 
