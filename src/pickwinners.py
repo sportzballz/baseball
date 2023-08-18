@@ -1,5 +1,5 @@
-from src.analysis.pitching import *
-from src.analysis.batting import *
+from src.analysis.pitching.pitching import *
+from src.analysis.batting.batting import *
 from src.common.util import *
 from src.connector.sportsbook import *
 from src.connector.stats import *
@@ -25,3 +25,6 @@ def main(event, context):
     # print_csv(winners)
     # print_str(winners)
     post_to_slack(winners)
+
+
+main(None, None)

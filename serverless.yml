@@ -22,7 +22,7 @@ provider:
 
 functions:
   get-baseball-data:
-    handler: src.pick-winners.main
+    handler: src.pickwinners.main
     timeout: 90
     environment:
       SPORTSPAGE_API_KEY: ${env:SPORTSPAGE_API_KEY}
