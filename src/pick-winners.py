@@ -6,7 +6,7 @@ from src.connector.stats import *
 from src.connector.slack import *
 
 
-def main():
+def main(event, context):
     teams = get_teams_list()
     odds_data = get_odds()
     winners = []
@@ -26,6 +26,3 @@ def main():
     # print_csv(winners)
     # print_str(winners)
     post_to_slack(winners)
-
-
-main()
