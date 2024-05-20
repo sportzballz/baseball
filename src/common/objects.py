@@ -10,7 +10,7 @@ class Prediction:
 
     def to_string(self):
         print(
-            f"{self.odds} {self.winning_team} over {self.losing_team} on {self.gameDate}.  WP: {self.winning_pitcher}")
+            f"{self.odds} {self.winning_team} over {self.losing_team}.  WP: {self.winning_pitcher}")
 
     def get_string(self):
         if self.odds > 0:

@@ -15,6 +15,7 @@ def main(event, context):
             todays_game = todays_games.pop(0)
             game_id = todays_game['game_id']
             game_data = statsapi.get("game", {"gamePk": game_id})
+
             if todays_game['home_name'] == team.name:
                 adv_score = AdvantageScore(0, 0)
                 adv_score = evaluate_pitching_matchup(adv_score, game_data)

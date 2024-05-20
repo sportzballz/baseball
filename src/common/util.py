@@ -109,6 +109,67 @@ def get_teams_list():
     return teams_list
 
 
+def get_stat(team, stat):
+    try:
+        return float(team.get(stat))
+    except Exception:
+        return 0.0
+
+
+def evaluate_stat(adv_score, home, away, stat, lower_is_better=False):
+    home_stat = get_stat(home, stat)
+    away_stat = get_stat(away, stat)
+    if lower_is_better:
+        if home_stat < away_stat:
+            return increase_home_advantage(adv_score)
+        elif away_stat < home_stat:
+            return increase_away_advantage(adv_score)
+        else:
+            return adv_score
+    else:
+        if home_stat > away_stat:
+            return increase_home_advantage(adv_score)
+        elif away_stat > home_stat:
+            return increase_away_advantage(adv_score)
+        else:
+            return adv_score
+
+
+def get_lineup_profile(lineup):
+    lineup_profile = []
+    for player in lineup[1:]:
+        lineup_profile.append(statsapi.player_stat_data(player['personId'], group="[hitting]", type="season", sportId=1))
+    return lineup_profile
+
+
+def get_lineup_weighted_stat(lineup, stat):
+    weighted_avg = 0.0
+    for player in lineup:
+        abs = player['stats'][0]['stats']['atBats']
+        s = player['stats'][0]['stats'][stat]
+        weighted_avg += float(abs) * float(s)
+    return weighted_avg
+
+
+def evaluate_weighted_stat(adv_score, home, away, stat, lower_is_better=False):
+    home_weighted_avg = get_lineup_weighted_stat(home, stat)
+    away_weighted_avg = get_lineup_weighted_stat(away, stat)
+    if lower_is_better:
+        if home_weighted_avg < away_weighted_avg:
+            return increase_home_advantage(adv_score)
+        elif away_weighted_avg < home_weighted_avg:
+            return increase_away_advantage(adv_score)
+        else:
+            return adv_score
+    else:
+        if home_weighted_avg > away_weighted_avg:
+            return increase_home_advantage(adv_score)
+        elif away_weighted_avg > home_weighted_avg:
+            return increase_away_advantage(adv_score)
+        else:
+            return adv_score
+
+
 def increase_home_advantage(adv_score):
     return AdvantageScore(adv_score.home + 1, adv_score.away)
 
@@ -145,7 +206,7 @@ def post_to_slack(winners):
     winner_str = f"{today}\n"
     for winner in winners:
         if winner.winning_team != '-':
-            winner_str = winner_str + winner.get_string()
+            winner_str = winner_str + winner.to_string()
     slack.post(winner_str)
 
 
