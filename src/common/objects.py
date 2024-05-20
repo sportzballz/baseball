@@ -1,24 +1,23 @@
 class Prediction:
     def __init__(self, winning_team: str, losing_team: str, winning_pitcher: str, losing_pitcher: str, gameDate: str,
-                 odds: int):
+                 odds: int, confidence: str, data_points: str = '0/0'):
         self.winning_team = winning_team
         self.losing_team = losing_team
         self.winning_pitcher = winning_pitcher
         self.losing_pitcher = losing_pitcher
         self.gameDate = gameDate
         self.odds = odds
+        self.confidence = confidence
+        self.data_points = data_points
+
+    def print_string(self):
+        print(self.to_string())
 
     def to_string(self):
-        print(
-            f"{self.odds} {self.winning_team} over {self.losing_team}.  WP: {self.winning_pitcher}")
-
-    def get_string(self):
         if self.odds > 0:
-            # return f"odds(+{self.odds}) {self.winning_team} over {self.losing_team} on {self.gameDate}.  WP: {self.winning_pitcher}\n"
-            return f"+{self.odds}\t{self.winning_team}\n"
+            return f"+{self.odds}\t{self.winning_team} over {self.losing_team}.\tWP: {self.winning_pitcher}.\tConfidence: {self.confidence}.\tData Points: {self.data_points}\n"
         else:
-            # return f"odds({self.odds}) {self.winning_team} over {self.losing_team} on {self.gameDate}.  WP: {self.winning_pitcher}\n"
-            return f"{self.odds}\t{self.winning_team} \n"
+            return f"{self.odds}\t{self.winning_team} over {self.losing_team}.\tWP: {self.winning_pitcher}.\tConfidence: {self.confidence}.\tData Points: {self.data_points}\n"
 
     def to_csv(self):
         print(f"{self.odds},{self.winning_team},{self.losing_team},{self.gameDate},{self.winning_pitcher}")
@@ -30,7 +29,7 @@ class Prediction:
 class PitchingMatchup:
     def __init__(self, whip_advantage: int, win_percentage_advantage: int):
         self.whip_advantage = whip_advantage
-        self.win_percentage_advatage = win_percentage_advantage
+        self.win_percentage_advantage = win_percentage_advantage
 
 
 class Team:

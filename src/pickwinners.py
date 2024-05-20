@@ -1,5 +1,6 @@
 from src.analysis.pitching.pitchingevaluation import *
 from src.analysis.batting.battingevaluation import *
+from src.analysis.vs.vsevaluation import evaluate_vs_matchup
 from src.common.util import *
 from src.connector.sportsbook import *
 from src.connector.stats import *
@@ -20,9 +21,10 @@ def main(event, context):
                 adv_score = AdvantageScore(0, 0)
                 adv_score = evaluate_pitching_matchup(adv_score, game_data)
                 adv_score = evaluate_hitting_matchup(adv_score, game_data)
+                adv_score = evaluate_vs_matchup(adv_score, game_data)
                 winners.append(select_winner(adv_score, game_data, odds_data))
 
     # write_csv(winners)
     # print_csv(winners)
-    # print_str(winners)
-    post_to_slack(winners)
+    print_str(winners)
+    # post_to_slack(winners)

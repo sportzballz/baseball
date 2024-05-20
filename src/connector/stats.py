@@ -30,3 +30,18 @@ def get_last_game_batting_totals(team_id):
         return last_boxscore['homeBattingTotals']
     else:
         return last_boxscore['awayBattingTotals']
+
+
+def get_game(game_id):
+    return statsapi.boxscore_data(game_id)
+
+
+def get_vs_game_ids(home, away):
+    game_id_list = []
+    # year = date.today().year
+    # start_date = f'04/01/{year}'
+    # games = statsapi.schedule(start_date=start_date, end_date=date.today(), team=home, opponent=away)
+    # for game in games:
+    #     game_id_list.append(game['game_id'])
+    return game_id_list
+
