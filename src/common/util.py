@@ -206,7 +206,7 @@ def post_to_slack(winners):
     winner_str = f"{today}\n"
     for winner in winners:
         if winner.winning_team != '-':
-            winner_str = winner_str + winner.to_string()
+            winner_str = winner_str + winner.get_string()
     slack.post(winner_str)
 
 
