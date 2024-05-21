@@ -43,3 +43,9 @@ class AdvantageScore:
     def __init__(self, home: int = 0, away: int = 0):
         self.home = home
         self.away = away
+
+
+class WEIGHT:
+    def __init__(self, weight: int, lower_is_better: bool):
+        self.weight = weight
+        self.lower_is_better = lower_is_better

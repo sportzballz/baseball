@@ -109,17 +109,17 @@ def get_teams_list():
     return teams_list
 
 
-def get_stat(team, stat):
+def get_stat(team, stat, weight=1.0):
     try:
-        return float(team.get(stat))
+        return float(team.get(stat)) * float(weight)
     except Exception:
         return 0.0
 
 
-def evaluate_stat(adv_score, home, away, stat, lower_is_better=False):
-    home_stat = get_stat(home, stat)
-    away_stat = get_stat(away, stat)
-    if lower_is_better:
+def evaluate_stat(adv_score, home, away, stat, weight):
+    home_stat = get_stat(home, stat, weight.weight)
+    away_stat = get_stat(away, stat, weight.weight)
+    if weight.lower_is_better:
         if home_stat < away_stat:
             return increase_home_advantage(adv_score)
         elif away_stat < home_stat:
@@ -138,22 +138,50 @@ def evaluate_stat(adv_score, home, away, stat, lower_is_better=False):
 def get_lineup_profile(lineup):
     lineup_profile = []
     for player in lineup[1:]:
-        lineup_profile.append(statsapi.player_stat_data(player['personId'], group="[hitting]", type="season", sportId=1))
+        lineup_profile.append(
+            statsapi.player_stat_data(player['personId'], group="[hitting]", type="season", sportId=1))
     return lineup_profile
 
 
-def get_lineup_weighted_stat(lineup, stat):
+def get_standard_weighted_stat(lineup, stat1, weight):
     weighted_avg = 0.0
     for player in lineup:
-        abs = player['stats'][0]['stats']['atBats']
-        s = player['stats'][0]['stats'][stat]
-        weighted_avg += float(abs) * float(s)
+        s = player['stats'][0]['stats'][stat1]
+        weighted_avg += float(weight) * float(s)
     return weighted_avg
 
 
-def evaluate_weighted_stat(adv_score, home, away, stat, lower_is_better=False):
-    home_weighted_avg = get_lineup_weighted_stat(home, stat)
-    away_weighted_avg = get_lineup_weighted_stat(away, stat)
+def get_player_weighted_stat(lineup, stat1, stat2):
+    weighted_avg = 0.0
+    for player in lineup:
+        ab = player['stats'][0]['stats'][stat2]
+        s = player['stats'][0]['stats'][stat1]
+        weighted_avg += float(ab) * float(s)
+    return weighted_avg
+
+
+def evaluate_player_weighted_stat(adv_score, home, away, stat1, stat2, lower_is_better=False):
+    home_weighted_avg = get_player_weighted_stat(home, stat1, stat2)
+    away_weighted_avg = get_player_weighted_stat(away, stat1, stat2)
+    if lower_is_better:
+        if home_weighted_avg < away_weighted_avg:
+            return increase_home_advantage(adv_score)
+        elif away_weighted_avg < home_weighted_avg:
+            return increase_away_advantage(adv_score)
+        else:
+            return adv_score
+    else:
+        if home_weighted_avg > away_weighted_avg:
+            return increase_home_advantage(adv_score)
+        elif away_weighted_avg > home_weighted_avg:
+            return increase_away_advantage(adv_score)
+        else:
+            return adv_score
+
+
+def evaluate_standard_weighted_stat(adv_score, home, away, stat1, weight, lower_is_better=False):
+    home_weighted_avg = get_standard_weighted_stat(home, stat1, weight)
+    away_weighted_avg = get_standard_weighted_stat(away, stat1, weight)
     if lower_is_better:
         if home_weighted_avg < away_weighted_avg:
             return increase_home_advantage(adv_score)
@@ -214,7 +242,8 @@ def select_winner(adv_score, game_data, odds_data):
     try:
         game_date = game_data['gameData']['datetime']['officialDate']
         if adv_score.home > adv_score.away:
-            confidence = '{:1.3f}'.format(round((adv_score.home - adv_score.away) / (adv_score.home + adv_score.away), 3))
+            confidence = '{:1.3f}'.format(
+                round((adv_score.home - adv_score.away) / (adv_score.home + adv_score.away), 3))
             data_points = f"{adv_score.home}/{adv_score.home + adv_score.away}"
             winning_team = game_data['gameData']['teams']['home']['name']
             losing_team = game_data['gameData']['teams']['away']['name']
@@ -226,10 +255,13 @@ def select_winner(adv_score, game_data, odds_data):
                         odds = result['odds'].pop(0)['moneyline']['current']['homeOdds']
                     else:
                         odds = 0
-                    return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, odds, confidence, data_points)
-            return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, 0, confidence, data_points)
+                    return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, odds,
+                                      confidence, data_points)
+            return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, 0, confidence,
+                              data_points)
         elif adv_score.away > adv_score.home:
-            confidence = '{:1.3f}'.format(round((adv_score.away - adv_score.home) / (adv_score.away + adv_score.home), 3))
+            confidence = '{:1.3f}'.format(
+                round((adv_score.away - adv_score.home) / (adv_score.away + adv_score.home), 3))
             data_points = f"{adv_score.away}/{adv_score.home + adv_score.away}"
             winning_team = game_data['gameData']['teams']['away']['name']
             losing_team = game_data['gameData']['teams']['home']['name']
@@ -241,8 +273,10 @@ def select_winner(adv_score, game_data, odds_data):
                         odds = result['odds'].pop(0)['moneyline']['current']['awayOdds']
                     else:
                         odds = 0
-                    return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, odds, confidence, data_points)
-            return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, 0, confidence, data_points)
+                    return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, odds,
+                                      confidence, data_points)
+            return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, 0, confidence,
+                              data_points)
         else:
             away_team = game_data['gameData']['teams']['away']['name']
             home_team = game_data['gameData']['teams']['home']['name']
@@ -251,4 +285,3 @@ def select_winner(adv_score, game_data, odds_data):
     except Exception as e:
         print(e)
         return Prediction('-', '-', '-', '-', game_date, 0, 0, 0)
-

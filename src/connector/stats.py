@@ -6,8 +6,8 @@ def get_pitcher_stats(player_id):
     return statsapi.player_stat_data(personId=player_id, group='pitching')
 
 
-def get_todays_games(team_id):
-    return statsapi.schedule(date=date.today(), team=team_id)
+def get_todays_games(team_id, day):
+    return statsapi.schedule(date=day, team=team_id)
 
 
 def get_team_data(team_id):

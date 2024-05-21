@@ -10,8 +10,9 @@ def main(event, context):
     teams = get_teams_list()
     odds_data = get_odds()
     winners = []
+    day = date.today()
     for team in teams:
-        todays_games = get_todays_games(team.id)
+        todays_games = get_todays_games(team.id, day)
         if len(todays_games) > 0:
             todays_game = todays_games.pop(0)
             game_id = todays_game['game_id']
@@ -26,5 +27,5 @@ def main(event, context):
 
     # write_csv(winners)
     # print_csv(winners)
-    print_str(winners)
-    # post_to_slack(winners)
+    # print_str(winners)
+    post_to_slack(winners)
