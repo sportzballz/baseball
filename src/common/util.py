@@ -2,6 +2,7 @@ import statsapi
 from src.common.objects import *
 from datetime import date
 from src.connector import slack
+from src.connector.stats import *
 
 
 def get_teams():
@@ -134,12 +135,17 @@ def evaluate_stat(adv_score, home, away, stat, weight):
         else:
             return adv_score
 
-
 def get_lineup_profile(lineup):
     lineup_profile = []
     for player in lineup[1:]:
         lineup_profile.append(
             statsapi.player_stat_data(player['personId'], group="[hitting]", type="season", sportId=1))
+    return lineup_profile
+
+def get_lineup_profile_by_date(lineup, d):
+    lineup_profile = []
+    for player in lineup[1:]:
+        lineup_profile.append(get_hitter_stats_by_date(player['personId'], d))
     return lineup_profile
 
 
@@ -151,16 +157,23 @@ def get_standard_weighted_stat(lineup, stat1, weight):
     return weighted_avg
 
 
-def get_player_weighted_stat(lineup, stat1, stat2):
+def get_player_weighted_stat(lineup, stat1, stat2, test=False):
     weighted_avg = 0.0
     for player in lineup:
-        ab = player['stats'][0]['stats'][stat2]
-        s = player['stats'][0]['stats'][stat1]
-        weighted_avg += float(ab) * float(s)
+        try:
+            if test:
+                ab = player['stats'][0]['splits'][0]['stat'][stat2]
+                s = player['stats'][0]['splits'][0]['stat'][stat1]
+            else:
+                ab = player['stats'][0]['stats'][stat2]
+                s = player['stats'][0]['stats'][stat1]
+            weighted_avg += float(ab) * float(s)
+        except Exception:
+            pass
     return weighted_avg
 
 
-def evaluate_player_weighted_stat(adv_score, home, away, stat1, stat2, lower_is_better=False):
+def evaluate_player_weighted_stat(adv_score, home, away, stat1, stat2, lower_is_better=False, test=False):
     home_weighted_avg = get_player_weighted_stat(home, stat1, stat2)
     away_weighted_avg = get_player_weighted_stat(away, stat1, stat2)
     if lower_is_better:

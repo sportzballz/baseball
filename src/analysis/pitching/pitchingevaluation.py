@@ -3,14 +3,22 @@ from src.common.util import *
 from src.common.weights import *
 
 
-def evaluate_pitching_matchup(adv_score, game_data):
+def evaluate_pitching_matchup(adv_score, game_data, test=False):
     try:
         away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
         home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
-        away_pitcher = get_pitcher_stats(away_pitcher_id)
-        home_pitcher = get_pitcher_stats(home_pitcher_id)
-        home_pitcher_stats = home_pitcher.get('stats').pop(0).get('stats')
-        away_pitcher_stats = away_pitcher.get('stats').pop(0).get('stats')
+
+        if test:
+
+            away_pitcher = get_pitcher_stats_by_date(away_pitcher_id, game_data['gameData']['datetime']['officialDate'])
+            home_pitcher = get_pitcher_stats_by_date(home_pitcher_id, game_data['gameData']['datetime']['officialDate'])
+            home_pitcher_stats = home_pitcher.get('stats').pop(0).get('splits').pop(0).get('stat')
+            away_pitcher_stats = away_pitcher.get('stats').pop(0).get('splits').pop(0).get('stat')
+        else:
+            away_pitcher = get_pitcher_stats(away_pitcher_id)
+            home_pitcher = get_pitcher_stats(home_pitcher_id)
+            home_pitcher_stats = home_pitcher.get('stats').pop(0).get('stats')
+            away_pitcher_stats = away_pitcher.get('stats').pop(0).get('stats')
 
         adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'whip', WHIP_WEIGHT)
         adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'winPercentage', WIN_PERCENTAGE_WEIGHT)
@@ -21,12 +29,12 @@ def evaluate_pitching_matchup(adv_score, game_data):
         adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'runsScoredPer9', RUNS_SCORED_PER_9_WEIGHT)
         adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'homeRunsPer9', HOME_RUNS_PER_9_WEIGHT)
         adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'stolenBasePercentage', STOLEN_BASE_PERCENTAGE_WEIGHT)
-        adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'groundIntoDoublePlan', GROUND_INTO_DOUBLE_PLAY_WEIGHT)
+        adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'groundIntoDoublePlay', GROUND_INTO_DOUBLE_PLAY_WEIGHT)
         adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'era', ERA_WEIGHT)
         adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'completeGames', COMPLETE_GAMES_WEIGHT)
         adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'shutouts', SHUTOUTS_WEIGHT)
         adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'strikePercentage', STRIKE_PERCENTAGE_WEIGHT)
-        adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'hitBatsman', HIT_BATSMAN_WEIGHT)
+        adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'hitBatsmen', HIT_BATSMAN_WEIGHT)
         adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'balks', BALKS_WEIGHT)
         adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'wildPitches', WILD_PITCHES_WEIGHT)
         adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'pickoffs', PICKOFFS_WEIGHT)
