@@ -9,8 +9,8 @@ def evaluate_vs_matchup(adv_score, game_data):
         home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
         away_pitcher = get_pitcher_stats(away_pitcher_id)
         home_pitcher = get_pitcher_stats(home_pitcher_id)
-        home_pitcher_stats = home_pitcher.get('stats').pop(0).get('stats')
-        away_pitcher_stats = away_pitcher.get('stats').pop(0).get('stats')
+        home_pitcher_stats = home_pitcher['stats'][0]['stats']
+        away_pitcher_stats = away_pitcher['stats'][0]['stats']
 
         away_team_id = game_data['gameData']['teams']['away']['id']
         home_team_id = game_data['gameData']['teams']['home']['id']

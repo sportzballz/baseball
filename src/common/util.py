@@ -173,7 +173,7 @@ def get_player_weighted_stat(lineup, stat1, stat2, test=False):
     return weighted_avg
 
 
-def evaluate_player_weighted_stat(adv_score, home, away, stat1, stat2, lower_is_better=False, test=False):
+def evaluate_player_weighted_stat(adv_score, home, away, stat1, stat2, lower_is_better=False):
     home_weighted_avg = get_player_weighted_stat(home, stat1, stat2)
     away_weighted_avg = get_player_weighted_stat(away, stat1, stat2)
     if lower_is_better:
@@ -242,6 +242,12 @@ def print_str(winners):
             winner.print_string()
 
 
+def post_to_slack_backtest(tally, year, team):
+    today = str(date.today())
+    winner_str = f"{year} {team} picks: {tally}\n"
+    slack.post(winner_str)
+
+
 def post_to_slack(winners):
     today = str(date.today())
     winner_str = f"{today}\n"
@@ -265,7 +271,7 @@ def select_winner(adv_score, game_data, odds_data):
             for result in odds_data['results']:
                 if result['teams']['home']['team'] == winning_team:
                     if len(result['odds']) > 0:
-                        odds = result['odds'].pop(0)['moneyline']['current']['homeOdds']
+                        odds = result['odds'][0]['moneyline']['current']['homeOdds']
                     else:
                         odds = 0
                     return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, odds,
@@ -283,7 +289,7 @@ def select_winner(adv_score, game_data, odds_data):
             for result in odds_data['results']:
                 if result['teams']['away']['team'] == winning_team:
                     if len(result['odds']) > 0:
-                        odds = result['odds'].pop(0)['moneyline']['current']['awayOdds']
+                        odds = result['odds'][0]['moneyline']['current']['awayOdds']
                     else:
                         odds = 0
                     return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, odds,

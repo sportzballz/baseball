@@ -15,7 +15,7 @@ def main(event, context):
     for team in teams:
         todays_games = get_todays_games(team.id, day)
         if len(todays_games) > 0:
-            todays_game = todays_games.pop(0)
+            todays_game = todays_games[0]
             game_id = todays_game['game_id']
             game_data = statsapi.get("game", {"gamePk": game_id})
 
