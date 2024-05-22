@@ -8,6 +8,7 @@ from src.connector.stats import *
 
 
 def main(event, context):
+    print(event)
     year = event['year']
     team_name = event['team_name']
     team_id = event['team_id']
