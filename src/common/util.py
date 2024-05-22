@@ -245,7 +245,7 @@ def print_str(winners):
 def post_to_slack_backtest(tally, year, team):
     today = str(date.today())
     winner_str = f"{year} {team} picks: {tally}\n"
-    slack.post(winner_str)
+    slack.post_backtest(winner_str)
 
 
 def post_to_slack(winners):
