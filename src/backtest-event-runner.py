@@ -1,33 +1,34 @@
 import boto3
+from src.common.util import *
 
 # Create SQS client
 sqs = boto3.client('sqs', region_name='us-east-1')
 
 queue_url = 'https://sqs.us-east-1.amazonaws.com/716418748259/baseball-backtest'
 
-# Send message to SQS queue
-response = sqs.send_message(
-    QueueUrl=queue_url,
-    DelaySeconds=10,
-    MessageAttributes={
-        'year': {
-            'DataType': 'String',
-            'StringValue': '2023'
+year = '2022'
+teams = get_teams_list()
+
+for team in teams:
+
+    # Send message to SQS queue
+    response = sqs.send_message(
+        QueueUrl=queue_url,
+        DelaySeconds=10,
+        MessageAttributes={
+            'year': {
+                'DataType': 'String',
+                'StringValue': year
+            },
+            'team_name': {
+                'DataType': 'String',
+                'StringValue': team.name
+            },
+            'team_id': {
+                'DataType': 'String',
+                'StringValue': str(team.id)
+            }
         },
-        'team_name': {
-            'DataType': 'String',
-            'StringValue': 'Philadelphia Phillies'
-        },
-        'team_id': {
-            'DataType': 'String',
-            'StringValue': '143'
-        }
-    },
-    MessageBody=(
-        'Phils'
-        '2023'
+        MessageBody=(team.name + year)
     )
-
-)
-
-print(response['MessageId'])
+    print(response['MessageId'])

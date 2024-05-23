@@ -82,7 +82,7 @@ def get_teams_list():
         Team('bos', 111, "Boston Red Sox"),
         Team('chc', 112, "Chicago Cubs"),
         Team('chw', 145, "Chicago White Sox"),
-        Team('cin', 113, "Cincinatti Reds"),
+        Team('cin', 113, "Cincinnati Reds"),
         Team('cle', 114, "Cleveland Guardians"),
         Team('col', 115, "Colorado Rockies"),
         Team('det', 116, "Detroit Tigers"),
