@@ -27,12 +27,16 @@ def evaluate_pitching_matchup(adv_score, game_data):
     away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
     home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
 
-    away_pitcher = get_pitcher_stats(away_pitcher_id)
-    home_pitcher = get_pitcher_stats(home_pitcher_id)
+    try :
+        away_pitcher = get_pitcher_stats(away_pitcher_id)
+        home_pitcher = get_pitcher_stats(home_pitcher_id)
 
-    home_pitcher_stats = home_pitcher['stats'][0]['stats']
-    away_pitcher_stats = away_pitcher['stats'][0]['stats']
-
+        home_pitcher_stats = home_pitcher['stats'][0]['stats']
+        away_pitcher_stats = away_pitcher['stats'][0]['stats']
+    except Exception as e:
+        d = game_data['gameData']['datetime']['officialDate']
+        print(f'Unable to get Pitcher Stats: {d} {e}')
+        return adv_score
     return evaluate(adv_score, home_pitcher_stats, away_pitcher_stats)
 
 
