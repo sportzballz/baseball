@@ -9,9 +9,9 @@ from src.connector.stats import *
 
 def main(event, context):
     print(event)
-    year = event['year']
-    team_name = event['team_name']
-    team_id = event['team_id']
+    year = event['Records'][0]['messageAttributes']['year']['stringValue']
+    team_name = event['Records'][0]['messageAttributes']['team_name']['stringValue']
+    team_id = event['Records'][0]['messageAttributes']['team_id']['stringValue']
 
     odds_data = {"results": []}
 
@@ -27,14 +27,13 @@ def main(event, context):
             for todays_game in team_schedule:
                 game_id = todays_game['game_id']
                 game_data = statsapi.get("game", {"gamePk": game_id})
-                if todays_game['game_type'] == 'R' and todays_game['away_name'] == team_name:
+                if todays_game['game_type'] == 'R' and todays_game['home_name'] == team_name:
                     try:
                         adv_score = AdvantageScore(0, 0)
                         adv_score = evaluate_pitching_matchup_backtest(adv_score, game_data)
                         adv_score = evaluate_hitting_matchup_backtest(adv_score, yesterdays_game_data)
                         # adv_score = evaluate_vs_matchup(adv_score, game_data)
-                        # projected_winner = select_winner(adv_score, game_data, odds_data).winning_team
-                        projected_winner = todays_game['home_name']
+                        projected_winner = select_winner(adv_score, game_data, odds_data).winning_team
                         actual_winner = todays_game['winning_team']
                         d = game_data['gameData']['datetime']['officialDate']
                         print(

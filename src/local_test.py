@@ -30,12 +30,16 @@ def test(run_type, year):
                 team_schedule = get_schedule_by_year(team.id, year)
                 yesterdays_game_id = team_schedule[0]['game_id']
                 yesterdays_game_data = statsapi.get("game", {"gamePk": yesterdays_game_id})
+                # cm = get_game_contextMetrics(yesterdays_game_id)
+
                 try:
                     for todays_game in team_schedule:
                         game_id = todays_game['game_id']
                         game_data = statsapi.get("game", {"gamePk": game_id})
                         if todays_game['game_type'] == 'R' and todays_game['home_name'] == team.name:
                             try:
+                                wp = get_game_winProbability(game_id)
+                                print(wp)
                                 adv_score = AdvantageScore(0, 0)
                                 adv_score = evaluate_pitching_matchup_backtest(adv_score, game_data)
                                 adv_score = evaluate_hitting_matchup_backtest(adv_score, yesterdays_game_data)

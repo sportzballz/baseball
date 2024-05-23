@@ -9,14 +9,16 @@ def get_pitcher_stats(player_id):
 def get_pitcher_stats_by_date(player_id, d):
     year = d[:4]
     s = f"{year}-01-01"
-    retval = statsapi.get("stats", {"stats": "byDateRange", "personId": player_id, "group": "pitching", "sportIds": "1", "startDate": s, "endDate": d}, force=True)
+    retval = statsapi.get("stats", {"stats": "byDateRange", "personId": player_id, "group": "pitching", "sportIds": "1",
+                                    "startDate": s, "endDate": d}, force=True)
     return retval
 
 
 def get_hitter_stats_by_date(player_id, d):
     year = d[:4]
     s = f"{year}-01-01"
-    retval = statsapi.get("stats", {"stats": "byDateRange", "personId": player_id, "group": "hitting", "sportIds": "1", "startDate": s, "endDate": d}, force=True)
+    retval = statsapi.get("stats", {"stats": "byDateRange", "personId": player_id, "group": "hitting", "sportIds": "1",
+                                    "startDate": s, "endDate": d}, force=True)
     return retval
 
 
@@ -29,6 +31,7 @@ def get_schedule_by_year(team_id, year):
     end = f"{year}-12-31"
     retval = statsapi.schedule(start_date=start, end_date=end, team=team_id)
     return retval
+
 
 def get_team_data(team_id):
     return statsapi.get("team", {"teamId": team_id})
@@ -81,3 +84,10 @@ def get_vs_game_ids(home, away):
     #     game_id_list.append(game['game_id'])
     return game_id_list
 
+
+def get_game_contextMetrics(game_pk):
+    return statsapi.get("game_contextMetrics", {"gamePk": game_pk})
+
+
+def get_game_winProbability(game_pk):
+    return statsapi.get("game_winProbability", {"gamePk": game_pk})
