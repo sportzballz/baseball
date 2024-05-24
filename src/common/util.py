@@ -39,38 +39,10 @@ def get_teams():
 
 
 def get_teams_dict():
-    teams_dict = {
-        'ari': 109,
-        'atl': 144,
-        'bal': 110,
-        'bos': 111,
-        'chc': 112,
-        'chw': 145,
-        'cin': 113,
-        'cle': 114,
-        'col': 115,
-        'det': 116,
-        'hou': 117,
-        'kc': 118,
-        'laa': 108,
-        'lad': 119,
-        'mia': 146,
-        'mil': 158,
-        'min': 142,
-        'nym': 121,
-        'nyy': 147,
-        'oak': 133,
-        'phi': 143,
-        'pit': 134,
-        'sd': 135,
-        'sf': 137,
-        'sea': 136,
-        'stl': 138,
-        'tb': 139,
-        'tex': 140,
-        'tor': 141,
-        'wsh': 120
-    }
+    teams_dict = {}
+    teams = get_teams_list()
+    for team in teams:
+        teams_dict[team.name] = team.abbreviation
     return teams_dict
 
 
@@ -87,7 +59,7 @@ def get_teams_list():
         Team('col', 115, "Colorado Rockies"),
         Team('det', 116, "Detroit Tigers"),
         Team('hou', 117, "Houston Astros"),
-        Team('kc', 118, "Kansas City Royals"),
+        Team('kc ', 118, "Kansas City Royals"),
         Team('laa', 108, "Los Angeles Angels"),
         Team('lad', 119, "Los Angeles Dodgers"),
         Team('mia', 146, "Miami Marlins"),
@@ -98,11 +70,11 @@ def get_teams_list():
         Team('oak', 133, "Oakland Athletics"),
         Team('phi', 143, "Philadelphia Phillies"),
         Team('pit', 134, "Pittsburgh Pirates"),
-        Team('sd', 135, "San Diego Padres"),
-        Team('sf', 137, "San Francisco Giants"),
+        Team('sd ', 135, "San Diego Padres"),
+        Team('sf ', 137, "San Francisco Giants"),
         Team('sea', 136, "Seattle Mariners"),
         Team('stl', 138, "St. Louis Cardinals"),
-        Team('tb', 139, "Tampa Bay Rays"),
+        Team('tb ', 139, "Tampa Bay Rays"),
         Team('tex', 140, "Texas Rangers"),
         Team('tor', 141, "Toronto Blue Jays"),
         Team('wsh', 120, "Washington Nationals")
@@ -135,12 +107,14 @@ def evaluate_stat(adv_score, home, away, stat, weight):
         else:
             return adv_score
 
+
 def get_lineup_profile(lineup):
     lineup_profile = []
     for player in lineup[1:]:
         lineup_profile.append(
             statsapi.player_stat_data(player['personId'], group="[hitting]", type="season", sportId=1))
     return lineup_profile
+
 
 def get_lineup_profile_by_date(lineup, d):
     lineup_profile = []
@@ -258,14 +232,15 @@ def post_to_slack(winners):
 
 
 def select_winner(adv_score, game_data, odds_data):
+    teams_dict = get_teams_dict()
     try:
         game_date = game_data['gameData']['datetime']['officialDate']
         if adv_score.home > adv_score.away:
             confidence = '{:1.3f}'.format(
                 round((adv_score.home - adv_score.away) / (adv_score.home + adv_score.away), 3))
             data_points = f"{adv_score.home}/{adv_score.home + adv_score.away}"
-            winning_team = game_data['gameData']['teams']['home']['name']
-            losing_team = game_data['gameData']['teams']['away']['name']
+            winning_team = teams_dict[game_data['gameData']['teams']['home']['name']]
+            losing_team = teams_dict[game_data['gameData']['teams']['away']['name']]
             winning_pitcher = game_data['gameData']['probablePitchers']['home']['fullName']
             losing_pitcher = game_data['gameData']['probablePitchers']['away']['fullName']
             for result in odds_data['results']:
@@ -282,8 +257,8 @@ def select_winner(adv_score, game_data, odds_data):
             confidence = '{:1.3f}'.format(
                 round((adv_score.away - adv_score.home) / (adv_score.away + adv_score.home), 3))
             data_points = f"{adv_score.away}/{adv_score.home + adv_score.away}"
-            winning_team = game_data['gameData']['teams']['away']['name']
-            losing_team = game_data['gameData']['teams']['home']['name']
+            winning_team = teams_dict[game_data['gameData']['teams']['away']['name']]
+            losing_team = teams_dict[game_data['gameData']['teams']['home']['name']]
             winning_pitcher = game_data['gameData']['probablePitchers']['away']['fullName']
             losing_pitcher = game_data['gameData']['probablePitchers']['home']['fullName']
             for result in odds_data['results']:
@@ -297,8 +272,8 @@ def select_winner(adv_score, game_data, odds_data):
             return Prediction(winning_team, losing_team, winning_pitcher, losing_pitcher, game_date, 0, confidence,
                               data_points)
         else:
-            away_team = game_data['gameData']['teams']['away']['name']
-            home_team = game_data['gameData']['teams']['home']['name']
+            away_team = teams_dict[game_data['gameData']['teams']['away']['name']]
+            home_team = teams_dict[game_data['gameData']['teams']['home']['name']]
             print(f"No advantage in {away_team} at {home_team} on {game_date}")
             return Prediction('-', '-', '-', '-', game_date, 0, 0, 0)
     except Exception as e:
