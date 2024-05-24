@@ -4,12 +4,12 @@ from src.common.weights import *
 
 
 def evaluate_pitching_matchup_backtest(adv_score, game_data):
-    away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
-    home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
-
-    away_pitcher = get_pitcher_stats_by_date(away_pitcher_id, game_data['gameData']['datetime']['officialDate'])
-    home_pitcher = get_pitcher_stats_by_date(home_pitcher_id, game_data['gameData']['datetime']['officialDate'])
     try:
+        away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
+        home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
+
+        away_pitcher = get_pitcher_stats_by_date(away_pitcher_id, game_data['gameData']['datetime']['officialDate'])
+        home_pitcher = get_pitcher_stats_by_date(home_pitcher_id, game_data['gameData']['datetime']['officialDate'])
         if len(home_pitcher['stats']) == 0 or len(away_pitcher['stats']) == 0:
             return adv_score
         elif len(home_pitcher['stats'][0]['splits']) == 0 or len(away_pitcher['stats'][0]['splits']) == 0:
@@ -24,10 +24,9 @@ def evaluate_pitching_matchup_backtest(adv_score, game_data):
 
 
 def evaluate_pitching_matchup(adv_score, game_data):
-    away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
-    home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
-
-    try :
+    try:
+        away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
+        home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
         away_pitcher = get_pitcher_stats(away_pitcher_id)
         home_pitcher = get_pitcher_stats(home_pitcher_id)
 

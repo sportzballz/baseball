@@ -6,12 +6,12 @@ sqs = boto3.client('sqs', region_name='us-east-1')
 
 queue_url = 'https://sqs.us-east-1.amazonaws.com/716418748259/baseball-backtest'
 
-year = '2022'
+year = '2024'
 teams = get_teams_list()
 
 for team in teams:
 
-    # Send message to SQS queue
+    # Send message to SQS queue180
     response = sqs.send_message(
         QueueUrl=queue_url,
         DelaySeconds=10,
