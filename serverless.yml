@@ -32,6 +32,7 @@ functions:
     timeout: 900
     environment:
       SPORTSPAGE_API_KEY: ${env:SPORTSPAGE_API_KEY}
+      SLACK_TOKEN: ${env:SLACK_USER_TOKEN}
 plugins:
   - serverless-python-requirements
 
