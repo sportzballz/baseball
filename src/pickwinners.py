@@ -9,7 +9,6 @@ from src.connector.stats import *
 def main(event, context):
     teams = get_teams_list()
     odds_data = get_odds()
-    print(odds_data)
     #odds_data = {"results": []}
     winners = []
     day = date.today()
