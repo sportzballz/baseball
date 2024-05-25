@@ -20,7 +20,7 @@ def main(event, context):
             game_data = statsapi.get("game", {"gamePk": game_id})
 
             if todays_game['home_name'] == team.name:
-                adv_score = AdvantageScore(0, 0)
+                adv_score = AdvantageScore(home=1, away=0)#homfield advantage
                 adv_score = evaluate_pitching_matchup(adv_score, game_data)
                 adv_score = evaluate_hitting_matchup(adv_score, game_data)
                 # adv_score = evaluate_vs_matchup(adv_score, game_data)
