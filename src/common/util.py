@@ -240,7 +240,7 @@ def select_winner(adv_score, game_data, odds_data):
                 round((adv_score.home - adv_score.away) / (adv_score.home + adv_score.away), 3))
             data_points = f"{adv_score.home}/{adv_score.home + adv_score.away}"
             winning_team = game_data['gameData']['teams']['home']['name']
-            winning_abbrv = teams_dict[winning_team]
+            winning_abbrv = teams_dict[winning_team] + "(h)"
             losing_team = game_data['gameData']['teams']['away']['name']
             losing_abbrv = teams_dict[losing_team]
             winning_pitcher = game_data['gameData']['probablePitchers']['home']['fullName']
@@ -262,7 +262,7 @@ def select_winner(adv_score, game_data, odds_data):
             winning_team = game_data['gameData']['teams']['away']['name']
             winning_abbrv = teams_dict[winning_team]
             losing_team = game_data['gameData']['teams']['home']['name']
-            losing_abbrv = teams_dict[losing_team]
+            losing_abbrv = teams_dict[losing_team] + "(h)"
             winning_pitcher = game_data['gameData']['probablePitchers']['away']['fullName']
             losing_pitcher = game_data['gameData']['probablePitchers']['home']['fullName']
             for result in odds_data['results']:
@@ -279,7 +279,7 @@ def select_winner(adv_score, game_data, odds_data):
             away_team = game_data['gameData']['teams']['away']['name']
             away_abbrv = teams_dict[away_team]
             home_team = game_data['gameData']['teams']['home']['name']
-            home_abbrv = teams_dict[home_team]
+            home_abbrv = teams_dict[home_team] + "(h)"
             print(f"No advantage in {away_abbrv} at {home_abbrv} on {game_date}")
             return Prediction('-', '-', '-', '-', game_date, 0, 0, 0)
     except Exception as e:
