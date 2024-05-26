@@ -1,4 +1,5 @@
 import datetime
+import os
 
 from src.analysis.pitching.pitchingevaluation import *
 from src.analysis.batting.battingevaluation import *
@@ -9,6 +10,7 @@ from src.connector.stats import *
 
 def main(event, context):
     print(event)
+    model = os.environ['MODEL']
     year = event['Records'][0]['messageAttributes']['year']['stringValue']
     team_name = event['Records'][0]['messageAttributes']['team_name']['stringValue']
     team_id = event['Records'][0]['messageAttributes']['team_id']['stringValue']

@@ -3,7 +3,7 @@ from src.common.util import *
 from src.analysis.vs.vsutil import *
 
 
-def evaluate_vs_matchup(adv_score, game_data):
+def evaluate_vs_matchup(adv_score, game_data, model):
     try:
         away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
         home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
@@ -24,13 +24,7 @@ def evaluate_vs_matchup(adv_score, game_data):
 
         game_ids = get_vs_game_ids(home_team_id, away_team_id)
 
-        adv_score = head_to_head_record(home_team_id, away_team_id, game_ids, adv_score)
-
-
-
-        ## last 10 games record head to head
-        ## Season stats Lineup against pitcher
-        ## Lineup against handedness
+        return model.vs.evaluate(home_team_id, away_team_id, game_ids, adv_score)
 
     except Exception as e:
         print(e)

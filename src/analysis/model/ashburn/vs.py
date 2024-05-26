@@ -1,7 +1,7 @@
 from src.connector.stats import *
 
 
-def head_to_head_record(home_team_id, away_team_id, game_ids, adv_score):
+def evaluate(home_team_id, away_team_id, game_ids, adv_score):
     home_wins = 0
     away_wins = 0
 
@@ -23,4 +23,11 @@ def head_to_head_record(home_team_id, away_team_id, game_ids, adv_score):
     else:
         adv_score.away += 1
 
+
+
+        ## last 10 games record head to head
+        ## Season stats Lineup against pitcher
+        ## Lineup against handedness
     return adv_score
+
+

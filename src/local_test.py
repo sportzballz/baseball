@@ -1,6 +1,7 @@
 import datetime
+import os
 
-from src.analysis.pitching.pitchingevaluation import *
+from src.analysis.pitchingevaluation import *
 from src.analysis.battingevaluation import *
 from src.common.util import *
 from src.connector.stats import *
@@ -10,7 +11,7 @@ from datetime import datetime
 
 
 def test(run_type, year):
-
+    model = os.environ['MODEL']
     if run_type == 'today':
         main(None, None)
     else:
