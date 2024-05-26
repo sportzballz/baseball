@@ -1,8 +1,7 @@
 import datetime
 
 from src.analysis.pitching.pitchingevaluation import *
-from src.analysis.batting.battingevaluation import *
-from src.analysis.vs.vsevaluation import evaluate_vs_matchup
+from src.analysis.battingevaluation import *
 from src.common.util import *
 from src.connector.stats import *
 from src.pickwinners import main
