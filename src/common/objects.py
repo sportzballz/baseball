@@ -15,9 +15,8 @@ class Prediction:
 
     def to_string(self):
         if self.odds > 0:
-            return f"+{self.odds} {self.winning_team.upper()} over {self.losing_team.upper()} c: {self.confidence} dp: {self.data_points}\n\n"
-        else:
-            return f"{self.odds} {self.winning_team.upper()} over {self.losing_team.upper()} c: {self.confidence} dp: {self.data_points}\n\n"
+            self.odds = f"+{self.odds}"
+        return f"```{self.odds}\t{self.winning_team.upper()} over {self.losing_team.upper()}\tc: {self.confidence}\tdp: {self.data_points}```"
 
     def to_csv(self):
         print(f"{self.odds},{self.winning_team},{self.losing_team},{self.gameDate},{self.winning_pitcher}")

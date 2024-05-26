@@ -26,13 +26,13 @@ functions:
     timeout: 90
     environment:
       SPORTSPAGE_API_KEY: ${env:SPORTSPAGE_API_KEY}
-      SLACK_USER_TOKEN: ${env:SLACK_USER_TOKEN}
+      SLACK_USER_TOKEN: ${env:SLACK_TOKEN}
   baseball-backtest:
     handler: src.backtest.main
     timeout: 900
     environment:
       SPORTSPAGE_API_KEY: ${env:SPORTSPAGE_API_KEY}
-      SLACK__USER_TOKEN: ${env:SLACK_USER_TOKEN}
+      SLACK__USER_TOKEN: ${env:SLACK_TOKEN}
 plugins:
   - serverless-python-requirements
 

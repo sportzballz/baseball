@@ -223,12 +223,10 @@ def post_to_slack_backtest(tally, year, team):
 
 
 def post_to_slack(winners):
-    today = str(date.today())
-    winner_str = f"{today}\n"
+    slack.post(str(date.today()))
     for winner in winners:
         if winner.winning_team != '-':
-            winner_str = winner_str + winner.to_string()
-    slack.post(winner_str)
+            slack.post(winner.to_string())
 
 
 def select_winner(adv_score, game_data, odds_data):
