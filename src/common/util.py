@@ -223,7 +223,7 @@ def post_to_slack_backtest(tally, year, team):
 
 
 def post_to_slack(winners, model):
-    slack.post(str(date.today()))
+    slack.post(str(date.today()), model)
     for winner in winners:
         if winner.winning_team != '-':
             slack.post(winner.to_string(), model)

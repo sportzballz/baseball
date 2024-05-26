@@ -5,15 +5,16 @@ from src.analysis.pitchingevaluation import *
 from src.analysis.battingevaluation import *
 from src.common.util import *
 from src.connector.stats import *
-from src.pickwinners import main
+from src.common.pickwinners import main
 import sys
 from datetime import datetime
+import ashburn as ashburn
 
 
 def test(run_type, year):
     model = os.environ['MODEL']
     if run_type == 'today':
-        main(None, None)
+        ashburn.main(None, None)
     else:
         start_time = datetime.now()
         print(f'Start Time: {start_time}')

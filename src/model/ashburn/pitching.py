@@ -1,5 +1,5 @@
 from src.common.util import *
-from src.analysis.model.ashburn.weights import *
+from src.model.ashburn.weights import *
 
 
 def evaluate(adv_score, home_pitcher_stats, away_pitcher_stats):

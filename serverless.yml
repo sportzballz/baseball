@@ -22,7 +22,7 @@ provider:
 
 functions:
   ashburn-picks:
-    handler: src.pickwinners.main
+    handler: src.ashburn.main
     timeout: 90
     environment:
       SPORTSPAGE_API_KEY: ${env:SPORTSPAGE_API_KEY}

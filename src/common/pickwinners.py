@@ -5,11 +5,10 @@ from src.connector.sportsbook import *
 from src.connector.stats import *
 
 
-def main(event, context):
-    model = os.environ['MODEL']
+def main(model, model_hitting_fn, model_pitching_fn):
     teams = get_teams_list()
-    odds_data = get_odds()
-    #odds_data = {"results": []}
+    #odds_data = get_odds()
+    odds_data = {"results": []}
     winners = []
     day = date.today()
     for team in teams:
@@ -21,9 +20,9 @@ def main(event, context):
 
             if todays_game['home_name'] == team.name:
                 adv_score = AdvantageScore(home=1, away=0)#homfield advantage
-                adv_score = evaluate_pitching_matchup(adv_score, game_data, model)
-                adv_score = evaluate_hitting_matchup(adv_score, game_data, model)
-                # adv_score = evaluate_vs_matchup(adv_score, game_data)
+                adv_score = model_hitting_fn(adv_score, game_data, model)
+                adv_score = model_pitching_fn(adv_score, game_data, model)
+                # adv_score = model_pitching_fn(adv_score, game_data)
                 winners.append(select_winner(adv_score, game_data, odds_data))
 
     # write_csv(winners)
