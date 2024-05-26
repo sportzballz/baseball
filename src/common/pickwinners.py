@@ -1,11 +1,12 @@
 from src.common.util import *
+from src.connector.sportsbook import get_odds
 from src.connector.stats import *
 
 
 def main(model, model_hitting_fn, model_pitching_fn):
     teams = get_teams_list()
-    #odds_data = get_odds()
-    odds_data = {"results": []}
+    odds_data = get_odds()
+    #odds_data = {"results": []}
     winners = []
     day = date.today()
     for team in teams:
