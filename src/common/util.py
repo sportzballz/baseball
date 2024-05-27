@@ -224,10 +224,17 @@ def post_to_slack_backtest(tally, year, team):
 
 def post_to_slack(winners, model):
     slack.post(str(date.today()), model)
+    slack.post_todays_pick(str(date.today())+" - "+model, model)
+    highest_confidence = 0.000
+    todays_pick = []
     for winner in winners:
         if winner.winning_team != '-':
+            if float(winner.confidence) > highest_confidence
+                highest_confidence = float(winner.confidence)
+                todays_pick.append(winner)
             slack.post(winner.to_string(), model)
-
+    for pick in todays_pick:
+        slack.post_todays_pick(pick.to_string(), model)
 
 def select_winner(adv_score, game_data, odds_data):
     teams_dict = get_teams_dict()
