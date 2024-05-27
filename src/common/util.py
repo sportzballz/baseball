@@ -229,7 +229,7 @@ def post_to_slack(winners, model):
     todays_pick = []
     for winner in winners:
         if winner.winning_team != '-':
-            if float(winner.confidence) > highest_confidence
+            if float(winner.confidence) > highest_confidence:
                 highest_confidence = float(winner.confidence)
                 todays_pick.append(winner)
             slack.post(winner.to_string(), model)
