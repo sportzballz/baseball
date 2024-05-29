@@ -6,6 +6,9 @@ def post_backtest(msg: str, model: str):
     client = WebClient(token=os.environ['SLACK_TOKEN'])
     client.chat_postMessage(channel=f"#{model}-backtest", text=msg, icon_emoji=':sportzballz:', username='SportzBallz')
 
+def post_todays_pick(msg: str, model: str):
+    client = WebClient(token=os.environ['SLACK_TOKEN'])
+    client.chat_postMessage(channel=f"#todays-pick", text=msg, icon_emoji=':baseball:', username='SportzBallz')
 
 def post(msg: str, model: str):
     client = WebClient(token=os.environ['SLACK_TOKEN'])
