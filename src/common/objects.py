@@ -27,6 +27,12 @@ class Prediction:
         return f",{self.odds},{self.winning_team},{self.losing_team},{self.gameDate},{self.winning_pitcher}"
 
 
+class PredictionActual:
+    def __init__(self, prediction: Prediction, actual: str):
+        self.prediction = prediction
+        self.actual = actual
+
+
 class PitchingMatchup:
     def __init__(self, whip_advantage: int, win_percentage_advantage: int):
         self.whip_advantage = whip_advantage

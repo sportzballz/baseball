@@ -28,6 +28,13 @@ functions:
       SPORTSPAGE_API_KEY: ${env:SPORTSPAGE_API_KEY}
       SLACK_TOKEN: ${env:SLACK_TOKEN}
       MODEL: 'ashburn'
+  bowa-picks:
+    handler: src.bowa.main
+    timeout: 90
+    environment:
+      SPORTSPAGE_API_KEY: ${env:SPORTSPAGE_API_KEY}
+      SLACK_TOKEN: ${env:SLACK_TOKEN}
+      MODEL: 'bowa'
   ashburn-backtest:
     handler: src.backtest.main
     timeout: 900

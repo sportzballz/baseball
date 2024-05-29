@@ -1,5 +1,8 @@
 import statsapi
-from datetime import date
+import requests
+import json
+
+from datetime import datetime
 
 
 def get_pitcher_stats(player_id):
@@ -9,21 +12,36 @@ def get_pitcher_stats(player_id):
 def get_pitcher_stats_by_date(player_id, d):
     year = d[:4]
     s = f"{year}-01-01"
-    retval = statsapi.get("stats", {"stats": "byDateRange", "personId": player_id, "group": "pitching", "sportIds": "1",
-                                    "startDate": s, "endDate": d}, force=True)
-    return retval
+    stmp = datetime.strptime(s, "%Y-%m-%d")
+    etmp = datetime.strptime(d, "%Y-%m-%d")
+    start = stmp.strftime("%m/%d/%Y")
+    end = etmp.strftime("%m/%d/%Y")
+    url = f'https://statsapi.mlb.com/api/v1/people/{player_id}?hydrate=stats(group=[pitching],type=[byDateRange],startDate={start},endDate={end},season={year})'
+    resp = requests.get(url)
+    rjson = json.loads(resp.text)
+    return rjson['people'][0]
 
 
 def get_hitter_stats_by_date(player_id, d):
     year = d[:4]
     s = f"{year}-01-01"
-    retval = statsapi.get("stats", {"stats": "byDateRange", "personId": player_id, "group": "hitting", "sportIds": "1",
-                                    "startDate": s, "endDate": d}, force=True)
-    return retval
+    stmp = datetime.strptime(s, "%Y-%m-%d")
+    etmp = datetime.strptime(d, "%Y-%m-%d")
+    start = stmp.strftime("%m/%d/%Y")
+    end = etmp.strftime("%m/%d/%Y")
+    url = f'https://statsapi.mlb.com/api/v1/people/{player_id}?hydrate=stats(group=[hitting],type=[byDateRange],startDate={start},endDate={end},season={year})'
+    resp = requests.get(url)
+    rjson = json.loads(resp.text)
+    return rjson['people'][0]
 
 
 def get_todays_games(team_id, day):
     return statsapi.schedule(date=day, team=team_id)
+
+
+def get_schedule_by_date(d):
+    retval = statsapi.schedule(start_date=d, end_date=d)
+    return retval
 
 
 def get_schedule_by_year(team_id, year):

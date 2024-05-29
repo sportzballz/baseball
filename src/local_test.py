@@ -1,20 +1,69 @@
 import datetime
 import os
 
-from src.analysis.pitchingevaluation import *
-from src.analysis.battingevaluation import *
+from src.ashburn import *
 from src.common.util import *
 from src.connector.stats import *
 from src.common.pickwinners import main
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 import ashburn as ashburn
 
 
-def test(run_type, year):
-    model = os.environ['MODEL']
+def test(run_type, year, model):
+    model = 'ashburn'
     if run_type == 'today':
-        ashburn.main(None, None)
+        if model == 'ashburn':
+            ashburn.main(None, None)
+    elif run_type == 'one-pick':
+        start_date = date(int(year), 4, 1)
+        end_date = date(int(year), 10, 1)
+        delta = timedelta(days=1)
+        odds_data = {"results": []}
+        todays_picks = []
+        picks_of_the_day = []
+        teams_dict = get_teams_dict()
+        team_ids_dict = get_team_ids_dict()
+        winning_count = 0
+        losing_count = 0
+        while start_date <= end_date:
+            games = get_schedule_by_date(start_date.strftime("%Y-%m-%d"))
+            for game in games:
+                game_data = statsapi.get("game", {"gamePk": game['game_id']})
+                if game['game_type'] == 'R':
+                    adv_score = AdvantageScore(1, 0)
+                    adv_score = pitching_backtest(adv_score, game_data, year)
+                    adv_score = hitting_backtest(adv_score, game_data, year)
+                    projected_winner = select_winner(adv_score, game_data, odds_data)
+                    if int(game['away_score']) > int(game['home_score']):
+                        actual_winner_full_name = game['away_name']
+                        actual_winner = teams_dict[actual_winner_full_name]
+                    else:
+                        actual_winner_full_name = game['home_name']
+                        actual_winner = teams_dict[actual_winner_full_name] + '*'
+                    todays_picks.append(PredictionActual(projected_winner, actual_winner))
+            highest_confidence = 0.000
+            for pick in todays_picks:
+                if float(pick.prediction.confidence) > highest_confidence:
+                    highest_confidence = float(pick.prediction.confidence)
+                    if len(picks_of_the_day) == 0:
+                        picks_of_the_day.append(pick)
+                    else:
+                        picks_of_the_day[0] = pick
+            if picks_of_the_day[0].prediction.winning_team == picks_of_the_day[0].actual:
+                msg = f"W: Date: {start_date} Projected: {picks_of_the_day[0].prediction.winning_team} | Actual: {picks_of_the_day[0].actual} | C: {picks_of_the_day[0].prediction.confidence} | DP: {picks_of_the_day[0].prediction.data_points} "
+                post_to_slack_backtest(msg, model)
+                print(msg)
+                winning_count += 1
+            else:
+                msg = f"L: Date: {start_date} Projected: {picks_of_the_day[0].prediction.winning_team} | Actual: {picks_of_the_day[0].actual} | C: {picks_of_the_day[0].prediction.confidence} | DP: {picks_of_the_day[0].prediction.data_points} "
+                post_to_slack_backtest(msg, model)
+                print(msg)
+                losing_count += 1
+            todays_picks = []
+            picks_of_the_day = []
+            start_date += delta
+        print(f"{year}: Winning Count: {winning_count} | Losing Count: {losing_count}")
     else:
         start_time = datetime.now()
         print(f'Start Time: {start_time}')
@@ -77,4 +126,4 @@ def test(run_type, year):
         # post_to_slack(winners)
 
 
-test(sys.argv[1],sys.argv[2])
+test(sys.argv[1],sys.argv[2], sys.argv[3])

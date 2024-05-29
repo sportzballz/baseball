@@ -46,6 +46,14 @@ def get_teams_dict():
     return teams_dict
 
 
+def get_team_ids_dict():
+    teams_dict = {}
+    teams = get_teams_list()
+    for team in teams:
+        teams_dict[team.name] = team.id
+    return teams_dict
+
+
 def get_teams_list():
     teams_list = [
         Team('ari', 109, "Arizona Diamondbacks"),
@@ -108,6 +116,18 @@ def evaluate_stat(adv_score, home, away, stat, weight):
             return adv_score
 
 
+def get_last_game_data(team_id, year, current_game_id):
+    team_schedule = get_schedule_by_year(team_id, year)
+    yesterdays_game_id = team_schedule[0]['game_id']
+    for game in team_schedule:
+        if game['game_id'] == current_game_id:
+            return statsapi.get("game", {"gamePk": yesterdays_game_id})
+        else:
+            yesterdays_game_id = game['game_id']
+    print("shouldn't get here")
+    return statsapi.get("game", {"gamePk": yesterdays_game_id})
+
+
 def get_lineup_profile(lineup):
     lineup_profile = []
     for player in lineup[1:]:
@@ -147,9 +167,9 @@ def get_player_weighted_stat(lineup, stat1, stat2, test=False):
     return weighted_avg
 
 
-def evaluate_player_weighted_stat(adv_score, home, away, stat1, stat2, lower_is_better=False):
-    home_weighted_avg = get_player_weighted_stat(home, stat1, stat2)
-    away_weighted_avg = get_player_weighted_stat(away, stat1, stat2)
+def evaluate_player_weighted_stat(adv_score, home, away, stat1, stat2, lower_is_better=False, test=False):
+    home_weighted_avg = get_player_weighted_stat(home, stat1, stat2, test)
+    away_weighted_avg = get_player_weighted_stat(away, stat1, stat2, test)
     if lower_is_better:
         if home_weighted_avg < away_weighted_avg:
             return increase_home_advantage(adv_score)
@@ -216,10 +236,8 @@ def print_str(winners):
             winner.print_string()
 
 
-def post_to_slack_backtest(tally, year, team):
-    today = str(date.today())
-    winner_str = f"{year} {team} picks: {tally}\n"
-    slack.post_backtest(winner_str)
+def post_to_slack_backtest(msg, model):
+    slack.post_backtest("```"+msg+"```", model)
 
 
 def post_to_slack(winners, model):
@@ -278,7 +296,7 @@ def select_winner(adv_score, game_data, odds_data):
             away_abbrv = teams_dict[away_team]
             home_team = game_data['gameData']['teams']['home']['name']
             home_abbrv = teams_dict[home_team] + "*"
-            print(f"No advantage in {away_abbrv} at {home_abbrv} on {game_date}")
+            # print(f"No advantage in {away_abbrv} at {home_abbrv} on {game_date}")
             return Prediction('-', '-', '-', '-', game_date, 0, 0, 0)
     except Exception as e:
         print(e)
