@@ -63,7 +63,7 @@ def pitching(adv_score, game_data, model):
         d = game_data['gameData']['datetime']['officialDate']
         print(f'Unable to get Pitcher Stats: {d} {e}')
         return adv_score
-    return pitching.evaluate(adv_score, home_pitcher_stats, away_pitcher_stats)
+    return src.model.bowa.pitching.evaluate(adv_score, home_pitcher_stats, away_pitcher_stats)
 
 
 def hitting(adv_score, game_data, model):
@@ -75,7 +75,7 @@ def hitting(adv_score, game_data, model):
     home_batting_totals = get_last_game_batting_totals(home_team_id)
     home_lineup_profile = get_lineup_profile(home_last_batters)
     away_lineup_profile = get_lineup_profile(away_last_batters)
-    return hitting.evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile)
+    return src.model.bowa.hitting.evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile)
 
 
 def vs(adv_score, game_data, model):
@@ -92,7 +92,7 @@ def vs(adv_score, game_data, model):
         away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
         home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
 
-        return vs.evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_team_id)
+        return src.model.bowa.vs.evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_team_id)
     except Exception as e:
         d = game_data['gameData']['datetime']['officialDate']
         print(f'Unable to get Pitcher Vs Stats: {d} {e}')
