@@ -14,6 +14,10 @@ class Prediction:
         print(self.to_string())
 
     def to_string(self):
+        try:
+            self.odds = float(self.odds)
+        except ValueError:
+            self.odds = 0
         if self.odds > 0:
             self.odds = f"+{self.odds}"
         elif self.odds == 0:
