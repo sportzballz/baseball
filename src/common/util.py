@@ -257,6 +257,7 @@ def post_to_slack(winners, model):
     for pick in todays_pick:
         slack.post_todays_pick(pick.to_string(), model)
 
+
 def select_winner(adv_score, game_data, odds_data):
     teams_dict = get_teams_dict()
     try:

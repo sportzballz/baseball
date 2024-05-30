@@ -2,7 +2,7 @@ import statsapi
 import requests
 import json
 
-from datetime import datetime
+from datetime import datetime, date
 
 
 def get_pitcher_stats(player_id):
@@ -74,6 +74,7 @@ def get_away_batting_total_by_game_id(game_id):
 def get_last_game_batters(team_id):
     last_game_id = statsapi.last_game(team_id)
     last_boxscore = statsapi.boxscore_data(last_game_id)
+    lbs = json.dumps(last_boxscore)
     if last_boxscore['teamInfo']['home']['id'] == team_id:
         return last_boxscore['homeBatters']
     else:
@@ -93,13 +94,22 @@ def get_game(game_id):
     return statsapi.boxscore_data(game_id)
 
 
+def get_vs_games(home, away):
+    year = date.today().year
+    start_date = f'04/01/{year}'
+    end_date = date.today().strftime("%m/%d/%Y")
+    games = statsapi.schedule(start_date=start_date, end_date=end_date, team=home, opponent=away)
+    return games
+
+
 def get_vs_game_ids(home, away):
     game_id_list = []
-    # year = date.today().year
-    # start_date = f'04/01/{year}'
-    # games = statsapi.schedule(start_date=start_date, end_date=date.today(), team=home, opponent=away)
-    # for game in games:
-    #     game_id_list.append(game['game_id'])
+    year = date.today().year
+    start_date = f'04/01/{year}'
+    end_date = date.today().strftime("%m/%d/%Y")
+    games = statsapi.schedule(start_date=start_date, end_date=end_date, team=home, opponent=away)
+    for game in games:
+        game_id_list.append(game['game_id'])
     return game_id_list
 
 

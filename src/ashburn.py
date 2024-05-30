@@ -1,3 +1,5 @@
+import json
+
 import src.common.pickwinners as pickwinners
 from src.common.util import *
 import src.model.ashburn.hitting as hitting
@@ -48,8 +50,10 @@ def hitting_backtest(adv_score, game_data, year):
         print(f'Unable to get Hitting Stats: {d} {e}')
         return adv_score
 
+
 def pitching(adv_score, game_data, model):
     try:
+        gds = json.dumps(game_data)
         away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
         home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
         away_pitcher = get_pitcher_stats(away_pitcher_id)
@@ -65,6 +69,7 @@ def pitching(adv_score, game_data, model):
 
 
 def hitting(adv_score, game_data, model):
+    gds = json.dumps(game_data)
     away_team_id = game_data['gameData']['teams']['away']['id']
     home_team_id = game_data['gameData']['teams']['home']['id']
     away_last_batters = get_last_game_batters(away_team_id)
@@ -76,10 +81,14 @@ def hitting(adv_score, game_data, model):
     return src.model.ashburn.hitting.evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile)
 
 
+def vs(adv_score, game_data, model):
+    return adv_score
+
+
 def main(event, context):
     print(event)
     model = "ashburn"
-    pickwinners.main(model, hitting, pitching)
+    pickwinners.main(model, hitting, pitching, vs)
 
 
 if __name__ == "__main__":

@@ -2,19 +2,22 @@ import datetime
 import os
 
 from src.ashburn import *
+from src.bowa import *
 from src.common.util import *
 from src.connector.stats import *
 from src.common.pickwinners import main
 import sys
 from datetime import datetime, timedelta
 import ashburn as ashburn
+import bowa as bowa
 
 
 def test(run_type, year, model):
-    model = 'ashburn'
     if run_type == 'today':
         if model == 'ashburn':
             ashburn.main(None, None)
+        elif model == 'bowa':
+            bowa.main(None, None)
     elif run_type == 'one-pick':
         start_date = date(int(year), 4, 1)
         end_date = date(int(year), 10, 1)

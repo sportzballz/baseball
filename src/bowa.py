@@ -1,7 +1,8 @@
 import src.common.pickwinners as pickwinners
 from src.common.util import *
-import src.model.ashburn.hitting as hitting
-import src.model.ashburn.pitching as pitching
+import src.model.bowa.hitting as hitting
+import src.model.bowa.pitching as pitching
+import src.model.bowa.vs as vs
 import src as src
 from datetime import datetime, timedelta
 
@@ -48,6 +49,7 @@ def hitting_backtest(adv_score, game_data, year):
         print(f'Unable to get Hitting Stats: {d} {e}')
         return adv_score
 
+
 def pitching(adv_score, game_data, model):
     try:
         away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
@@ -76,10 +78,31 @@ def hitting(adv_score, game_data, model):
     return src.model.ashburn.hitting.evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile)
 
 
+def vs(adv_score, game_data, model):
+    try:
+        away_team_id = game_data['gameData']['teams']['away']['id']
+        home_team_id = game_data['gameData']['teams']['home']['id']
+        # away_last_batters = get_last_game_batters(away_team_id)
+        # home_last_batters = get_last_game_batters(home_team_id)
+        # away_batting_totals = get_last_game_batting_totals(away_team_id)
+        # home_batting_totals = get_last_game_batting_totals(home_team_id)
+        # home_lineup_profile = get_lineup_profile(home_last_batters)
+        # away_lineup_profile = get_lineup_profile(away_last_batters)
+
+        away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
+        home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
+
+        return src.model.bowa.vs.evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_team_id)
+    except Exception as e:
+        d = game_data['gameData']['datetime']['officialDate']
+        print(f'Unable to get Pitcher Vs Stats: {d} {e}')
+        return adv_score
+
+
 def main(event, context):
     print(event)
-    model = "ashburn"
-    pickwinners.main(model, hitting, pitching)
+    model = "bowa"
+    pickwinners.main(model, hitting, pitching, vs)
 
 
 if __name__ == "__main__":
