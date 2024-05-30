@@ -161,7 +161,7 @@ def get_player_weighted_stat(lineup, stat1, stat2, test=False):
             else:
                 ab = player['stats'][0]['stats'][stat2]
                 s = player['stats'][0]['stats'][stat1]
-            weighted_avg += float(ab) * float(s)
+            weighted_avg += float(ab) / float(s)
         except Exception:
             pass
     return weighted_avg
