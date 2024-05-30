@@ -15,7 +15,7 @@ class Prediction:
 
     def to_string(self):
         try:
-            self.odds = float(self.odds)
+            self.odds = int(self.odds)
         except ValueError:
             self.odds = 0
         if self.odds > 0:
