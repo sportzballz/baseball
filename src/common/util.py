@@ -262,7 +262,7 @@ def select_winner(adv_score, game_data, odds_data):
     teams_dict = get_teams_dict()
     try:
         game_date = game_data['gameData']['datetime']['officialDate']
-        if adv_score.home > adv_score.away:
+        if adv_score.home >= adv_score.away:
             confidence = '{:1.3f}'.format(
                 round((adv_score.home - adv_score.away) / (adv_score.home + adv_score.away), 3))
             data_points = f"{adv_score.home}/{adv_score.home + adv_score.away}"
