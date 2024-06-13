@@ -7,6 +7,7 @@ class Prediction:
         self.losing_pitcher = losing_pitcher
         self.gameDate = gameDate
         self.gameTime = gameTime
+        self.ampm = ampm
         self.odds = odds
         self.confidence = confidence
         self.data_points = data_points
