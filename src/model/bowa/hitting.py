@@ -1,5 +1,5 @@
 from src.common.util import *
-from src.model.ashburn.weights import *
+from src.model.bowa.weights import *
 
 
 def evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile, test=False):

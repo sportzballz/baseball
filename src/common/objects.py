@@ -1,11 +1,12 @@
 class Prediction:
-    def __init__(self, winning_team: str, losing_team: str, winning_pitcher: str, losing_pitcher: str, gameDate: str,
+    def __init__(self, winning_team: str, losing_team: str, winning_pitcher: str, losing_pitcher: str, gameDate: str, gameTime: str, ampm: str,
                  odds: int, confidence: str, data_points: str = '0/0'):
         self.winning_team = winning_team
         self.losing_team = losing_team
         self.winning_pitcher = winning_pitcher
         self.losing_pitcher = losing_pitcher
         self.gameDate = gameDate
+        self.gameTime = gameTime
         self.odds = odds
         self.confidence = confidence
         self.data_points = data_points
@@ -22,7 +23,7 @@ class Prediction:
             self.odds = f"+{self.odds}"
         elif self.odds == 0:
             self.odds = "----"
-        return f"```{self.odds} {self.winning_team.upper()} over {self.losing_team.upper()} c:{self.confidence} dp:{self.data_points}```"
+        return f"```{self.odds} {self.winning_team.upper()} over {self.losing_team.upper()} c:{self.confidence} {self.gameTime}{self.ampm}```"
 
     def to_csv(self):
         print(f"{self.odds},{self.winning_team},{self.losing_team},{self.gameDate},{self.winning_pitcher}")

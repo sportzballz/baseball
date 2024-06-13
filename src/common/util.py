@@ -262,6 +262,8 @@ def select_winner(adv_score, game_data, odds_data):
     teams_dict = get_teams_dict()
     try:
         game_date = game_data['gameData']['datetime']['officialDate']
+        game_time = game_data['gameData']['datetime']['time']
+        ampm = game_data['gameData']['datetime']['ampm']
         if adv_score.home > adv_score.away:
             confidence = '{:1.3f}'.format(
                 round((adv_score.home - adv_score.away) / (adv_score.home + adv_score.away), 3))
@@ -278,9 +280,9 @@ def select_winner(adv_score, game_data, odds_data):
                         odds = result['odds'][0]['moneyline']['current']['homeOdds']
                     else:
                         odds = 0
-                    return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, odds,
+                    return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm, odds,
                                       confidence, data_points)
-            return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, 0, confidence,
+            return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm, 0, confidence,
                               data_points)
         elif adv_score.away > adv_score.home:
             confidence = '{:1.3f}'.format(
@@ -298,9 +300,9 @@ def select_winner(adv_score, game_data, odds_data):
                         odds = result['odds'][0]['moneyline']['current']['awayOdds']
                     else:
                         odds = 0
-                    return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, odds,
+                    return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm, odds,
                                       confidence, data_points)
-            return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, 0, confidence,
+            return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm, confidence,
                               data_points)
         else:
             away_team = game_data['gameData']['teams']['away']['name']
