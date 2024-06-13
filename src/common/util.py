@@ -310,7 +310,7 @@ def select_winner(adv_score, game_data, odds_data):
             home_team = game_data['gameData']['teams']['home']['name']
             home_abbrv = teams_dict[home_team] + "*"
             # print(f"No advantage in {away_abbrv} at {home_abbrv} on {game_date}")
-            return Prediction('-', '-', '-', '-', game_date, 0, 0, 0)
+            return Prediction('-', '-', '-', '-', game_date, game_time, ampm, 0, 0, 0)
     except Exception as e:
         print(e)
-        return Prediction('-', '-', '-', '-', game_date, 0, 0, 0)
+        return Prediction('-', '-', '-', '-', game_date, game_time, ampm, 0, 0, 0)
