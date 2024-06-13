@@ -244,7 +244,7 @@ def post_to_slack(winners, model):
     slack.post(str(date.today()), model)
     slack.post_todays_pick(str(date.today())+" - "+model, model)
     highest_confidence = 0.000
-    todays_pick = [Prediction('-','-','-','-','-',0,'-','0/0')]
+    todays_pick = [Prediction('-','-','-','-','-','-','-',0,'-','0/0')]
     for winner in winners:
         if winner.winning_team != '-':
             if float(winner.confidence) >= highest_confidence:
