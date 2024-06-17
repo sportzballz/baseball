@@ -1,8 +1,11 @@
 from src.common.util import *
 from src.model.carlton.weights import *
+from src.connector.stats import *
 
 
 def evaluate(adv_score, home_pitcher_stats, away_pitcher_stats, test=False):
+    # s = pybaseball_statcast("2019-06-24", "2019-06-25")
+
     adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'whip', WHIP_WEIGHT)
     adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'winPercentage', WIN_PERCENTAGE_WEIGHT)
     adv_score = evaluate_stat(adv_score, home_pitcher_stats, away_pitcher_stats, 'strikeoutWalkRatio', STRIKEOUT_WALK_RATIO_WEIGHT)

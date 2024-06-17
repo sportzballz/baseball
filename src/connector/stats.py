@@ -1,8 +1,23 @@
 import statsapi
+# from pybaseball import *
+# import pandas as pd
+
 import requests
 import json
 
 from datetime import datetime, date
+
+
+# def pybaseball_statcast(start_dt, end_dt):
+#     # s = statcast(start_dt="2019-06-24", end_dt="2019-06-25").columns
+#     df = statcast_batter('2008-07-15', '2017-07-15', player_id = 120074)
+#     pitch_types = df.pitch_type
+#     print(pitch_types)
+#     t = df.head(n=2)
+#     print(df.columns)
+#     print(t)
+#     return df
+
 
 
 def get_pitcher_stats(player_id):
