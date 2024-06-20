@@ -5,7 +5,7 @@ import src.model.carlton.pitching as pitching
 import src.model.carlton.vs as vs
 import src as src
 from datetime import datetime, timedelta
-from pybaseball import pitching_stats, chadwick_register, playerid_lookup
+# from pybaseball import pitching_stats, chadwick_register, playerid_lookup
 
 
 def pitching_backtest(adv_score, game_data, model):
