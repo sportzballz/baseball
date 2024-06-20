@@ -5,6 +5,7 @@ import src.model.carlton.pitching as pitching
 import src.model.carlton.vs as vs
 import src as src
 from datetime import datetime, timedelta
+from pybaseball import pitching_stats, chadwick_register, playerid_lookup
 
 
 def pitching_backtest(adv_score, game_data, model):
@@ -53,12 +54,25 @@ def hitting_backtest(adv_score, game_data, year):
 def pitching(adv_score, game_data, model):
     try:
         away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
+        away_pitcher_full_name = game_data['gameData']['probablePitchers']['away']['fullName'].split()
         home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
         away_pitcher = get_pitcher_stats(away_pitcher_id)
         home_pitcher = get_pitcher_stats(home_pitcher_id)
 
         home_pitcher_stats = home_pitcher['stats'][0]['stats']
         away_pitcher_stats = away_pitcher['stats'][0]['stats']
+        # s = pybaseball_statcast("2019-06-24", "2019-06-25")
+        # chadwick = chadwick_register()
+        # player = playerid_lookup(away_pitcher_full_name[1], away_pitcher_full_name[0])
+        #
+        # # # print(chadwick['key_mlbam'])
+        # # for mlbam in chadwick['key_mlbam']:
+        # #     if mlbam['key_mlbam'] == away_pitcher_id:
+        # #         print(mlbam['key_fangraphs'])
+        # #         fan_id = mlbam['key_fangraphs']
+        # pid = player['key_fangraphs'].values[0]
+        # data = pitching_stats(2024, players=pid)
+        # print(data['Stuff+'])
     except Exception as e:
         d = game_data['gameData']['datetime']['officialDate']
         print(f'Unable to get Pitcher Stats: {d} {e}')

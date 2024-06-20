@@ -20,8 +20,10 @@ def evaluate(home_team_id, away_team_id, game_ids, adv_score):
 
     if home_wins > away_wins:
         adv_score.home += 1
+        adv_score.home_stats.append("Most wins")
     else:
         adv_score.away += 1
+        adv_score.away_stats.append("Most wins")
 
 
 

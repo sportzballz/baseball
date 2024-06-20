@@ -102,16 +102,16 @@ def evaluate_stat(adv_score, home, away, stat, weight):
     away_stat = get_stat(away, stat, weight.weight)
     if weight.lower_is_better:
         if home_stat < away_stat:
-            return increase_home_advantage(adv_score)
+            return increase_home_advantage(adv_score, stat)
         elif away_stat < home_stat:
-            return increase_away_advantage(adv_score)
+            return increase_away_advantage(adv_score, stat)
         else:
             return adv_score
     else:
         if home_stat > away_stat:
-            return increase_home_advantage(adv_score)
+            return increase_home_advantage(adv_score, stat)
         elif away_stat > home_stat:
-            return increase_away_advantage(adv_score)
+            return increase_away_advantage(adv_score, stat)
         else:
             return adv_score
 
@@ -172,16 +172,16 @@ def evaluate_player_weighted_stat(adv_score, home, away, stat1, stat2, lower_is_
     away_weighted_avg = get_player_weighted_stat(away, stat1, stat2, test)
     if lower_is_better:
         if home_weighted_avg < away_weighted_avg:
-            return increase_home_advantage(adv_score)
+            return increase_home_advantage(adv_score, stat1)
         elif away_weighted_avg < home_weighted_avg:
-            return increase_away_advantage(adv_score)
+            return increase_away_advantage(adv_score, stat1)
         else:
             return adv_score
     else:
         if home_weighted_avg > away_weighted_avg:
-            return increase_home_advantage(adv_score)
+            return increase_home_advantage(adv_score, stat1)
         elif away_weighted_avg > home_weighted_avg:
-            return increase_away_advantage(adv_score)
+            return increase_away_advantage(adv_score, stat1)
         else:
             return adv_score
 
@@ -191,26 +191,28 @@ def evaluate_standard_weighted_stat(adv_score, home, away, stat1, weight, lower_
     away_weighted_avg = get_standard_weighted_stat(away, stat1, weight)
     if lower_is_better:
         if home_weighted_avg < away_weighted_avg:
-            return increase_home_advantage(adv_score)
+            return increase_home_advantage(adv_score, stat1)
         elif away_weighted_avg < home_weighted_avg:
-            return increase_away_advantage(adv_score)
+            return increase_away_advantage(adv_score, stat1)
         else:
             return adv_score
     else:
         if home_weighted_avg > away_weighted_avg:
-            return increase_home_advantage(adv_score)
+            return increase_home_advantage(adv_score, stat1)
         elif away_weighted_avg > home_weighted_avg:
-            return increase_away_advantage(adv_score)
+            return increase_away_advantage(adv_score, stat1)
         else:
             return adv_score
 
 
-def increase_home_advantage(adv_score):
-    return AdvantageScore(adv_score.home + 1, adv_score.away)
+def increase_home_advantage(adv_score, stat):
+    adv_score.home_stats.append(stat)
+    return AdvantageScore(adv_score.home + 1, adv_score.away, adv_score.home_stats, adv_score.away_stats)
 
 
-def increase_away_advantage(adv_score):
-    return AdvantageScore(adv_score.home, adv_score.away + 1)
+def increase_away_advantage(adv_score, stat):
+    adv_score.away_stats.append(stat)
+    return AdvantageScore(adv_score.home, adv_score.away + 1, adv_score.home_stats, adv_score.away_stats)
 
 
 def write_csv(winners):
@@ -283,8 +285,11 @@ def select_winner(adv_score, game_data, odds_data):
                         odds = result['odds'][0]['moneyline']['current']['homeOdds']
                     else:
                         odds = 0
+                    print(f"Odds: {odds}, Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.home_stats}, Losing Stats: {adv_score.away_stats}")
                     return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm, odds,
                                       confidence, data_points)
+            print(
+                f"Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.home_stats}, Losing Stats: {adv_score.away_stats}")
             return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm, 0, confidence,
                               data_points)
         elif adv_score.away > adv_score.home:
@@ -303,8 +308,11 @@ def select_winner(adv_score, game_data, odds_data):
                         odds = result['odds'][0]['moneyline']['current']['awayOdds']
                     else:
                         odds = 0
+                    print(f"Odds: {odds}, Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.away_stats}, Losing Stats: {adv_score.home_stats}")
                     return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm, odds,
                                       confidence, data_points)
+            print(
+                f"Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.away_stats}, Losing Stats: {adv_score.home_stats}")
             return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm, confidence,
                               data_points)
         else:

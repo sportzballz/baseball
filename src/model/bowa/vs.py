@@ -19,8 +19,10 @@ def most_wins(home_team_id, away_team_id, game_ids, adv_score):
                 away_wins += 1
     if home_wins > away_wins:
         adv_score.home += 1
+        adv_score.home_stats.append("Most wins")
     else:
         adv_score.away += 1
+        adv_score.away_stats.append("Most wins")
     return adv_score
 
 
@@ -85,20 +87,28 @@ def hitters_vs_team(adv_score, home_team_id, away_team_id, game_ids):
 
     if homeBhits > awayBhits:
         adv_score.home += 1
+        adv_score.home_stats.append("Batters have most hits vs opposing pitcher")
     elif homeBhits < awayBhits:
         adv_score.away += 1
+        adv_score.away_stats.append("Batters have most hits vs opposing pitcher")
     if homeBruns > awayBruns:
         adv_score.home += 1
+        adv_score.home_stats.append("Batters have most runs vs opposing pitcher")
     elif homeBruns < awayBruns:
         adv_score.away += 1
+        adv_score.away_stats.append("Batters have most runs vs opposing pitcher")
     if homeBwalks > awayBwalks:
         adv_score.home += 1
+        adv_score.home_stats.append("Batters have most walks vs opposing pitcher")
     elif homeBwalks < awayBwalks:
         adv_score.away += 1
+        adv_score.away_stats.append("Batters have most walks vs opposing pitcher")
     if homeBhomeRuns > awayBhomeRuns:
         adv_score.home += 1
+        adv_score.home_stats.append("Batters have most home runs vs opposing pitcher")
     elif homeBhomeRuns < awayBhomeRuns:
         adv_score.away += 1
+        adv_score.away_stats.append("Batters have most home runs vs opposing pitcher")
 
     return adv_score
 
@@ -157,24 +167,34 @@ def pitcher_vs_team(adv_score, home_pitcher_id, away_pitcher_id, game_ids):
 
     if homePhits < awayPhits:
         adv_score.home += 1
+        adv_score.home_stats.append("Pitcher has fewer hits vs opposing team")
     elif awayPhits < homePhits:
         adv_score.away += 1
+        adv_score.away_stats.append("Pitcher has fewer hits vs opposing team")
     if homePruns < awayPruns:
         adv_score.home += 1
+        adv_score.home_stats.append("Pitcher has fewer runs vs opposing team")
     elif awayPruns < homePruns:
         adv_score.away += 1
+        adv_score.away_stats.append("Pitcher has fewer runs vs opposing team")
     if homePearnedRuns < awayPearnedRuns:
         adv_score.home += 1
+        adv_score.home_stats.append("Pitcher has fewer earned runs vs opposing team")
     elif awayPearnedRuns < homePearnedRuns:
         adv_score.away += 1
+        adv_score.away_stats.append("Pitcher has fewer earned runs vs opposing team")
     if homePwalks < awayPwalks:
         adv_score.home += 1
+        adv_score.home_stats.append("Pitcher has fewer walks vs opposing team")
     elif awayPwalks < homePwalks:
         adv_score.away += 1
+        adv_score.away_stats.append("Pitcher has fewer walks vs opposing team")
     if homePhomeRuns < awayPhomeRuns:
         adv_score.home += 1
+        adv_score.home_stats.append("Pitcher has fewer home runs vs opposing team")
     elif awayPhomeRuns < homePhomeRuns:
         adv_score.away += 1
+        adv_score.away_stats.append("Pitcher has fewer home runs vs opposing team")
 
     return adv_score
 
