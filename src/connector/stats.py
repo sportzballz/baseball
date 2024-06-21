@@ -96,6 +96,13 @@ def get_last_game_batters(team_id):
         return last_boxscore['awayBatters']
 
 
+def get_lineup_batting_totals(lineup):
+    dt = date.today().strftime("%Y-%m-%d")
+    for player in lineup:
+        stats = statsapi.player_stat_data(player.player_id, group="[hitting]", type="season", sportId=1)
+        print(stats)
+
+
 def get_last_game_batting_totals(team_id):
     last_game_id = statsapi.last_game(team_id)
     last_boxscore = statsapi.boxscore_data(last_game_id)

@@ -50,7 +50,7 @@ def hitting_backtest(adv_score, game_data, year):
         return adv_score
 
 
-def pitching(adv_score, game_data, model):
+def pitching(adv_score, game_data, model, lineups):
     try:
         away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
         home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
@@ -66,7 +66,7 @@ def pitching(adv_score, game_data, model):
     return src.model.bowa.pitching.evaluate(adv_score, home_pitcher_stats, away_pitcher_stats)
 
 
-def hitting(adv_score, game_data, model):
+def hitting(adv_score, game_data, model, lineups):
     away_team_id = game_data['gameData']['teams']['away']['id']
     home_team_id = game_data['gameData']['teams']['home']['id']
     away_last_batters = get_last_game_batters(away_team_id)
@@ -78,7 +78,7 @@ def hitting(adv_score, game_data, model):
     return src.model.bowa.hitting.evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile)
 
 
-def vs(adv_score, game_data, model):
+def vs(adv_score, game_data, model, lineups):
     try:
         away_team_id = game_data['gameData']['teams']['away']['id']
         home_team_id = game_data['gameData']['teams']['home']['id']

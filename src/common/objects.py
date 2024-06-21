@@ -1,5 +1,6 @@
 class Prediction:
-    def __init__(self, winning_team: str, losing_team: str, winning_pitcher: str, losing_pitcher: str, gameDate: str, gameTime: str, ampm: str,
+    def __init__(self, winning_team: str, losing_team: str, winning_pitcher: str, losing_pitcher: str, gameDate: str,
+                 gameTime: str, ampm: str,
                  odds: int, confidence: str, data_points: str = '0/0'):
         self.winning_team = winning_team
         self.losing_team = losing_team
@@ -64,3 +65,17 @@ class WEIGHT:
     def __init__(self, weight: int, lower_is_better: bool):
         self.weight = weight
         self.lower_is_better = lower_is_better
+
+
+class LineupPlayer:
+    def __init__(self, player_id, player_name, player_position, player_batting_order):
+        self.player_id = player_id
+        self.player_name = player_name
+        self.player_position = player_position
+        self.player_batting_order = player_batting_order
+
+
+class Lineup:
+    def __init__(self, team_id, lineup_players):
+        self.team_id = team_id
+        self.lineup_players = lineup_players

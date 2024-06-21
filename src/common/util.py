@@ -127,6 +127,14 @@ def get_last_game_data(team_id, year, current_game_id):
     print("shouldn't get here")
     return statsapi.get("game", {"gamePk": yesterdays_game_id})
 
+def get_todays_starting_lineup_profile(lineup):
+    lineup_profile = []
+    for player in lineup:
+        lineup_profile.append(
+            statsapi.player_stat_data(player.player_id, group="[hitting]", type="season", sportId=1))
+    return lineup_profile
+
+
 
 def get_lineup_profile(lineup):
     lineup_profile = []
