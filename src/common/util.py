@@ -1,3 +1,5 @@
+import time
+
 import statsapi
 from src.common.objects import *
 from datetime import date
@@ -127,13 +129,13 @@ def get_last_game_data(team_id, year, current_game_id):
     print("shouldn't get here")
     return statsapi.get("game", {"gamePk": yesterdays_game_id})
 
+
 def get_todays_starting_lineup_profile(lineup):
     lineup_profile = []
     for player in lineup:
         lineup_profile.append(
             statsapi.player_stat_data(player.player_id, group="[hitting]", type="season", sportId=1))
     return lineup_profile
-
 
 
 def get_lineup_profile(lineup):
@@ -247,24 +249,25 @@ def print_str(winners):
 
 
 def post_to_slack_backtest(msg, model):
-    slack.post_backtest("```"+msg+"```", model)
+    slack.post_backtest("```" + msg + "```", model)
 
 
 def post_to_slack(winners, model):
     slack.post(str(date.today()), model)
-    slack.post_todays_pick(str(date.today())+" - "+model, model)
+    slack.post_todays_pick(str(date.today()) + " - " + model, model)
     highest_confidence = 0.000
-    todays_pick = [Prediction('-','-','-','-','-','-','-',0,'-','0/0')]
+    todays_pick = [Prediction('-', '-', '-', '-', '-', '-', '-', 0, '-', '0/0')]
     try:
-      for winner in winners:
-          if winner.winning_team != '-':
-              if float(winner.confidence) >= highest_confidence:
-                  if highest_confidence == float(winner.confidence):
-                      todays_pick.append(winner)
-                  else:
-                      highest_confidence = float(winner.confidence)
-                      todays_pick[0]=winner
-              slack.post(winner.to_string(), model)
+        for winner in winners:
+            if winner.winning_team != '-':
+                if float(winner.confidence) >= highest_confidence:
+                    if highest_confidence == float(winner.confidence):
+                        todays_pick.append(winner)
+                    else:
+                        highest_confidence = float(winner.confidence)
+                        todays_pick[0] = winner
+                slack.post(winner.to_string(), model)
+                time.sleep(1)
     except ValueError:
         slack.post(winner.to_string(), model)
     for pick in todays_pick:
@@ -293,12 +296,15 @@ def select_winner(adv_score, game_data, odds_data):
                         odds = result['odds'][0]['moneyline']['current']['homeOdds']
                     else:
                         odds = 0
-                    print(f"Odds: {odds}, Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.home_stats}, Losing Stats: {adv_score.away_stats}")
-                    return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm, odds,
+                    print(
+                        f"Odds: {odds}, Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.home_stats}, Losing Stats: {adv_score.away_stats}")
+                    return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date,
+                                      game_time, ampm, odds,
                                       confidence, data_points)
             print(
                 f"Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.home_stats}, Losing Stats: {adv_score.away_stats}")
-            return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm, 0, confidence,
+            return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm,
+                              0, confidence,
                               data_points)
         elif adv_score.away > adv_score.home:
             confidence = '{:1.3f}'.format(
@@ -316,12 +322,15 @@ def select_winner(adv_score, game_data, odds_data):
                         odds = result['odds'][0]['moneyline']['current']['awayOdds']
                     else:
                         odds = 0
-                    print(f"Odds: {odds}, Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.away_stats}, Losing Stats: {adv_score.home_stats}")
-                    return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm, odds,
+                    print(
+                        f"Odds: {odds}, Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.away_stats}, Losing Stats: {adv_score.home_stats}")
+                    return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date,
+                                      game_time, ampm, odds,
                                       confidence, data_points)
             print(
                 f"Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.away_stats}, Losing Stats: {adv_score.home_stats}")
-            return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm, confidence,
+            return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm,
+                              confidence,
                               data_points)
         else:
             away_team = game_data['gameData']['teams']['away']['name']
