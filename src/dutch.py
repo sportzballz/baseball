@@ -86,9 +86,10 @@ def hitting(adv_score, game_data, model, lineups):
     for lineup in lineups:
         if lineup.team_id == away_team_id:
             away_lineup = lineup.lineup_players
+            adv_score.away_lineup_available = True
         elif lineup.team_id == home_team_id:
             home_lineup = lineup.lineup_players
-
+            adv_score.home_lineup_available = True
 
     away_last_batters = get_last_game_batters(away_team_id)
     home_last_batters = get_last_game_batters(home_team_id)

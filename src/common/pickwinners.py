@@ -23,7 +23,7 @@ def main(model, model_hitting_fn, model_pitching_fn, model_vs_fn):
             if todays_game['home_name'] == team.name:
                 home_stats = []
                 away_stats = []
-                adv_score = AdvantageScore(home=1, away=0, home_stats=home_stats, away_stats=away_stats)
+                adv_score = AdvantageScore(home=1, away=0, home_stats=home_stats, away_stats=away_stats, home_lineup_available=False, away_lineup_available=False)
                 adv_score = model_hitting_fn(adv_score, game_data, model, lineups)
                 adv_score = model_pitching_fn(adv_score, game_data, model, lineups)
                 adv_score = model_vs_fn(adv_score, game_data, model, lineups)

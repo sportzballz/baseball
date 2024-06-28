@@ -54,11 +54,13 @@ class Team:
 
 
 class AdvantageScore:
-    def __init__(self, home: int = 0, away: int = 0, home_stats=[], away_stats=[]):
+    def __init__(self, home: int = 0, away: int = 0, home_stats=[], away_stats=[], home_lineup_available=False, away_lineup_available=False):
         self.home = home
         self.away = away
         self.home_stats = home_stats
         self.away_stats = away_stats
+        self.home_lineup_available = home_lineup_available
+        self.away_lineup_available = away_lineup_available
 
 
 class WEIGHT:
