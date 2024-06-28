@@ -256,7 +256,7 @@ def post_to_slack(winners, model):
     slack.post(str(date.today()), model)
     slack.post_todays_pick(str(date.today()) + " - " + model, model)
     highest_confidence = 0.000
-    todays_pick = [Prediction('-', '-', '-', '-', '-', '-', '-', '----', '-', '0/0')]
+    todays_pick = [Prediction('-', '-', '-', '-', '-', '-', '-', 0, '-', '0/0')]
     try:
         for winner in winners:
             if winner.winning_team != '-':
@@ -266,18 +266,15 @@ def post_to_slack(winners, model):
                     else:
                         highest_confidence = float(winner.confidence)
                         todays_pick[0] = winner
-                if winner.odds != '----':
-                    slack.post(winner.to_string(), model)
-                    time.sleep(1)
+                slack.post(winner.to_string(), model)
+                time.sleep(1)
     except ValueError:
         slack.post(winner.to_string(), model)
     for pick in todays_pick:
-        if pick.odds != '----':
-            slack.post_todays_pick(pick.to_string(), model)
+        slack.post_todays_pick(pick.to_string(), model)
 
 
 def select_winner(adv_score, game_data, odds_data):
-
     teams_dict = get_teams_dict()
     try:
         game_date = game_data['gameData']['datetime']['officialDate']
@@ -293,10 +290,6 @@ def select_winner(adv_score, game_data, odds_data):
             losing_abbrv = teams_dict[losing_team]
             winning_pitcher = game_data['gameData']['probablePitchers']['home']['fullName']
             losing_pitcher = game_data['gameData']['probablePitchers']['away']['fullName']
-            if not adv_score.home_lineup_available:
-                winning_team = "." + winning_team
-            if not adv_score.away_lineup_available:
-                losing_team = "." + losing_team
             for result in odds_data['results']:
                 if result['teams']['home']['team'] == winning_team:
                     if len(result['odds']) > 0:
@@ -323,10 +316,6 @@ def select_winner(adv_score, game_data, odds_data):
             losing_abbrv = teams_dict[losing_team] + "*"
             winning_pitcher = game_data['gameData']['probablePitchers']['away']['fullName']
             losing_pitcher = game_data['gameData']['probablePitchers']['home']['fullName']
-            if not adv_score.home_lineup_available:
-                losing_team = "." + losing_team
-            if not adv_score.away_lineup_available:
-                winning_team = "." + winning_team
             for result in odds_data['results']:
                 if result['teams']['away']['team'] == winning_team:
                     if len(result['odds']) > 0:
