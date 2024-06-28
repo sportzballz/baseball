@@ -290,6 +290,12 @@ def select_winner(adv_score, game_data, odds_data):
             losing_abbrv = teams_dict[losing_team]
             winning_pitcher = game_data['gameData']['probablePitchers']['home']['fullName']
             losing_pitcher = game_data['gameData']['probablePitchers']['away']['fullName']
+            if not adv_score.home_lineup_available:
+                winning_abbrv = '.' + winning_abbrv
+                winning_team = '.' + winning_team
+            if not adv_score.away_lineup_available:
+                losing_abbrv = '.' + losing_abbrv
+                losing_team = '.' + losing_team
             for result in odds_data['results']:
                 if result['teams']['home']['team'] == winning_team:
                     if len(result['odds']) > 0:
@@ -316,6 +322,12 @@ def select_winner(adv_score, game_data, odds_data):
             losing_abbrv = teams_dict[losing_team] + "*"
             winning_pitcher = game_data['gameData']['probablePitchers']['away']['fullName']
             losing_pitcher = game_data['gameData']['probablePitchers']['home']['fullName']
+            if not adv_score.home_lineup_available:
+                losing_team = '.' + losing_team
+                losing_abbrv = '.' + losing_abbrv
+            if not adv_score.away_lineup_available:
+                winning_team = '.' + winning_team
+                winning_abbrv = '.' + winning_abbrv
             for result in odds_data['results']:
                 if result['teams']['away']['team'] == winning_team:
                     if len(result['odds']) > 0:
