@@ -10,7 +10,7 @@ def main(model, model_hitting_fn, model_pitching_fn, model_vs_fn):
     teams = get_teams_list()
     lineups = get_starting_lineups()
     odds_data = {"results": []}
-    odds_data = get_odds()
+    # odds_data = get_odds()
 
     winners = []
     day = date.today()

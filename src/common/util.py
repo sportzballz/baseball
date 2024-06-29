@@ -2,7 +2,9 @@ import time
 
 import statsapi
 from src.common.objects import *
-from datetime import date
+from datetime import datetime
+from datetime import timezone
+import pytz
 from src.connector import slack
 from src.connector.stats import *
 
@@ -278,9 +280,14 @@ def select_winner(adv_score, game_data, odds_data):
     print(f'select winner: {adv_score.to_string()}')
     teams_dict = get_teams_dict()
     try:
+        est = pytz.timezone('US/Eastern')
+        utc = pytz.utc
         game_date = game_data['gameData']['datetime']['officialDate']
-        game_time = game_data['gameData']['datetime']['time']
+        game_time = game_data['gameData']['datetime']['dateTime']
         ampm = game_data['gameData']['datetime']['ampm']
+        dt_game_time = utc.localize(datetime.fromisoformat(game_time[:-1]))
+        game_time = dt_game_time.astimezone(est).strftime('%I:%M')
+
         if adv_score.home >= adv_score.away:
             confidence = '{:1.3f}'.format(
                 round((adv_score.home - adv_score.away) / (adv_score.home + adv_score.away), 3))
