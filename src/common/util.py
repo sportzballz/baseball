@@ -275,6 +275,7 @@ def post_to_slack(winners, model):
 
 
 def select_winner(adv_score, game_data, odds_data):
+    print(f'select winner: {adv_score.to_string()}')
     teams_dict = get_teams_dict()
     try:
         game_date = game_data['gameData']['datetime']['officialDate']
