@@ -61,6 +61,9 @@ class AdvantageScore:
         self.away_stats = away_stats
         self.home_lineup_available = home_lineup_available
         self.away_lineup_available = away_lineup_available
+        
+    def to_string(self):
+        return f'home: {str(self.home)} away: {str(self.away)}, home stats: {str(self.home_stats)}, away stats {str(self.away_stats)}, home lineup available {str(self.home_lineup_available)}, away lineup available {str(self.away_lineup_available)}'
 
 
 class WEIGHT:
