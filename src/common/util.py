@@ -217,12 +217,12 @@ def evaluate_standard_weighted_stat(adv_score, home, away, stat1, weight, lower_
 
 def increase_home_advantage(adv_score, stat):
     adv_score.home_stats.append(stat)
-    return AdvantageScore(adv_score.home + 1, adv_score.away, adv_score.home_stats, adv_score.away_stats)
+    return AdvantageScore(adv_score.home + 1, adv_score.away, adv_score.home_stats, adv_score.away_stats, adv_score.home_lineup_available, adv_score.away_lineup_available)
 
 
 def increase_away_advantage(adv_score, stat):
     adv_score.away_stats.append(stat)
-    return AdvantageScore(adv_score.home, adv_score.away + 1, adv_score.home_stats, adv_score.away_stats)
+    return AdvantageScore(adv_score.home, adv_score.away + 1, adv_score.home_stats, adv_score.away_stats, adv_score.home_lineup_available, adv_score.away_lineup_available)
 
 
 def write_csv(winners):
