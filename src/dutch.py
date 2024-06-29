@@ -86,20 +86,20 @@ def hitting(adv_score, game_data, model, lineups):
     for lineup in lineups:
         if lineup.team_id == away_team_id:
             away_lineup = lineup.lineup_players
-            adv_score.away_lineup_available = True
         elif lineup.team_id == home_team_id:
             home_lineup = lineup.lineup_players
-            adv_score.home_lineup_available = True
 
     away_last_batters = get_last_game_batters(away_team_id)
     home_last_batters = get_last_game_batters(home_team_id)
     away_batting_totals = get_last_game_batting_totals(away_team_id)
     home_batting_totals = get_last_game_batting_totals(home_team_id)
     if len(home_lineup) > 0:
+        adv_score.home_lineup_available = True
         home_lineup_profile = get_todays_starting_lineup_profile(home_lineup)
     else:
         home_lineup_profile = get_lineup_profile(home_last_batters)
-    if len(home_lineup) > 0:
+    if len(away_lineup) > 0:
+        adv_score.away_lineup_available = True
         away_lineup_profile = get_todays_starting_lineup_profile(away_lineup)
     else:
         away_lineup_profile = get_lineup_profile(away_last_batters)
