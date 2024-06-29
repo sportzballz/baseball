@@ -25,7 +25,7 @@ class Prediction:
             self.odds = f"+{self.odds}"
         elif self.odds == 0:
             self.odds = "----"
-        return f"```{self.odds} {self.winning_team.upper()} over {self.losing_team.upper()} c:{self.confidence} dp:{self.data_points} {self.gameTime}{self.ampm}, {self.losing_pitcher} @ {self.winning_pitcher}```"
+        return f"```{self.odds} {self.winning_team.upper()} over {self.losing_team.upper()} c:{self.confidence} dp:{self.data_points} {self.gameTime}{self.ampm}, {self.losing_pitcher} / {self.winning_pitcher}```"
 
     def to_csv(self):
         print(f"{self.odds},{self.winning_team},{self.losing_team},{self.gameDate},{self.winning_pitcher}")
