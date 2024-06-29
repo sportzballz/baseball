@@ -96,11 +96,13 @@ def hitting(adv_score, game_data, model, lineups):
     if len(home_lineup) > 0:
         adv_score.home_lineup_available = True
         home_lineup_profile = get_todays_starting_lineup_profile(home_lineup)
+        print(f'home lineup avalable: {adv_score.to_string()}')
     else:
         home_lineup_profile = get_lineup_profile(home_last_batters)
     if len(away_lineup) > 0:
         adv_score.away_lineup_available = True
         away_lineup_profile = get_todays_starting_lineup_profile(away_lineup)
+        print(f'away lineup avalable: {adv_score.to_string()}')
     else:
         away_lineup_profile = get_lineup_profile(away_last_batters)
 
