@@ -1,4 +1,11 @@
 # Baseball
+## Todays Pick Notification Logic
+- [ ] IF (Mon-Fri AND 5pm) || (Mon-Fri AND Game Start Before 5pm AND Lineups available)
+- [ ]   ANNOUNCE
+- [ ] IF (SAT or SUN AND 12pm) || (SAT or SUN AND Game Start AFTER 12pm AND Lineups available)
+- [ ]   ANNOUNCE
+
+
 ## Relevent Stats
 - [ ] OBP (On Base Percentage)
 - [ ] SLG (number of bases player has reached / plate appearances)
