@@ -267,13 +267,14 @@ def post_to_slack(winners, model):
                         todays_pick.append(winner)
                     else:
                         highest_confidence = float(winner.confidence)
-                        todays_pick[0] = winner
+                        todays_pick = [winner]
                 slack.post(winner.to_string(), model)
                 time.sleep(1)
     except ValueError:
         slack.post(winner.to_string(), model)
     for pick in todays_pick:
-        slack.post_todays_pick(pick.to_string(), model)
+        if "----" not in pick.odds and "." not in self.winning_team and "." not in self.losing_team:
+            slack.post_todays_pick(pick.to_string(), model)
 
 
 def select_winner(adv_score, game_data, odds_data):
