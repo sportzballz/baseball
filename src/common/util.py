@@ -273,7 +273,7 @@ def post_to_slack(winners, model):
     except ValueError:
         slack.post(winner.to_string(), model)
     for pick in todays_pick:
-        if "----" not in pick.odds and "." not in self.winning_team and "." not in self.losing_team:
+        if "----" not in pick.odds and "." not in pick.winning_team and "." not in pick.losing_team:
             slack.post_todays_pick(pick.to_string(), model)
 
 
