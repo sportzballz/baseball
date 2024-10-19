@@ -256,7 +256,6 @@ def post_to_slack_backtest(msg, model):
 
 def post_to_slack(winners, model):
     slack.post(str(date.today()), model)
-    slack.post_todays_pick(str(date.today()) + " - " + model, model)
     highest_confidence = 0.000
     todays_pick = [Prediction('-', '-', '-', '-', '-', '-', '-', 0, '-', '0/0')]
     try:
@@ -274,12 +273,12 @@ def post_to_slack(winners, model):
         slack.post(winner.to_string(), model)
     for pick in todays_pick:
         if "----" not in str(pick.odds) and "." not in pick.winning_team and "." not in pick.losing_team:
+            slack.post_todays_pick(str(date.today()) + " - " + model, model)
             slack.post_todays_pick(pick.to_string(), model)
 
 
 def post_to_slack_backtest(d, winners, model):
     # slack.post_backtest(str(d), model)
-    slack.post_todays_pick_backtest(str(d) + " - " + model, model)
     highest_confidence = 0.000
     todays_pick = [Prediction('-', '-', '-', '-', '-', '-', '-', 0, '-', '0/0')]
     try:
@@ -299,7 +298,8 @@ def post_to_slack_backtest(d, winners, model):
     for pick in todays_pick:
         if "." not in pick.winning_team and "." not in pick.losing_team:
         # if "----" not in pick.odds and "." not in pick.winning_team and "." not in pick.losing_team:
-             slack.post_todays_pick_backtest(pick.to_string(), model)
+            slack.post_todays_pick_backtest(str(d) + " - " + model, model)
+            slack.post_todays_pick_backtest(pick.to_string(), model)
 
 
 def select_winner(adv_score, game_data, odds_data):
