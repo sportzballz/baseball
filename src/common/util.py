@@ -273,7 +273,7 @@ def post_to_slack(winners, model):
     except ValueError:
         slack.post(winner.to_string(), model)
     for pick in todays_pick:
-        if "----" not in pick.odds and "." not in pick.winning_team and "." not in pick.losing_team:
+        if "----" not in str(pick.odds) and "." not in pick.winning_team and "." not in pick.losing_team:
             slack.post_todays_pick(pick.to_string(), model)
 
 
@@ -297,8 +297,9 @@ def post_to_slack_backtest(d, winners, model):
         # slack.post_backtest(winner.to_string(), model)
         print("exception")
     for pick in todays_pick:
+        if "." not in pick.winning_team and "." not in pick.losing_team:
         # if "----" not in pick.odds and "." not in pick.winning_team and "." not in pick.losing_team:
-        slack.post_todays_pick_backtest(pick.to_string(), model)
+             slack.post_todays_pick_backtest(pick.to_string(), model)
 
 
 def select_winner(adv_score, game_data, odds_data):
