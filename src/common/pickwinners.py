@@ -9,7 +9,7 @@ from src.common.objects import AdvantageScore
 def main(model, model_hitting_fn, model_pitching_fn, model_vs_fn):
     teams = get_teams_list()
     lineups = get_starting_lineups()
-    odds_data = {"results": []}
+
     odds_data = get_odds()
 
     winners = []
@@ -29,6 +29,7 @@ def main(model, model_hitting_fn, model_pitching_fn, model_vs_fn):
                 adv_score = model_pitching_fn(adv_score, game_data, model, lineups)
                 adv_score = model_vs_fn(adv_score, game_data, model, lineups)
                 winners.append(select_winner(adv_score, game_data, odds_data))
+                print(adv_score.to_string())
 
     # write_csv(winners)
     # print_csv(winners)

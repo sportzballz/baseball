@@ -199,9 +199,9 @@ def pitcher_vs_team(adv_score, home_pitcher_id, away_pitcher_id, game_ids):
     return adv_score
 
 
-def evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_team_id):
-
-    game_ids = get_vs_game_ids(home_team_id, away_team_id)
+def evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_team_id, d):
+    game_ids = get_vs_game_ids_before_date(home_team_id, away_team_id, d)
+    # game_ids = get_vs_game_ids(home_team_id, away_team_id)
     # games = get_vs_games(home_team_id, away_team_id)
 
     # head to head record

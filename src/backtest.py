@@ -7,21 +7,52 @@ import os
 # from src.common.util import *
 # from src.connector.stats import *
 from datetime import date, timedelta
+from time import sleep
+
+import statsapi
+
+from src import dutch
+from src.common.objects import AdvantageScore
+from src.common.util import get_teams_list, select_winner, post_to_slack_backtest
+from src.connector.stats import get_schedule_by_date
 
 
-def backtest_one_pick():
+def backtest_one_pick(model, model_hitting_fn, model_pitching_fn, model_vs_fn, odds_data):
 
-    start_date = date(2024, 4, 1)
-    end_date = date(2024, 6, 1)
+    start_date = date(2024, 10, 19)
+    end_date = date(2024, 10, 19)
     delta = timedelta(days=1)
+    # for each day april through september
     while start_date <= end_date:
-        print(start_date.strftime("%Y-%m-%d"))
+        start_date_str = start_date.strftime("%m/%d/%Y")
+        print(start_date_str)
+        teams = get_teams_list()
+        # get the schedule for the day
+        games = get_schedule_by_date(start_date_str)
+        # for each game in the schedule
+        winners = []
+        for game in games:
+            print(game["game_id"])
+            game_id = game['game_id']
+            game_data = statsapi.get("game", {"gamePk": game_id})
+            for team in teams:
+                if game['home_name'] == team.name:
+                    home_stats = []
+                    away_stats = []
+                    adv_score = AdvantageScore(home=1, away=0, home_stats=home_stats, away_stats=away_stats, home_lineup_available=True, away_lineup_available=True)
+
+                    adv_score = model_hitting_fn(adv_score, game_data, str(start_date))
+                    adv_score = model_pitching_fn(adv_score, game_data, str(start_date))
+                    adv_score = model_vs_fn(adv_score, game_data, str(start_date))
+                    winner = select_winner(adv_score, game_data, odds_data)
+                    print(winner.to_string())
+                    print(adv_score.to_string())
+                    winners.append(winner)
+
+        post_to_slack_backtest(start_date_str, winners, "dutch")
         start_date += delta
 
-    # for each day april through september
 
-        # get the schedule for the day
-        # for each game in the schedule
             # get the game data
             # pick the winner
             # add to winner list
@@ -30,7 +61,10 @@ def backtest_one_pick():
 
 
 def main(event, context):
-    backtest_one_pick()
+    while(1):
+        odds_data = {"results": []}
+        backtest_one_pick("dutch", dutch.hitting_backtest, dutch.pitching_backtest, dutch.vs_backtest, odds_data)
+        sleep(3600)
     # print(event)
     # model = os.environ['MODEL']
     # year = event['Records'][0]['messageAttributes']['year']['stringValue']

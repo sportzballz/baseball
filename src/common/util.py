@@ -277,6 +277,30 @@ def post_to_slack(winners, model):
             slack.post_todays_pick(pick.to_string(), model)
 
 
+def post_to_slack_backtest(d, winners, model):
+    # slack.post_backtest(str(d), model)
+    slack.post_todays_pick_backtest(str(d) + " - " + model, model)
+    highest_confidence = 0.000
+    todays_pick = [Prediction('-', '-', '-', '-', '-', '-', '-', 0, '-', '0/0')]
+    try:
+        for winner in winners:
+            if winner.winning_team != '-':
+                if float(winner.confidence) >= highest_confidence:
+                    if highest_confidence == float(winner.confidence):
+                        todays_pick.append(winner)
+                    else:
+                        highest_confidence = float(winner.confidence)
+                        todays_pick = [winner]
+                # slack.post_backtest(winner.to_string(), model)
+                # time.sleep(1)
+    except ValueError:
+        # slack.post_backtest(winner.to_string(), model)
+        print("exception")
+    for pick in todays_pick:
+        # if "----" not in pick.odds and "." not in pick.winning_team and "." not in pick.losing_team:
+        slack.post_todays_pick_backtest(pick.to_string(), model)
+
+
 def select_winner(adv_score, game_data, odds_data):
     print(f'select winner: {adv_score.to_string()}')
     teams_dict = get_teams_dict()

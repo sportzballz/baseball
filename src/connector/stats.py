@@ -5,7 +5,7 @@ import statsapi
 import requests
 import json
 
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 
 # def pybaseball_statcast(start_dt, end_dt):
@@ -103,6 +103,18 @@ def get_lineup_batting_totals(lineup):
         print(stats)
 
 
+def get_last_game_by_date(team_id, d):
+    while(1):
+        delta = timedelta(days=1)
+        d -= delta
+        games = get_schedule_by_date(d)
+        for game in games:
+            if game['home_id'] == team_id or game['away_id'] == team_id:
+                game_id = game['game_id']
+                return game_id
+                break
+
+
 def get_last_game_batting_totals(team_id):
     last_game_id = statsapi.last_game(team_id)
     last_boxscore = statsapi.boxscore_data(last_game_id)
@@ -123,6 +135,16 @@ def get_vs_games(home, away):
     games = statsapi.schedule(start_date=start_date, end_date=end_date, team=home, opponent=away)
     return games
 
+
+def get_vs_game_ids_before_date(home, away, d):
+    game_id_list = []
+    year = date.today().year
+    start_date = f'04/01/{year}'
+    end_date = str(d)
+    games = statsapi.schedule(start_date=start_date, end_date=end_date, team=home, opponent=away)
+    for game in games:
+        game_id_list.append(game['game_id'])
+    return game_id_list
 
 def get_vs_game_ids(home, away):
     game_id_list = []
