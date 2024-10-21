@@ -10,6 +10,8 @@ def get_starting_lineups():
 
     lineup_elements = soup.find_all("div", class_="starting-lineups__matchup")
     Lineups = []
+    if len(lineup_elements) == 1:
+        return Lineups
     for lineup_element in lineup_elements:
         away_team_span = lineup_element.find("span", class_="starting-lineups__team-name starting-lineups__team-name--away")
         away_team_id = away_team_span.find("a")["data-id"]
