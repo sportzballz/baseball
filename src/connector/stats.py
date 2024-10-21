@@ -21,7 +21,7 @@ from datetime import datetime, date, timedelta
 
 
 def get_pitcher_stats(player_id):
-    return statsapi.player_stat_data(personId=player_id, group='pitching')
+    return statsapi.player_stat_data(personId=player_id, group='pitching', type='season')
 
 
 def get_pitcher_stats_by_date(player_id, d):

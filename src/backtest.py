@@ -19,8 +19,8 @@ from src.connector.stats import get_schedule_by_date
 
 def backtest_one_pick(model, model_hitting_fn, model_pitching_fn, model_vs_fn, odds_data):
 
-    start_date = date(2024, 10, 19)
-    end_date = date(2024, 10, 19)
+    start_date = date(2024, 10, 20)
+    end_date = date(2024, 10, 20)
     delta = timedelta(days=1)
     # for each day april through september
     while start_date <= end_date:
@@ -61,10 +61,8 @@ def backtest_one_pick(model, model_hitting_fn, model_pitching_fn, model_vs_fn, o
 
 
 def main(event, context):
-    while(1):
-        odds_data = {"results": []}
-        backtest_one_pick("dutch", dutch.hitting_backtest, dutch.pitching_backtest, dutch.vs_backtest, odds_data)
-        sleep(3600)
+    odds_data = {"results": []}
+    backtest_one_pick("dutch", dutch.hitting_backtest, dutch.pitching_backtest, dutch.vs_backtest, odds_data)
     # print(event)
     # model = os.environ['MODEL']
     # year = event['Records'][0]['messageAttributes']['year']['stringValue']

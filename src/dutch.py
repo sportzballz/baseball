@@ -15,6 +15,9 @@ def pitching_backtest(adv_score, game_data, year):
         yesterday = (datetime.strptime(game_date, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
         away_pitcher = get_pitcher_stats_by_date(away_pitcher_id, yesterday)
         home_pitcher = get_pitcher_stats_by_date(home_pitcher_id, yesterday)
+
+        away_pitcher1 = get_pitcher_stats(away_pitcher_id)
+        home_pitcher1 = get_pitcher_stats(home_pitcher_id)
         if len(home_pitcher['stats']) == 0 or len(away_pitcher['stats']) == 0:
             # print("No pitcher stats found for yesterday. Skipping...")
             return adv_score
@@ -22,8 +25,10 @@ def pitching_backtest(adv_score, game_data, year):
             # print("No pitcher splits found for yesterday. Skipping...")
             return adv_score
         else:
-            home_pitcher_stats = home_pitcher['stats'][0]['splits'][0]['stat']
-            away_pitcher_stats = away_pitcher['stats'][0]['splits'][0]['stat']
+            home_splits_count = len(home_pitcher['stats'][0]['splits'])
+            away_splits_count = len(away_pitcher['stats'][0]['splits'])
+            home_pitcher_stats = home_pitcher['stats'][0]['splits'][home_splits_count - 1]['stat']
+            away_pitcher_stats = away_pitcher['stats'][0]['splits'][away_splits_count - 1]['stat']
             return src.model.dutch.pitching.evaluate(adv_score, home_pitcher_stats, away_pitcher_stats, test=True)
     except Exception as e:
         d = game_data['gameData']['datetime']['officialDate']
@@ -39,12 +44,19 @@ def hitting_backtest(adv_score, game_data, dt):
         away_last_game_id = get_last_game_by_date(game_data['gameData']['teams']['away']['id'], d)
         home_last_game_data = get_game(home_last_game_id)
         away_last_game_data = get_game(away_last_game_id)
-        away_batters = away_last_game_data["awayBatters"]
-        home_batters = home_last_game_data["homeBatters"]
+        # away_batters = away_last_game_data["awayBatters"]
+        # home_batters = home_last_game_data["homeBatters"]
+        home_batters = get_home_batters_by_gameid(game_data['gamePk'])
+        away_batters = get_away_batters_by_gameid(game_data['gamePk'])
+
         away_batting_totals = get_away_batting_total_by_game_id(away_last_game_id)
         home_batting_totals = get_home_batting_total_by_game_id(home_last_game_id)
+
         home_lineup_profile = get_lineup_profile_by_date(home_batters, yesterday)
         away_lineup_profile = get_lineup_profile_by_date(away_batters, yesterday)
+
+        # away_lineup_profile1 = get_lineup_profile(away_batters)
+        # home_lineup_profile1 = get_lineup_profile(home_batters)
 
         return src.model.dutch.hitting.evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile, test=True)
     except Exception as e:

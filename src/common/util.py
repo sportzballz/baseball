@@ -168,14 +168,16 @@ def get_player_weighted_stat(lineup, stat1, stat2, test=False):
     for player in lineup:
         try:
             if test:
-                ab = player['stats'][0]['splits'][0]['stat'][stat2]
-                s = player['stats'][0]['splits'][0]['stat'][stat1]
+                split_count = len(player['stats'][0]['splits'])
+                ab = player['stats'][0]['splits'][split_count - 1]['stat'][stat2]
+                s = player['stats'][0]['splits'][split_count - 1]['stat'][stat1]
             else:
                 ab = player['stats'][0]['stats'][stat2]
                 s = player['stats'][0]['stats'][stat1]
             weighted_avg += float(ab) / float(s)
         except Exception:
             pass
+    print(stat1 + ": " + str(weighted_avg))
     return weighted_avg
 
 
@@ -295,11 +297,14 @@ def post_to_slack_backtest(d, winners, model):
     except ValueError:
         # slack.post_backtest(winner.to_string(), model)
         print("exception")
+
     for pick in todays_pick:
         if "." not in pick.winning_team and "." not in pick.losing_team:
         # if "----" not in pick.odds and "." not in pick.winning_team and "." not in pick.losing_team:
-            slack.post_todays_pick_backtest(str(d) + " - " + model, model)
-            slack.post_todays_pick_backtest(pick.to_string(), model)
+            if "$" in pick.winning_team:
+                slack.post_todays_pick_backtest(":white_check_mark:" + str(d) + " " + pick.to_string(), model)
+            else:
+                slack.post_todays_pick_backtest(":x:" + str(d) + " " + pick.to_string(), model)
 
 
 def select_winner(adv_score, game_data, odds_data):
@@ -328,6 +333,10 @@ def select_winner(adv_score, game_data, odds_data):
                 winning_abbrv = '.' + winning_abbrv
             if not adv_score.away_lineup_available:
                 losing_abbrv = '.' + losing_abbrv
+            if game_data["liveData"]["linescore"]["teams"]["home"]["runs"] > game_data["liveData"]["linescore"]["teams"]["away"]["runs"]:
+                winning_abbrv = '$' + winning_abbrv
+            else:
+                losing_abbrv = '$' + losing_abbrv
             for result in odds_data['results']:
                 if result['teams']['home']['team'] == winning_team:
                     if len(result['odds']) > 0:
@@ -358,6 +367,10 @@ def select_winner(adv_score, game_data, odds_data):
                 losing_abbrv = '.' + losing_abbrv
             if not adv_score.away_lineup_available:
                 winning_abbrv = '.' + winning_abbrv
+            if game_data["liveData"]["linescore"]["teams"]["home"]["runs"] > game_data["liveData"]["linescore"]["teams"]["away"]["runs"]:
+                winning_abbrv = '$' + winning_abbrv
+            else:
+                losing_abbrv = '$' + losing_abbrv
             for result in odds_data['results']:
                 if result['teams']['away']['team'] == winning_team:
                     if len(result['odds']) > 0:
