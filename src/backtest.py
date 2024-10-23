@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 
 # from src.analysis.pitching.pitchingevaluation import *
@@ -14,17 +15,50 @@ import statsapi
 from src import dutch
 from src.common.objects import AdvantageScore
 from src.common.util import get_teams_list, select_winner, post_to_slack_backtest
+from src.connector.sportsbook import get_odds
+from src.connector.sportsbookreview import get_odds_by_date
 from src.connector.stats import get_schedule_by_date
 
 
-def backtest_one_pick(model, model_hitting_fn, model_pitching_fn, model_vs_fn, odds_data):
+def format_odds_data(odds_data):
+    results = []
+    game_rows = odds_data['props']['pageProps']['oddsTables'][0]['oddsTableModel']['gameRows']
+    for game_row in game_rows:
+        teams = {}
+        moneyline = {}
+        current = {}
+        odds = []
+        teams.update({"home": {"team": game_row['gameView']['homeTeam']['fullName']}})
+        teams.update({"away": {"team": game_row['gameView']['awayTeam']['fullName']}})
 
-    start_date = date(2024, 10, 20)
-    end_date = date(2024, 10, 20)
+        if game_row['openingLineViews'][0] is None:
+            moneyline = {"moneyline": {"current": {"homeOdds": 100,"awayOdds": 100}}}
+        else:
+            moneyline = {"moneyline": {"current": {"homeOdds": game_row['openingLineViews'][0]['currentLine']['homeOdds'],"awayOdds": game_row['openingLineViews'][0]['currentLine']['awayOdds']}}}
+
+        odds.append(moneyline)
+        results.append({"teams": teams, "odds": odds})
+    return {"results": results}
+
+
+def get_odds_data(date):
+    if not os.path.exists(f"resources/{date}.json"):
+        get_odds_by_date(date)
+    with open(f"resources/{date}.json") as f:
+        data = json.load(f)
+    return format_odds_data(data)
+
+
+def backtest_one_pick(model, model_hitting_fn, model_pitching_fn, model_vs_fn, odds_data):
+    bankroll = 27322.65
+    start_date = date(2024, 4, 30)
+    end_date = date(2024, 9, 30)
     delta = timedelta(days=1)
     # for each day april through september
     while start_date <= end_date:
         start_date_str = start_date.strftime("%m/%d/%Y")
+        odds_date_str = start_date.strftime("%Y-%m-%d")
+        odds_data = get_odds_data(odds_date_str)
         print(start_date_str)
         teams = get_teams_list()
         # get the schedule for the day
@@ -49,7 +83,7 @@ def backtest_one_pick(model, model_hitting_fn, model_pitching_fn, model_vs_fn, o
                     print(adv_score.to_string())
                     winners.append(winner)
 
-        post_to_slack_backtest(start_date_str, winners, "dutch")
+        bankroll = post_to_slack_backtest(start_date_str, winners, "dutch", bankroll)
         start_date += delta
 
 
@@ -60,8 +94,23 @@ def backtest_one_pick(model, model_hitting_fn, model_pitching_fn, model_vs_fn, o
     # check if team with highest confidence pick won
 
 
+def load_odds_data():
+    start_date = date(2024, 7, 31)
+    end_date = date(2024, 7, 31)
+    delta = timedelta(days=1)
+    current_date = start_date
+    # for each day april through september
+    while current_date <= end_date:
+        current_date_str = current_date.strftime("%Y-%m-%d")
+        get_odds_by_date(current_date_str)
+        current_date += delta
+
+
 def main(event, context):
     odds_data = {"results": []}
+    # odds_data = get_odds()
+    # load_odds_data()
+    # odds_data = get_odds_by_date("2024-07-31")
     backtest_one_pick("dutch", dutch.hitting_backtest, dutch.pitching_backtest, dutch.vs_backtest, odds_data)
     # print(event)
     # model = os.environ['MODEL']

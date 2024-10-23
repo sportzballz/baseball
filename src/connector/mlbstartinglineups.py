@@ -31,7 +31,8 @@ def get_starting_lineups():
             player_position = away_player.find("span", class_="starting-lineups__player--position").text
             player_link = away_player.find("a", class_="starting-lineups__player--link")["href"]
             player_id= player_link.split("-")[-1]
-            away_lineup.append(LineupPlayer(int(player_id), player_name, player_position, away_order))
+            # away_lineup.append(LineupPlayer(int(player_id), player_name, player_position, away_order))
+            away_lineup.append({"personId": int(player_id)})
             away_order += 1
             print(f"AWAY: {player_name} - {player_position} - player_id: {player_id} - team_id: {away_team_id}")
         for home_player in home_players:
@@ -39,8 +40,9 @@ def get_starting_lineups():
             player_position = home_player.find("span", class_="starting-lineups__player--position").text
             player_link = home_player.find("a", class_="starting-lineups__player--link")["href"]
             player_id = player_link.split("-")[-1]
-            home_lineup.append(LineupPlayer(int(player_id), player_name, player_position, home_order))
-            away_order += 1
+            # home_lineup.append(LineupPlayer(int(player_id), player_name, player_position, home_order))
+            home_lineup.append({"personId": int(player_id)})
+            home_order += 1
             print(f"HOME: {player_name} - {player_position} - player_id: {player_id} - team_id: {away_team_id}")
         Lineups.append(Lineup(int(away_team_id), away_lineup))
         Lineups.append(Lineup(int(home_team_id), home_lineup))

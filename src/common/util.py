@@ -151,7 +151,8 @@ def get_lineup_profile(lineup):
 def get_lineup_profile_by_date(lineup, d):
     lineup_profile = []
     for player in lineup[1:]:
-        lineup_profile.append(get_hitter_stats_by_date(player['personId'], d))
+        if player['namefield'][0].isdigit():
+            lineup_profile.append(get_hitter_stats_by_date(player['personId'], d))
     return lineup_profile
 
 
@@ -279,8 +280,8 @@ def post_to_slack(winners, model):
             slack.post_todays_pick(pick.to_string(), model)
 
 
-def post_to_slack_backtest(d, winners, model):
-    # slack.post_backtest(str(d), model)
+def post_to_slack_backtest(d, winners, model, bankroll):
+    slack.post_backtest(str(d), model)
     highest_confidence = 0.000
     todays_pick = [Prediction('-', '-', '-', '-', '-', '-', '-', 0, '-', '0/0')]
     try:
@@ -292,19 +293,47 @@ def post_to_slack_backtest(d, winners, model):
                     else:
                         highest_confidence = float(winner.confidence)
                         todays_pick = [winner]
+                # if "$" in winner.winning_team:
+                    # slack.post_backtest(":white_check_mark:"+ winner.to_string(), model)
+                # else:
+                    # slack.post_backtest(":x:"+ winner.to_string(), model)
                 # slack.post_backtest(winner.to_string(), model)
                 # time.sleep(1)
     except ValueError:
-        # slack.post_backtest(winner.to_string(), model)
+        slack.post_backtest(winner.to_string(), model)
         print("exception")
 
     for pick in todays_pick:
         if "." not in pick.winning_team and "." not in pick.losing_team:
         # if "----" not in pick.odds and "." not in pick.winning_team and "." not in pick.losing_team:
             if "$" in pick.winning_team:
-                slack.post_todays_pick_backtest(":white_check_mark:" + str(d) + " " + pick.to_string(), model)
+                bankroll = calculate_bankroll(True, pick.odds, bankroll)
+                slack.post_todays_pick_backtest(":white_check_mark:" + str(d) + " " + pick.to_string() + "$" + str(bankroll), model)
             else:
-                slack.post_todays_pick_backtest(":x:" + str(d) + " " + pick.to_string(), model)
+                bankroll = calculate_bankroll(False, pick.odds, bankroll)
+                slack.post_todays_pick_backtest(":x:" + str(d) + " " + pick.to_string() + "$" + str(bankroll), model)
+    return bankroll
+
+
+def calculate_bankroll(win, odds, bankroll):
+    if win:
+        if odds == '----':
+            return round(bankroll, 2)
+        if int(odds) > 0:
+            wager = bankroll * .2
+            bankroll -= wager
+            multiplier = (int(odds)/100) + 1
+            winning_amt = wager * multiplier
+            return round(bankroll + winning_amt, 2)
+        else:
+            wager = bankroll * .2
+            bankroll -= wager
+            multiplier = 1 - (100/odds)
+            winning_amt = wager * multiplier
+            return round(bankroll + winning_amt, 2)
+    else:
+        bankroll -= (bankroll*.2)
+        return round(bankroll, 2)
 
 
 def select_winner(adv_score, game_data, odds_data):
@@ -367,7 +396,7 @@ def select_winner(adv_score, game_data, odds_data):
                 losing_abbrv = '.' + losing_abbrv
             if not adv_score.away_lineup_available:
                 winning_abbrv = '.' + winning_abbrv
-            if game_data["liveData"]["linescore"]["teams"]["home"]["runs"] > game_data["liveData"]["linescore"]["teams"]["away"]["runs"]:
+            if game_data["liveData"]["linescore"]["teams"]["away"]["runs"] > game_data["liveData"]["linescore"]["teams"]["home"]["runs"]:
                 winning_abbrv = '$' + winning_abbrv
             else:
                 losing_abbrv = '$' + losing_abbrv
