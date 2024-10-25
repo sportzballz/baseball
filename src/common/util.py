@@ -272,18 +272,15 @@ def post_to_slack(winners, model):
     highest_confidence = 0.000
     todays_pick = [Prediction('-', '-', '-', '-', '-', '-', '-', 0, '-', '0/0')]
     try:
-        print("Adam")
-        print(winners[0].to_string())
-        print("Smith")
         for winner in winners:
-            print(winner.to_string())
             if winner.winning_team != '-':
                 if float(winner.confidence) >= highest_confidence:
                     if highest_confidence == float(winner.confidence):
                         todays_pick.append(winner)
                     else:
                         highest_confidence = float(winner.confidence)
-                        todays_pick = winner
+                        todays_pick = []
+                        todays_pick.append(winner)
                 slack.post(winner.to_string(), model)
                 time.sleep(1)
     except ValueError:
@@ -375,10 +372,11 @@ def select_winner(adv_score, game_data, odds_data):
                 winning_abbrv = '.' + winning_abbrv
             if not adv_score.away_lineup_available:
                 losing_abbrv = '.' + losing_abbrv
-            if game_data["liveData"]["linescore"]["teams"]["home"]["runs"] > game_data["liveData"]["linescore"]["teams"]["away"]["runs"]:
-                winning_abbrv = '$' + winning_abbrv
-            else:
-                losing_abbrv = '$' + losing_abbrv
+            if len(game_data["liveData"]["linescore"]["teams"]["home"]) > 0:
+                if game_data["liveData"]["linescore"]["teams"]["home"]["runs"] > game_data["liveData"]["linescore"]["teams"]["away"]["runs"]:
+                    winning_abbrv = '$' + winning_abbrv
+                else:
+                    losing_abbrv = '$' + losing_abbrv
             for result in odds_data['results']:
                 if result['teams']['home']['team'] == winning_team:
                     if len(result['odds']) > 0:
