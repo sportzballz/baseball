@@ -178,7 +178,7 @@ def get_player_weighted_stat(lineup, stat1, stat2, test=False):
             weighted_avg += float(ab) / float(s)
         except Exception:
             pass
-    print(stat1 + ": " + str(weighted_avg))
+    # print(stat1 + ": " + str(weighted_avg))
     return weighted_avg
 
 
@@ -219,6 +219,16 @@ def evaluate_standard_weighted_stat(adv_score, home, away, stat1, weight, lower_
         else:
             return adv_score
 
+
+# def increase_home_advantage_by_weight(adv_score, stat, weight):
+#     adv_score.home_stats.append(stat)
+#     return AdvantageScore(adv_score.home + (1 * weight), adv_score.away, adv_score.home_stats, adv_score.away_stats, adv_score.home_lineup_available, adv_score.away_lineup_available)
+#
+#
+# def increase_away_advantage_by_weight(adv_score, stat, weight):
+#     adv_score.away_stats.append(stat)
+#     return AdvantageScore(adv_score.home, adv_score.away + (1 * weight), adv_score.home_stats, adv_score.away_stats, adv_score.home_lineup_available, adv_score.away_lineup_available)
+#
 
 def increase_home_advantage(adv_score, stat):
     adv_score.home_stats.append(stat)
@@ -271,7 +281,7 @@ def post_to_slack(winners, model):
                         highest_confidence = float(winner.confidence)
                         todays_pick = [winner]
                 slack.post(winner.to_string(), model)
-                time.sleep(1)
+                # time.sleep(1)
     except ValueError:
         slack.post(winner.to_string(), model)
     for pick in todays_pick:

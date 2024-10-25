@@ -66,11 +66,13 @@ def hitting_backtest(adv_score, game_data, dt):
 
 def vs_backtest(adv_score, game_data, dt):
     try:
+        # d = datetime.strptime(dt, "%Y-%m-%d").date()
+        yesterday = (datetime.strptime(dt, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
         away_team_id = game_data['gameData']['teams']['away']['id']
         home_team_id = game_data['gameData']['teams']['home']['id']
         away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
         home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
-        return src.model.dutch.vs.evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_team_id, dt)
+        return src.model.dutch.vs.evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_team_id, yesterday)
     except Exception as e:
         print(f'Unable to get VS Stats: {e}')
         return adv_score
@@ -78,7 +80,7 @@ def vs_backtest(adv_score, game_data, dt):
 
 def pitching(adv_score, game_data, model, lineups):
     try:
-        yesterday = (datetime.strptime(date.today(), '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
+        yesterday = (datetime.strptime(str(date.today()), '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
         away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
         home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
         away_pitcher = get_pitcher_stats_by_date(away_pitcher_id, yesterday)
@@ -103,7 +105,7 @@ def pitching(adv_score, game_data, model, lineups):
 
 
 def hitting(adv_score, game_data, model, lineups):
-    yesterday = (datetime.strptime(date.today(), '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
+    yesterday = (datetime.strptime(str(date.today()), '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
 
     away_team_id = game_data['gameData']['teams']['away']['id']
     home_team_id = game_data['gameData']['teams']['home']['id']

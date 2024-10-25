@@ -50,8 +50,12 @@ def get_odds_data(date):
 
 
 def backtest_one_pick(model, model_hitting_fn, model_pitching_fn, model_vs_fn, odds_data):
-    bankroll = 27322.65
-    start_date = date(2024, 4, 30)
+    bankroll = 1000
+    # first half
+    # start_date = date(2024, 4, 1)
+    # end_date = date(2024, 7, 14)
+    # second half
+    start_date = date(2024, 7, 19)
     end_date = date(2024, 9, 30)
     delta = timedelta(days=1)
     # for each day april through september
