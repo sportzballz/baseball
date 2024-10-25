@@ -1,3 +1,5 @@
+import os
+
 import statsapi
 # from pybaseball import *
 # import pandas as pd
@@ -8,16 +10,24 @@ import json
 from datetime import datetime, date, timedelta
 
 
-# def pybaseball_statcast(start_dt, end_dt):
-#     # s = statcast(start_dt="2019-06-24", end_dt="2019-06-25").columns
-#     df = statcast_batter('2008-07-15', '2017-07-15', player_id = 120074)
-#     pitch_types = df.pitch_type
-#     print(pitch_types)
-#     t = df.head(n=2)
-#     print(df.columns)
-#     print(t)
-#     return df
+def create_folder_if_not_exists(folder_path):
+    """Creates a folder if it doesn't exist."""
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
 
+
+def write_stat_json(dir, file, json_str):
+    create_folder_if_not_exists(dir)
+    text_file = open(f'{dir}/{file}', "w")
+    text_file.write(json_str)
+    text_file.close()
+
+
+def read_stat_json(file):
+    text_file = open(file, "r")
+    json_str = text_file.read()
+    text_file.close()
+    return json_str
 
 
 def get_pitcher_stats(player_id):
@@ -31,10 +41,18 @@ def get_pitcher_stats_by_date(player_id, d):
     etmp = datetime.strptime(d, "%Y-%m-%d")
     start = stmp.strftime("%m/%d/%Y")
     end = etmp.strftime("%m/%d/%Y")
-    url = f'https://statsapi.mlb.com/api/v1/people/{player_id}?hydrate=stats(group=[pitching],type=[byDateRange],startDate={start},endDate={end},season={year})'
-    resp = requests.get(url)
-    rjson = json.loads(resp.text)
-    return rjson['people'][0]
+    dir = f"resources/pitching/{str(d)}"
+    fname = f"/{player_id}.json"
+    if os.path.isfile(dir + fname):
+        return json.loads(read_stat_json(dir + fname))
+    else:
+        url = f'https://statsapi.mlb.com/api/v1/people/{player_id}?hydrate=stats(group=[pitching],type=[byDateRange],startDate={start},endDate={end},season={year})'
+        resp = requests.get(url)
+        rjson = json.loads(resp.text)
+        data = rjson['people'][0]
+        write_stat_json(dir, fname, json.dumps(data))
+        return data
+
 
 
 def get_hitter_stats_by_date(player_id, d):
@@ -44,10 +62,17 @@ def get_hitter_stats_by_date(player_id, d):
     etmp = datetime.strptime(d, "%Y-%m-%d")
     start = stmp.strftime("%m/%d/%Y")
     end = etmp.strftime("%m/%d/%Y")
-    url = f'https://statsapi.mlb.com/api/v1/people/{player_id}?hydrate=stats(group=[hitting],type=[byDateRange],startDate={start},endDate={end},season={year})'
-    resp = requests.get(url)
-    rjson = json.loads(resp.text)
-    return rjson['people'][0]
+    dir = f"resources/hitting/{str(d)}"
+    fname = f"/{player_id}.json"
+    if os.path.isfile(dir + fname):
+        return json.loads(read_stat_json(dir + fname))
+    else:
+        url = f'https://statsapi.mlb.com/api/v1/people/{player_id}?hydrate=stats(group=[hitting],type=[byDateRange],startDate={start},endDate={end},season={year})'
+        resp = requests.get(url)
+        rjson = json.loads(resp.text)
+        data = rjson['people'][0]
+        write_stat_json(dir, fname, json.dumps(data))
+        return data
 
 
 def get_todays_games(team_id, day):
@@ -55,8 +80,16 @@ def get_todays_games(team_id, day):
 
 
 def get_schedule_by_date(d):
-    retval = statsapi.schedule(start_date=d, end_date=d)
-    return retval
+    dir = f"resources/schedule"
+    # etmp = datetime.strptime(d, "%Y-%m-%d").date()
+    # formatted_date = etmp.strftime("%Y-%m-%d")
+    fname = f"/{str(d)}.json"
+    if os.path.isfile(dir + fname):
+        return json.loads(read_stat_json(dir + fname))
+    else:
+        data = statsapi.schedule(start_date=d, end_date=d)
+        write_stat_json(dir, fname, json.dumps(data))
+        return data
 
 
 def get_schedule_by_year(team_id, year):
@@ -71,19 +104,23 @@ def get_team_data(team_id):
 
 
 def get_home_batters_by_gameid(game_id):
-    return statsapi.boxscore_data(game_id)['homeBatters']
+    game = get_game(game_id)
+    return game['homeBatters']
 
 
 def get_away_batters_by_gameid(game_id):
-    return statsapi.boxscore_data(game_id)['awayBatters']
+    game = get_game(game_id)
+    return game['awayBatters']
 
 
 def get_home_batting_total_by_game_id(game_id):
-    return statsapi.boxscore_data(game_id)['homeBattingTotals']
+    game = get_game(game_id)
+    return game['homeBattingTotals']
 
 
 def get_away_batting_total_by_game_id(game_id):
-    return statsapi.boxscore_data(game_id)['awayBattingTotals']
+    game = get_game(game_id)
+    return game['awayBattingTotals']
 
 
 def get_last_game_batters(team_id):
@@ -125,12 +162,20 @@ def get_last_game_batting_totals(team_id):
 
 
 def get_game(game_id):
-    return statsapi.boxscore_data(game_id)
+    dir = f"resources/boxscore"
+    fname = f"/{game_id}.json"
+    if os.path.isfile(dir + fname):
+        return json.loads(read_stat_json(dir + fname))
+    else:
+        data = statsapi.boxscore_data(game_id)
+        write_stat_json(dir, fname, json.dumps(data))
+        return data
+
 
 
 def get_vs_games(home, away):
     year = date.today().year
-    start_date = f'04/01/{year}'
+    start_date = f'03/31/{year}'
     end_date = date.today().strftime("%m/%d/%Y")
     games = statsapi.schedule(start_date=start_date, end_date=end_date, team=home, opponent=away)
     return games
@@ -139,17 +184,24 @@ def get_vs_games(home, away):
 def get_vs_game_ids_before_date(home, away, d):
     game_id_list = []
     year = date.today().year
-    start_date = f'04/01/{year}'
+    start_date = f'03/31/{year}'
     end_date = str(d)
-    games = statsapi.schedule(start_date=start_date, end_date=end_date, team=home, opponent=away)
+    dir = f"resources/schedule/by_teams/{d}"
+    fname = f"/{home}_{away}.json"
+    if os.path.isfile(dir + fname):
+        games = json.loads(read_stat_json(dir + fname))
+    else:
+        games = statsapi.schedule(start_date=start_date, end_date=end_date, team=home, opponent=away)
+        write_stat_json(dir, fname, json.dumps(games))
     for game in games:
         game_id_list.append(game['game_id'])
     return game_id_list
 
+
 def get_vs_game_ids(home, away):
     game_id_list = []
     year = date.today().year
-    start_date = f'04/01/{year}'
+    start_date = f'03/31/{year}'
     end_date = date.today().strftime("%m/%d/%Y")
     games = statsapi.schedule(start_date=start_date, end_date=end_date, team=home, opponent=away)
     for game in games:

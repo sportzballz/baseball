@@ -43,9 +43,9 @@ def format_odds_data(odds_data):
 
 
 def get_odds_data(date):
-    if not os.path.exists(f"resources/{date}.json"):
+    if not os.path.exists(f"resources/odds/{date}.json"):
         get_odds_by_date(date)
-    with open(f"resources/{date}.json") as f:
+    with open(f"resources/odds/{date}.json") as f:
         data = json.load(f)
     return format_odds_data(data)
 
@@ -62,7 +62,7 @@ def backtest_one_pick(model, model_hitting_fn, model_pitching_fn, model_vs_fn, s
         print(start_date_str)
         teams = get_teams_list()
         # get the schedule for the day
-        games = get_schedule_by_date(start_date_str)
+        games = get_schedule_by_date(odds_date_str)
         # for each game in the schedule
         winners = []
         for game in games:
@@ -125,8 +125,15 @@ def full():
     backtest_one_pick("dutch", dutch.hitting_backtest, dutch.pitching_backtest, dutch.vs_backtest, start_date, end_date)
 
 
+def adhoc(start_date, end_date):
+    # first half
+    backtest_one_pick("dutch", dutch.hitting_backtest, dutch.pitching_backtest, dutch.vs_backtest, start_date, end_date)
+
+
 def main(event, context):
-    daily(event, context)
+    # daily(event, context)
+    full()
+    # adhoc(date(2024, 7, 31), date(2024, 7, 31))
 
 
 main('event', 'context')

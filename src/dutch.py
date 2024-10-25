@@ -16,8 +16,6 @@ def pitching_backtest(adv_score, game_data, year):
         away_pitcher = get_pitcher_stats_by_date(away_pitcher_id, yesterday)
         home_pitcher = get_pitcher_stats_by_date(home_pitcher_id, yesterday)
 
-        away_pitcher1 = get_pitcher_stats(away_pitcher_id)
-        home_pitcher1 = get_pitcher_stats(home_pitcher_id)
         if len(home_pitcher['stats']) == 0 or len(away_pitcher['stats']) == 0:
             # print("No pitcher stats found for yesterday. Skipping...")
             return adv_score
