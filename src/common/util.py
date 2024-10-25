@@ -272,6 +272,9 @@ def post_to_slack(winners, model):
     highest_confidence = 0.000
     todays_pick = [Prediction('-', '-', '-', '-', '-', '-', '-', 0, '-', '0/0')]
     try:
+        print("Adam")
+        print(winners[0].to_string())
+        print("Smith")
         for winner in winners:
             print(winner.to_string())
             if winner.winning_team != '-':
