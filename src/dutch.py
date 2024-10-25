@@ -109,7 +109,8 @@ def hitting(adv_score, game_data, model, lineups):
 
     away_team_id = game_data['gameData']['teams']['away']['id']
     home_team_id = game_data['gameData']['teams']['home']['id']
-
+    home_lineup = []
+    away_lineup = []
     for lineup in lineups:
         if lineup.team_id == away_team_id:
             away_lineup = lineup.lineup_players

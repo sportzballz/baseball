@@ -1,4 +1,9 @@
 # Baseball
+
+## TODO
+- [ ] Calculate last loss distance stats
+- [ ] Write Stats files to speed up backtest
+
 ## Todays Pick Notification Logic
 - [ ] IF (Mon-Fri AND 5pm) || (Mon-Fri AND Game Start Before 5pm AND Lineups available)
 - [ ]   ANNOUNCE

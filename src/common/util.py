@@ -303,11 +303,11 @@ def post_to_slack_backtest(d, winners, model, bankroll):
                     else:
                         highest_confidence = float(winner.confidence)
                         todays_pick = [winner]
-                # if "$" in winner.winning_team:
-                    # slack.post_backtest(":white_check_mark:"+ winner.to_string(), model)
-                # else:
-                    # slack.post_backtest(":x:"+ winner.to_string(), model)
-                # slack.post_backtest(winner.to_string(), model)
+                if "$" in winner.winning_team:
+                    slack.post_backtest(":white_check_mark:"+ winner.to_string(), model)
+                else:
+                    slack.post_backtest(":x:"+ winner.to_string(), model)
+                slack.post_backtest(winner.to_string(), model)
                 # time.sleep(1)
     except ValueError:
         slack.post_backtest(winner.to_string(), model)
