@@ -12,15 +12,21 @@ from datetime import datetime, date, timedelta
 
 def create_folder_if_not_exists(folder_path):
     """Creates a folder if it doesn't exist."""
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
+    try:
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+    except Exception as e:
+        pass
 
 
 def write_stat_json(dir, file, json_str):
-    create_folder_if_not_exists(dir)
-    text_file = open(f'{dir}/{file}', "w")
-    text_file.write(json_str)
-    text_file.close()
+    try:
+        create_folder_if_not_exists(dir)
+        text_file = open(f'{dir}/{file}', "w")
+        text_file.write(json_str)
+        text_file.close()
+    except Exception as e:
+        pass
 
 
 def read_stat_json(file):

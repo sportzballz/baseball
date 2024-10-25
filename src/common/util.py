@@ -285,7 +285,7 @@ def post_to_slack(winners, model):
                         highest_confidence = float(winner.confidence)
                         todays_pick = winner
                 slack.post(winner.to_string(), model)
-                # time.sleep(1)
+                time.sleep(1)
     except ValueError:
         slack.post(winner.to_string(), model)
     for pick in todays_pick:
