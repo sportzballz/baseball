@@ -1,3 +1,34 @@
+class LastLossMetrics:
+    def __init__(self, max_distance, min_distance, mean_distance, avg_distance, ll_list):
+        pass
+
+
+class WinLossMetrics:
+    def __init__(self, win_count, loss_count, consecutive_loss_list):
+        pass
+
+
+class OddsMetrics:
+    def __init__(self, max_distance, min_distance, mean_distance, avg_distance, odds_list):
+        pass
+
+
+class ConfidenceMetrics:
+    def __init__(self, max_distance, min_distance, mean_distance, avg_distance, confidence_list):
+        pass
+
+
+class BankrollMetrics:
+    def __init__(self, max_distance, min_distance, mean_distance, avg_distance, bankroll_list):
+        pass
+
+
+class BacktestMetrics:
+    def __init__(self, last_loss: LastLossMetrics, win_loss: WinLossMetrics, odds: OddsMetrics,
+                 confidence: ConfidenceMetrics, bankroll: BankrollMetrics):
+        pass
+
+
 class Prediction:
     def __init__(self, winning_team: str, losing_team: str, winning_pitcher: str, losing_pitcher: str, gameDate: str,
                  gameTime: str, ampm: str,

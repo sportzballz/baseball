@@ -291,8 +291,8 @@ def post_to_slack(winners, model):
             slack.post_todays_pick(pick.to_string(), model)
 
 
-def post_to_slack_backtest(d, winners, model, bankroll):
-    # slack.post_backtest(str(d), model)
+def post_to_slack_backtest(d, winners, model, metrics):
+    slack.post_backtest(str(d), model)
     highest_confidence = 0.000
     todays_pick = [Prediction('-', '-', '-', '-', '-', '-', '-', 0, '-', '0/0')]
     try:
@@ -311,18 +311,18 @@ def post_to_slack_backtest(d, winners, model, bankroll):
                 # slack.post_backtest(winner.to_string(), model)
                 # time.sleep(1)
     except ValueError:
-        # slack.post_backtest(winner.to_string(), model)
+        slack.post_backtest(winner.to_string(), model)
         print("exception")
 
     for pick in todays_pick:
         if "." not in pick.winning_team and "." not in pick.losing_team:
             if "$" in pick.winning_team:
-                bankroll = calculate_bankroll(True, pick.odds, bankroll)
-                # slack.post_todays_pick_backtest(":white_check_mark:" + str(d) + " " + pick.to_string() + "$" + str(bankroll), model)
+                # bankroll = calculate_bankroll(True, pick.odds, bankroll)
+                slack.post_todays_pick_backtest(":white_check_mark:" + str(d) + " " + pick.to_string(), model)
             else:
-                bankroll = calculate_bankroll(False, pick.odds, bankroll)
-                # slack.post_todays_pick_backtest(":x:" + str(d) + " " + pick.to_string() + "$" + str(bankroll), model)
-    return bankroll
+                # bankroll = calculate_bankroll(False, pick.odds, bankroll)
+                slack.post_todays_pick_backtest(":x:" + str(d) + " " + pick.to_string(), model)
+    return metrics
 
 
 def calculate_bankroll(win, odds, bankroll):

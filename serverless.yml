@@ -21,29 +21,53 @@ provider:
   region: us-east-1
 
 functions:
-  ashburn-picks:
-    handler: src.ashburn.main
-    timeout: 90
-    environment:
-      SPORTSPAGE_API_KEY: ${env:SPORTSPAGE_API_KEY}
-      SLACK_TOKEN: ${env:SLACK_TOKEN}
-      MODEL: 'ashburn'
-  bowa-picks:
-    handler: src.bowa.main
-    timeout: 90
-    environment:
-      SPORTSPAGE_API_KEY: ${env:SPORTSPAGE_API_KEY}
-      SLACK_TOKEN: ${env:SLACK_TOKEN}
-      MODEL: 'bowa'
-  carlton-picks:
-    handler: src.carlton.main
-    timeout: 90
-    environment:
-      SPORTSPAGE_API_KEY: ${env:SPORTSPAGE_API_KEY}
-      SLACK_TOKEN: ${env:SLACK_TOKEN}
-      MODEL: 'carlton'
+#  ashburn-picks:
+#    handler: src.ashburn.main
+#    package:
+#      patterns:
+#        - '!resources/hitting/**'
+#        - '!resources/pitching/**'
+#        - '!resources/boxscore/**'
+#        - '!resources/schedule/**'
+#    timeout: 90
+#    environment:
+#      SPORTSPAGE_API_KEY: ${env:SPORTSPAGE_API_KEY}
+#      SLACK_TOKEN: ${env:SLACK_TOKEN}
+#      MODEL: 'ashburn'
+#  bowa-picks:
+#    handler: src.bowa.main
+#    package:
+#      patterns:
+#        - '!resources/hitting/**'
+#        - '!resources/pitching/**'
+#        - '!resources/boxscore/**'
+#        - '!resources/schedule/**'
+#    timeout: 90
+#    environment:
+#      SPORTSPAGE_API_KEY: ${env:SPORTSPAGE_API_KEY}
+#      SLACK_TOKEN: ${env:SLACK_TOKEN}
+#      MODEL: 'bowa'
+#  carlton-picks:
+#    handler: src.carlton.main
+#    package:
+#      patterns:
+#        - '!resources/hitting/**'
+#        - '!resources/pitching/**'
+#        - '!resources/boxscore/**'
+#        - '!resources/schedule/**'
+#    timeout: 90
+#    environment:
+#      SPORTSPAGE_API_KEY: ${env:SPORTSPAGE_API_KEY}
+#      SLACK_TOKEN: ${env:SLACK_TOKEN}
+#      MODEL: 'carlton'
   dutch-picks:
     handler: src.dutch.main
+    package:
+      patterns:
+        - '!resources/hitting/**'
+        - '!resources/pitching/**'
+        - '!resources/boxscore/**'
+        - '!resources/schedule/**'
     timeout: 90
     environment:
       SPORTSPAGE_API_KEY: ${env:SPORTSPAGE_API_KEY}
@@ -51,6 +75,12 @@ functions:
       MODEL: 'dutch'
   daily-backtest:
     handler: src.backtest.daily
+    package:
+      patterns:
+        - '!resources/hitting/**'
+        - '!resources/pitching/**'
+        - '!resources/boxscore/**'
+        - '!resources/schedule/**'
     timeout: 90
     environment:
       SPORTSPAGE_API_KEY: ${env:SPORTSPAGE_API_KEY}

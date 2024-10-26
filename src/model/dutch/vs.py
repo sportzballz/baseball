@@ -6,6 +6,7 @@ def most_wins(home_team_id, away_team_id, game_ids, adv_score):
     away_wins = 0
 
     for game_id in game_ids:
+        print(game_id)
         game = get_game(game_id)
         if game['teamInfo']['home']['id'] == home_team_id:
             if game['home']['teamStats']['batting']['runs'] > game['away']['teamStats']['batting']['runs']:

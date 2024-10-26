@@ -7,13 +7,13 @@ import os
 # from src.analysis.vs.vsevaluation import evaluate_vs_matchup
 # from src.common.util import *
 # from src.connector.stats import *
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from time import sleep
 
 import statsapi
 
 from src import dutch
-from src.common.objects import AdvantageScore
+from src.common.objects import AdvantageScore, BacktestMetrics
 from src.common.util import get_teams_list, select_winner, post_to_slack_backtest
 from src.connector import slack
 from src.connector.sportsbook import get_odds
@@ -51,7 +51,7 @@ def get_odds_data(date):
 
 
 def backtest_one_pick(model, model_hitting_fn, model_pitching_fn, model_vs_fn, start_date, end_date):
-    bankroll = 1000
+    metrics = 1000 #BacktestMetrics()
 
     delta = timedelta(days=1)
     # for each day april through september
@@ -83,7 +83,7 @@ def backtest_one_pick(model, model_hitting_fn, model_pitching_fn, model_vs_fn, s
                     print(adv_score.to_string())
                     winners.append(winner)
 
-        bankroll = post_to_slack_backtest(start_date_str, winners, "dutch", bankroll)
+        metrics = post_to_slack_backtest(start_date_str, winners, "dutch", metrics)
         start_date += delta
 
 
@@ -131,9 +131,14 @@ def adhoc(start_date, end_date):
 
 
 def main(event, context):
+    start_time = datetime.now()
     # daily(event, context)
-    full()
-    # adhoc(date(2024, 7, 31), date(2024, 7, 31))
+    # full()
+    adhoc(date(2024, 10, 25), date(2024, 10, 25))
+    end_time = datetime.now()
+    print(f"Start time: {start_time}")
+    print(f"End time: {end_time}")
+    print(f"Execution time: {end_time - start_time}")
 
 
 main('event', 'context')
