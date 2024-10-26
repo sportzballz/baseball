@@ -134,7 +134,7 @@ def main(event, context):
     start_time = datetime.now()
     # daily(event, context)
     # full()
-    adhoc(date(2024, 10, 25), date(2024, 10, 25))
+    adhoc(date(2024, 10, 26), date(2024, 10, 26))
     end_time = datetime.now()
     print(f"Start time: {start_time}")
     print(f"End time: {end_time}")
