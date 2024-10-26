@@ -138,13 +138,14 @@ def hitting(adv_score, game_data, model, lineups):
 
 
 def vs(adv_score, game_data, model, lineups):
+    yesterday = (datetime.strptime(str(date.today()), '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
     try:
         away_team_id = game_data['gameData']['teams']['away']['id']
         home_team_id = game_data['gameData']['teams']['home']['id']
         away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
         home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
 
-        return src.model.dutch.vs.evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_team_id, date.today())
+        return src.model.dutch.vs.evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_team_id, yesterday)
     except Exception as e:
         d = game_data['gameData']['datetime']['officialDate']
         print(f'Unable to get Pitcher Vs Stats: {d} {e}')
