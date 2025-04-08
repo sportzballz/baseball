@@ -42,7 +42,8 @@ def get_pitcher_stats(player_id):
 
 def get_pitcher_stats_by_date(player_id, d):
     year = d[:4]
-    s = f"{year}-01-01"
+    last_year = str(int(year) - 1)
+    s = f"{last_year}-01-01"
     stmp = datetime.strptime(s, "%Y-%m-%d")
     etmp = datetime.strptime(d, "%Y-%m-%d")
     start = stmp.strftime("%m/%d/%Y")
@@ -60,10 +61,10 @@ def get_pitcher_stats_by_date(player_id, d):
         return data
 
 
-
 def get_hitter_stats_by_date(player_id, d):
     year = d[:4]
-    s = f"{year}-01-01"
+    last_year = str(int(year) - 1)
+    s = f"{last_year}-01-01"
     stmp = datetime.strptime(s, "%Y-%m-%d")
     etmp = datetime.strptime(d, "%Y-%m-%d")
     start = stmp.strftime("%m/%d/%Y")
@@ -110,22 +111,22 @@ def get_team_data(team_id):
 
 
 def get_home_batters_by_gameid(game_id):
-    game = get_game(game_id)
+    game = get_boxscore(game_id)
     return game['homeBatters']
 
 
 def get_away_batters_by_gameid(game_id):
-    game = get_game(game_id)
+    game = get_boxscore(game_id)
     return game['awayBatters']
 
 
 def get_home_batting_total_by_game_id(game_id):
-    game = get_game(game_id)
+    game = get_boxscore(game_id)
     return game['homeBattingTotals']
 
 
 def get_away_batting_total_by_game_id(game_id):
-    game = get_game(game_id)
+    game = get_boxscore(game_id)
     return game['awayBattingTotals']
 
 
@@ -168,6 +169,17 @@ def get_last_game_batting_totals(team_id):
 
 
 def get_game(game_id):
+    dir = f"resources/game"
+    fname = f"/{game_id}.json"
+    if os.path.isfile(dir + fname):
+        return json.loads(read_stat_json(dir + fname))
+    else:
+        data = statsapi.get("game", {"gamePk": game_id})
+        write_stat_json(dir, fname, json.dumps(data))
+        return data
+
+
+def get_boxscore(game_id):
     dir = f"resources/boxscore"
     fname = f"/{game_id}.json"
     if os.path.isfile(dir + fname):
@@ -187,10 +199,29 @@ def get_vs_games(home, away):
     return games
 
 
+def get_team_game_ids_before_date(team, d):
+    game_id_list = []
+    year = d[:4]
+    last_year = str(int(year) - 1)
+    start_date = f'03/31/{last_year}'
+    end_date = str(d)
+    dir = f"resources/schedule/by_team/{d}"
+    fname = f"/{team}.json"
+    if os.path.isfile(dir + fname):
+        games = json.loads(read_stat_json(dir + fname))
+    else:
+        games = statsapi.schedule(start_date=start_date, end_date=end_date, team=team)
+        write_stat_json(dir, fname, json.dumps(games))
+    for game in games:
+        game_id_list.append(game['game_id'])
+    return game_id_list
+
+
 def get_vs_game_ids_before_date(home, away, d):
     game_id_list = []
-    year = date.today().year
-    start_date = f'03/31/{year}'
+    year = d[:4]
+    last_year = str(int(year) - 1)
+    start_date = f'03/31/{last_year}'
     end_date = str(d)
     dir = f"resources/schedule/by_teams/{d}"
     fname = f"/{home}_{away}.json"

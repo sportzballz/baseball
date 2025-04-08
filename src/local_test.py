@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 import ashburn as ashburn
 import bowa as bowa
 import carlton as carlton
-import dutch as dutch
+import ennis as ennis
 
 
 def test(run_type, year, model):
@@ -22,8 +22,8 @@ def test(run_type, year, model):
             bowa.main(None, None)
         elif model == 'carlton':
             carlton.main(None, None)
-        elif model == 'dutch':
-            dutch.main(None, None)
+        elif model == 'ennis':
+            ennis.main(None, None)
     elif run_type == 'one-pick':
         start_date = date(int(year), 4, 1)
         end_date = date(int(year), 10, 1)

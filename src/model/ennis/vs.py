@@ -10,12 +10,12 @@ def most_wins(home_team_id, away_team_id, game_ids, adv_score):
         if game['teamInfo']['home']['id'] == home_team_id:
             if game['home']['teamStats']['batting']['runs'] > game['away']['teamStats']['batting']['runs']:
                 home_wins += 1
-            else:
+            elif game['away']['teamStats']['batting']['runs'] > game['home']['teamStats']['batting']['runs']:
                 away_wins += 1
         else:
             if game['away']['teamStats']['batting']['runs'] > game['home']['teamStats']['batting']['runs']:
                 home_wins += 1
-            else:
+            elif game['home']['teamStats']['batting']['runs'] > game['away']['teamStats']['batting']['runs']:
                 away_wins += 1
     if home_wins > away_wins:
         adv_score.home += 1
@@ -199,9 +199,49 @@ def pitcher_vs_team(adv_score, home_pitcher_id, away_pitcher_id, game_ids):
     return adv_score
 
 
-def evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_team_id):
+def away_vs_home_records(adv_score, home_team_id, away_team_id, d):
+    away_game_ids = get_team_game_ids_before_date(away_team_id, d)
+    home_game_ids = get_team_game_ids_before_date(home_team_id, d)
 
-    game_ids = get_vs_game_ids(home_team_id, away_team_id)
+    home_wins = 0
+    home_losses = 0
+    away_wins = 0
+    away_losses = 0
+    home_game_ids = home_game_ids[-60:]
+    away_game_ids = away_game_ids[-60:]
+    for home_game_id in home_game_ids:
+        home_game = get_game(home_game_id)
+        if home_game['gameData']['teams']['home']['id'] == home_team_id:
+            if home_game['liveData']['boxscore']['teams']['home']['teamStats']['batting']['runs'] > home_game['liveData']['boxscore']['teams']['away']['teamStats']['batting']['runs']:
+                home_wins += 1
+            else:
+                home_losses += 1
+    for away_game_id in away_game_ids:
+
+        away_game = get_game(away_game_id)
+        if away_game['gameData']['teams']['away']['id'] == away_team_id:
+            if away_game['liveData']['boxscore']['teams']['away']['teamStats']['batting']['runs'] > away_game['liveData']['boxscore']['teams']['home']['teamStats']['batting']['runs']:
+                away_wins += 1
+            else:
+                away_losses += 1
+    home_win_percentage = home_wins / (home_wins + home_losses)
+    away_win_percentage = away_wins / (away_wins + away_losses)
+
+    if home_win_percentage > away_win_percentage:
+        adv_score.home += 1
+        adv_score.home_stats.append("Home team has better win percentage at home")
+    elif away_win_percentage > home_win_percentage:
+        adv_score.away += 1
+        adv_score.away_stats.append("Away team has better win percentage on the road")
+
+    return adv_score
+
+
+def evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_team_id, d, clf):
+    game_ids = get_vs_game_ids_before_date(home_team_id, away_team_id, d)
+
+
+    # game_ids = get_vs_game_ids(home_team_id, away_team_id)
     # games = get_vs_games(home_team_id, away_team_id)
 
     # head to head record
@@ -212,5 +252,8 @@ def evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_tea
 
     # Season stats batters against this team
     adv_score = hitters_vs_team(adv_score, home_team_id, away_team_id, game_ids)
+
+    # away teams away record vs home teams home record
+    # adv_score = away_vs_home_records(adv_score, home_team_id, away_team_id, d)
 
     return adv_score

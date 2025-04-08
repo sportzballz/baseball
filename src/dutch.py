@@ -64,7 +64,10 @@ def hitting_backtest(adv_score, game_data, dt):
 
 def vs_backtest(adv_score, game_data, dt):
     try:
-        # d = datetime.strptime(dt, "%Y-%m-%d").date()
+
+
+
+        d = datetime.strptime(dt, "%Y-%m-%d").date()
         yesterday = (datetime.strptime(dt, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
         away_team_id = game_data['gameData']['teams']['away']['id']
         home_team_id = game_data['gameData']['teams']['home']['id']

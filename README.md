@@ -1,8 +1,17 @@
 # Baseball
 
-## TODO
-- [ ] Calculate last loss distance stats
-- [ ] Write Stats files to speed up backtest
+## TODO for Ennis Model
+- [ x ] away team road record
+- [ x ] home team home record
+- [ ] Add over/under to the model
+- [ ] Add runline to the model
+- [ ] team vs time of day
+- [ ] team vs weather
+- [ ] team vs umpire
+- [ ] pitcher historical innings pitched
+- [ ] batters vs bullpen
+- [ ] pitcher vs bench
+- [ ] play with weights
 
 ## Todays Pick Notification Logic
 - [ ] IF (Mon-Fri AND 5pm) || (Mon-Fri AND Game Start Before 5pm AND Lineups available)

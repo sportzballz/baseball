@@ -6,7 +6,7 @@ def evaluate(home_team_id, away_team_id, game_ids, adv_score):
     away_wins = 0
 
     for game_id in game_ids:
-        game = get_game(game_id)
+        game = get_boxscore(game_id)
         if game['teamInfo']['home']['id'] == home_team_id:
             if game['home']['teamStats']['batting']['runs'] > game['away']['teamStats']['batting']['runs']:
                 home_wins += 1

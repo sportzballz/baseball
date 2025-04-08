@@ -6,8 +6,7 @@ def most_wins(home_team_id, away_team_id, game_ids, adv_score):
     away_wins = 0
 
     for game_id in game_ids:
-        print(game_id)
-        game = get_game(game_id)
+        game = get_boxscore(game_id)
         if game['teamInfo']['home']['id'] == home_team_id:
             if game['home']['teamStats']['batting']['runs'] > game['away']['teamStats']['batting']['runs']:
                 home_wins += 1
@@ -40,7 +39,7 @@ def hitters_vs_team(adv_score, home_team_id, away_team_id, game_ids):
     awayBhomeRuns = 0.0
 
     for game_id in game_ids:
-        game = get_game(game_id)
+        game = get_boxscore(game_id)
         if game['teamInfo']['home']['id'] == home_team_id:
             homeBatters = game['homeBatters']
             throw_away = homeBatters.pop(0)
@@ -131,7 +130,7 @@ def pitcher_vs_team(adv_score, home_pitcher_id, away_pitcher_id, game_ids):
     awayPhomeRuns = 0.0
 
     for game_id in game_ids:
-        game = get_game(game_id)
+        game = get_boxscore(game_id)
         for pitcher in game['homePitchers']:
             if pitcher['personId'] == home_pitcher_id:
                 home_pitcher_stats.append(pitcher)

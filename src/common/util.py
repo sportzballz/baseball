@@ -151,7 +151,11 @@ def get_lineup_profile(lineup):
 def get_lineup_profile_by_date(lineup, d):
     lineup_profile = []
     for player in lineup[1:]:
-        if player['namefield'][0].isdigit():
+        try:
+            if player['namefield'][0].isdigit():
+                lineup_profile.append(get_hitter_stats_by_date(player['personId'], d))
+        except KeyError:
+            print("get_lineup_profile_by_date keyError")
             lineup_profile.append(get_hitter_stats_by_date(player['personId'], d))
     return lineup_profile
 
@@ -292,36 +296,74 @@ def post_to_slack(winners, model):
 
 
 def post_to_slack_backtest(d, winners, model, metrics):
-    slack.post_backtest(str(d), model)
+    # slack.post_backtest(str(d), model)
     highest_confidence = 0.000
     todays_pick = [Prediction('-', '-', '-', '-', '-', '-', '-', 0, '-', '0/0')]
     try:
         for winner in winners:
+            try:
+                dp = winner.data_points.split('/')[1]
+            except Exception as e:
+                print(e)
+                dp = "0"
+                continue
             if winner.winning_team != '-':
-                if float(winner.confidence) >= highest_confidence:
+                if float(winner.confidence) >= highest_confidence and int(dp) > 20:
                     if highest_confidence == float(winner.confidence):
                         todays_pick.append(winner)
                     else:
                         highest_confidence = float(winner.confidence)
                         todays_pick = [winner]
+                    if '$' in winner.winning_team and float(winner.confidence) > .800:
+                        metrics = addMetricsWin(metrics, winner)
+                    elif float(winner.confidence) > .800:
+                        metrics = addMetricsLoss(metrics, winner)
                 # if "$" in winner.winning_team:
                 #     slack.post_backtest(":white_check_mark:"+ winner.to_string(), model)
                 # else:
                 #     slack.post_backtest(":x:"+ winner.to_string(), model)
-                # slack.post_backtest(winner.to_string(), model)
+                # # slack.post_backtest(winner.to_string(), model)
                 # time.sleep(1)
     except ValueError:
-        slack.post_backtest(winner.to_string(), model)
+        # slack.post_backtest(winner.to_string(), model)
         print("exception")
-
+    #
     for pick in todays_pick:
-        if "." not in pick.winning_team and "." not in pick.losing_team:
+        if pick.winning_team != '-':
             if "$" in pick.winning_team:
-                # bankroll = calculate_bankroll(True, pick.odds, bankroll)
-                slack.post_todays_pick_backtest(":white_check_mark:" + str(d) + " " + pick.to_string(), model)
+                if float(pick.confidence) > .580:
+                    metrics = addMetricsWin(metrics, pick)
+                    # slack.post_todays_pick_backtest(":white_check_mark:" + str(d) + " " + pick.to_string() + " " + metrics.bankroll.getCurrentBankroll(), model)
             else:
-                # bankroll = calculate_bankroll(False, pick.odds, bankroll)
-                slack.post_todays_pick_backtest(":x:" + str(d) + " " + pick.to_string(), model)
+                if float(pick.confidence) > .580:
+                    metrics = addMetricsLoss(metrics, pick)
+                    # slack.post_todays_pick_backtest(":x:" + str(d) + " " + pick.to_string()+ " " + metrics.bankroll.getCurrentBankroll(), model)
+    return metrics
+
+
+def addMetricsLoss(metrics, pick):
+    if pick.odds == '----':
+        pick.odds = 0
+    if pick.confidence == '----' or pick.confidence == '-':
+        pick.confidence = 0
+
+    metrics.win_loss.addLoss()
+    metrics.odds_metrics.addLoss(float(pick.odds))
+    metrics.confidence_metrics.addLoss(float(pick.confidence))
+    metrics.bankroll.setBankroll(calculate_bankroll(False, float(pick.odds), metrics.bankroll.current_bankroll))
+    return metrics
+
+
+def addMetricsWin(metrics, pick):
+    if pick.odds == '----':
+        pick.odds = 1
+    if pick.confidence == '----':
+        pick.confidence = 0
+
+    metrics.win_loss.addWin()
+    metrics.odds_metrics.addWin(float(pick.odds))
+    metrics.confidence_metrics.addWin(float(pick.confidence))
+    metrics.bankroll.setBankroll(calculate_bankroll(True, float(pick.odds), metrics.bankroll.current_bankroll))
     return metrics
 
 
@@ -329,6 +371,10 @@ def calculate_bankroll(win, odds, bankroll):
     if win:
         if odds == '----':
             return round(bankroll, 2)
+        if bankroll == 0:
+            bankroll = 1
+        if odds == 0:
+            odds = 1
         if int(odds) > 0:
             wager = bankroll * .2
             bankroll -= wager

@@ -12,13 +12,15 @@ from time import sleep
 
 import statsapi
 
-from src import dutch
-from src.common.objects import AdvantageScore, BacktestMetrics
+from src import ennis
+from src.common.objects import AdvantageScore, BacktestMetrics, BankrollMetrics, WinLossMetrics, OddsMetrics, \
+    ConfidenceMetrics, RuntimeMetrics
 from src.common.util import get_teams_list, select_winner, post_to_slack_backtest
 from src.connector import slack
 from src.connector.sportsbook import get_odds
 from src.connector.sportsbookreview import get_odds_by_date
-from src.connector.stats import get_schedule_by_date
+from src.connector.stats import get_schedule_by_date, get_boxscore, get_game
+from src.ml import get_clf
 
 
 def format_odds_data(odds_data):
@@ -50,9 +52,35 @@ def get_odds_data(date):
     return format_odds_data(data)
 
 
-def backtest_one_pick(model, model_hitting_fn, model_pitching_fn, model_vs_fn, start_date, end_date):
-    metrics = 1000 #BacktestMetrics()
+def backtest_ml(start_date, end_date):
+    delta = timedelta(days=1)
+    samples = []
+    results = []
+    # for each day april through september
+    while start_date <= end_date:
+        start_date_str = start_date.strftime("%m/%d/%Y")
+        print(start_date_str)
+        teams = get_teams_list()
+        games = get_schedule_by_date(start_date_str)
+        for game in games:
+            game_id = game['game_id']
+            game_data = get_game(game_id)
+            for team in teams:
+                if game['home_name'] == team.name:
+                    game_samples, game_results = ennis.ml_backest(game_data, str(start_date))
+                    if len(game_samples[0]) > 0 and len(game_samples[1]) > 0:
+                        samples.append(game_samples[0])
+                        samples.append(game_samples[1])
+                        results.append(game_results[0])
+                        results.append(game_results[1])
+                    else:
+                        print("No samples")
+        start_date += delta
+    return samples, results
 
+
+
+def backtest_one_pick(model, model_hitting_fn, model_pitching_fn, model_vs_fn, start_date, end_date, metrics):
     delta = timedelta(days=1)
     # for each day april through september
     while start_date <= end_date:
@@ -66,24 +94,24 @@ def backtest_one_pick(model, model_hitting_fn, model_pitching_fn, model_vs_fn, s
         # for each game in the schedule
         winners = []
         for game in games:
-            print(game["game_id"])
+            # print(game["game_id"])
             game_id = game['game_id']
-            game_data = statsapi.get("game", {"gamePk": game_id})
+            game_data = get_game(game_id)
             for team in teams:
                 if game['home_name'] == team.name:
                     home_stats = []
                     away_stats = []
-                    adv_score = AdvantageScore(home=1, away=0, home_stats=home_stats, away_stats=away_stats, home_lineup_available=True, away_lineup_available=True)
+                    adv_score = AdvantageScore(home=0, away=0, home_stats=home_stats, away_stats=away_stats, home_lineup_available=True, away_lineup_available=True)
 
                     adv_score = model_hitting_fn(adv_score, game_data, str(start_date))
                     adv_score = model_pitching_fn(adv_score, game_data, str(start_date))
                     adv_score = model_vs_fn(adv_score, game_data, str(start_date))
                     winner = select_winner(adv_score, game_data, odds_data)
-                    print(winner.to_string())
-                    print(adv_score.to_string())
+                    # print(winner.to_string())
+                    # print(adv_score.to_string())
                     winners.append(winner)
 
-        metrics = post_to_slack_backtest(start_date_str, winners, "dutch", metrics)
+        metrics = post_to_slack_backtest(start_date_str, winners, model, metrics)
         start_date += delta
 
 
@@ -92,11 +120,12 @@ def backtest_one_pick(model, model_hitting_fn, model_pitching_fn, model_vs_fn, s
             # add to winner list
     # find highest confidence pick
     # check if team with highest confidence pick won
+    return metrics
 
 
 def load_odds_data():
-    start_date = date(2024, 7, 31)
-    end_date = date(2024, 7, 31)
+    start_date = date(2023, 3, 31)
+    end_date = date(2023, 9, 30)
     delta = timedelta(days=1)
     current_date = start_date
     # for each day april through september
@@ -106,39 +135,100 @@ def load_odds_data():
         current_date += delta
 
 
-def daily(event, context):
+def daily(event, context, metrics, model):
     yesterday = (datetime.strptime(str(date.today()), '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
     start_date = yesterday
     end_date = yesterday
-    backtest_one_pick("dutch", dutch.hitting_backtest, dutch.pitching_backtest, dutch.vs_backtest, start_date, end_date)
+    return backtest_one_pick(model, ennis.hitting_backtest, ennis.pitching_backtest, ennis.vs_backtest, start_date, end_date, metrics)
 
 
-def full():
+def full_2024(metrics, model):
     # first half
+    start_date = date(2023, 4, 1)
+    end_date = date(2023, 7, 14)
+    metrics = backtest_one_pick(model, ennis.hitting_backtest, ennis.pitching_backtest, ennis.vs_backtest, start_date, end_date, metrics)
+    # slack.post_todays_pick_backtest("All Star Break", model)
+    # second half
+    start_date = date(2023, 7, 19)
+    end_date = date(2023, 9, 30)
+    metrics = backtest_one_pick(model, ennis.hitting_backtest, ennis.pitching_backtest, ennis.vs_backtest, start_date, end_date, metrics)
+    return metrics
+
+
+def full_ml():
+    # first half 2023
+    start_date = date(2023, 4, 1)
+    end_date = date(2023, 7, 8)
+    samples1, results1 = backtest_ml(start_date, end_date)
+
+    # second half 2023
+    start_date = date(2023, 7, 13)
+    end_date = date(2023, 9, 30)
+    samples2, results2 = backtest_ml(start_date, end_date)
+
+    # first half 2024
     start_date = date(2024, 4, 1)
     end_date = date(2024, 7, 14)
-    backtest_one_pick("dutch", dutch.hitting_backtest, dutch.pitching_backtest, dutch.vs_backtest, start_date, end_date)
-    bankroll = slack.post_backtest("All Star Break", "dutch")
-    # second half
+    samples3, results3 = backtest_ml(start_date, end_date)
+
+    # second half 2024
     start_date = date(2024, 7, 19)
     end_date = date(2024, 9, 30)
-    backtest_one_pick("dutch", dutch.hitting_backtest, dutch.pitching_backtest, dutch.vs_backtest, start_date, end_date)
+    samples4, results4 = backtest_ml(start_date, end_date)
+
+    return metrics, samples1 + samples2 + samples3 + samples4, results1 + results2 + results3 + results4
 
 
-def adhoc(start_date, end_date):
+def full_2023(metrics, model):
     # first half
-    backtest_one_pick("dutch", dutch.hitting_backtest, dutch.pitching_backtest, dutch.vs_backtest, start_date, end_date)
+    start_date = date(2023, 4, 1)
+    end_date = date(2023, 7, 9)
+    metrics = backtest_one_pick(model, ennis.hitting_backtest, ennis.pitching_backtest, ennis.vs_backtest, start_date, end_date, metrics)
+    # slack.post_todays_pick_backtest("All Star Break", model)
+    # second half
+    start_date = date(2023, 7, 14)
+    end_date = date(2023, 9, 30)
+    metrics = backtest_one_pick(model, ennis.hitting_backtest, ennis.pitching_backtest, ennis.vs_backtest, start_date, end_date, metrics)
+    return metrics
+
+
+def adhoc(start_date, end_date, metrics, model):
+    # first half
+    backtest_one_pick(model, ennis.hitting_backtest, ennis.pitching_backtest, ennis.vs_backtest, start_date, end_date, metrics)
 
 
 def main(event, context):
-    start_time = datetime.now()
-    # daily(event, context)
-    # full()
-    adhoc(date(2024, 10, 26), date(2024, 10, 26))
-    end_time = datetime.now()
-    print(f"Start time: {start_time}")
-    print(f"End time: {end_time}")
-    print(f"Execution time: {end_time - start_time}")
+    clf, samples, results = get_clf()
+    metrics, new_samples, new_results = full_ml()
+
+    predicted_results = clf.predict(new_samples)
+    correct = 0
+    for i in range(len(predicted_results)):
+        if results[i] == predicted_results[i]:
+            correct += 1
+    print("Training Data Sample Size: ", len(samples))
+    print("Accuracy: ", correct / len(predicted_results) * 100, "%")
+
+
+    # metrics = BacktestMetrics(
+    #     BankrollMetrics(),
+    #     WinLossMetrics(),
+    #     OddsMetrics(),
+    #     ConfidenceMetrics(),
+    #     RuntimeMetrics())
+    #
+    # metrics.runtime_metrics.start_time = datetime.now()
+    #slack.post_todays_pick_backtest(str(metrics.runtime_metrics.start_time), model)
+    # daily(event, context, metrics, model)
+    # metrics = full_2024(metrics, model)
+    # adhoc(date(2024, 7, 25), date(2024, 8, 1), metrics, model)
+
+
+
+
+    # metrics.complete()
+    # print(metrics.toString())
+    # slack.post_todays_pick_backtest(metrics.toString(), model)
 
 
 main('event', 'context')
