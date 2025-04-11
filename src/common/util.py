@@ -27,7 +27,7 @@ def get_teams():
     min = statsapi.lookup_team('min')
     nym = statsapi.lookup_team('nym')
     nyy = statsapi.lookup_team('nyy')
-    oak = statsapi.lookup_team('oak')
+    oak = statsapi.lookup_team('ath')
     phi = statsapi.lookup_team('phi')
     pit = statsapi.lookup_team('pit')
     sd = statsapi.lookup_team('sd')
@@ -77,7 +77,7 @@ def get_teams_list():
         Team('min', 142, "Minnesota Twins"),
         Team('nym', 121, "New York Mets"),
         Team('nyy', 147, "New York Yankees"),
-        Team('oak', 133, "Oakland Athletics"),
+        Team('ath', 133, "Athletics"),
         Team('phi', 143, "Philadelphia Phillies"),
         Team('pit', 134, "Pittsburgh Pirates"),
         Team('sd ', 135, "San Diego Padres"),
