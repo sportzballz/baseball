@@ -2,8 +2,6 @@ import time
 
 import statsapi
 from src.common.objects import *
-from datetime import datetime
-from datetime import timezone
 import pytz
 from src.connector import slack
 from src.connector.stats import *
@@ -245,7 +243,7 @@ def increase_away_advantage(adv_score, stat):
 
 
 def write_csv(winners):
-    today = str(date.today())
+    today = str(datetime.now(pytz.timezone('US/Eastern')).date())
     with open(f'./picks/{today}.csv', 'w') as f:
         f.write(',Odds,Winning Team,Losing Team,Date,Winning Pitcher\n')
         for winner in winners:
@@ -272,7 +270,7 @@ def post_to_slack_backtest(msg, model):
 
 
 def post_to_slack(winners, model):
-    slack.post(str(date.today()), model)
+    slack.post(str(datetime.now(pytz.timezone('US/Eastern')).date()), model)
     highest_confidence = 0.000
     todays_pick = [Prediction('-', '-', '-', '-', '-', '-', '-', 0, '-', '0/0')]
     try:
@@ -283,8 +281,7 @@ def post_to_slack(winners, model):
                         todays_pick.append(winner)
                     else:
                         highest_confidence = float(winner.confidence)
-                        todays_pick = []
-                        todays_pick.append(winner)
+                        todays_pick = [winner]
                 slack.post(winner.to_string(), model)
                 time.sleep(1)
     except ValueError:

@@ -1,4 +1,6 @@
 import os
+
+import pytz
 from slack_sdk import WebClient
 from datetime import datetime
 
@@ -36,7 +38,7 @@ def is_already_posted(target_channel: str):
             latest_msg = response["messages"][0]
             # print(latest_msg)
             d = datetime.fromtimestamp(int(latest_msg["ts"].split(".")[0])).strftime("%m-%d-%Y")
-            today = datetime.now().strftime("%m-%d-%Y")
+            today = datetime.now(pytz.timezone('US/Eastern')).strftime("%m-%d-%Y")
             if d == today:
                 already_posted=True
     return already_posted

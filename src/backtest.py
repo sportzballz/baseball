@@ -65,6 +65,7 @@ def backtest_ml(start_date, end_date):
         for game in games:
             game_id = game['game_id']
             game_data = get_game(game_id)
+            bx = get_boxscore(game_id)
             for team in teams:
                 if game['home_name'] == team.name:
                     game_samples, game_results = ennis.ml_backest(game_data, str(start_date))
@@ -176,7 +177,12 @@ def full_ml():
     end_date = date(2024, 9, 30)
     samples4, results4 = backtest_ml(start_date, end_date)
 
-    return metrics, samples1 + samples2 + samples3 + samples4, results1 + results2 + results3 + results4
+    # first half 2025
+    start_date = date(2025, 3, 30)
+    end_date = date(2025, 4, 8)
+    samples5, results5 = backtest_ml(start_date, end_date)
+
+    return samples1 + samples2 + samples3 + samples4 + samples5, results1 + results2 + results3 + results4 + results5
 
 
 def full_2023(metrics, model):
@@ -198,16 +204,16 @@ def adhoc(start_date, end_date, metrics, model):
 
 
 def main(event, context):
-    clf, samples, results = get_clf()
-    metrics, new_samples, new_results = full_ml()
+    # clf, samples, results = get_clf()
+    new_samples, new_results = full_ml()
 
-    predicted_results = clf.predict(new_samples)
-    correct = 0
-    for i in range(len(predicted_results)):
-        if results[i] == predicted_results[i]:
-            correct += 1
-    print("Training Data Sample Size: ", len(samples))
-    print("Accuracy: ", correct / len(predicted_results) * 100, "%")
+    # predicted_results = clf.predict(new_samples)
+    # correct = 0
+    # for i in range(len(predicted_results)):
+    #     if results[i] == predicted_results[i]:
+    #         correct += 1
+    # print("Training Data Sample Size: ", len(samples))
+    # print("Accuracy: ", correct / len(predicted_results) * 100, "%")
 
 
     # metrics = BacktestMetrics(

@@ -1,6 +1,8 @@
 import statistics
 from datetime import datetime
 
+import pytz
+
 
 class WinLossMetrics:
     def __init__(self, win_count=0, loss_count=0, current_consecutive_loss_streak=0, current_consecutive_win_streak=0,
@@ -224,7 +226,7 @@ class RuntimeMetrics:
         self.end_time = end_time
 
     def complete(self):
-        self.end_time = datetime.now()
+        self.end_time = datetime.now(pytz.timezone('US/Eastern'))
 
     def getRuntime(self):
         return self.end_time - self.start_time

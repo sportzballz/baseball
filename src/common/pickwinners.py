@@ -1,3 +1,5 @@
+
+
 from src.common.util import *
 from src.connector.sportsbook import get_odds
 from src.connector.stats import *
@@ -12,7 +14,7 @@ def main(model, model_hitting_fn, model_pitching_fn, model_vs_fn):
     odds_data = get_odds()
 
     winners = []
-    day = date.today()
+    day = datetime.now(pytz.timezone('US/Eastern')).date()
     for team in teams:
         todays_games = get_todays_games(team.id, day)
         if len(todays_games) > 0:

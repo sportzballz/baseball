@@ -1,7 +1,9 @@
 import os
 import http
 import json
-from datetime import date
+from datetime import date, datetime
+
+import pytz
 
 
 def get_odds():
@@ -11,7 +13,7 @@ def get_odds():
         'X-RapidAPI-Key': key,
         'X-RapidAPI-Host': "sportspage-feeds.p.rapidapi.com"
     }
-    today = str(date.today())
+    today = str(datetime.now(pytz.timezone('US/Eastern')).date())
     conn.request("GET", "/games?odds=moneyline&status=scheduled&league=MLB&date=" + today, headers=headers)
 
     res = conn.getresponse()
