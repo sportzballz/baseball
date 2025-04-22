@@ -168,51 +168,29 @@ def get_standard_weighted_stat(lineup, stat1, weight):
     return weighted_avg
 
 
-def get_player_weighted_stat(lineup, stat1, stat2, adv_score, homeAway, test=False):
+def get_player_weighted_stat(lineup, stat1, stat2, test=False):
     weighted_avg = 0.0
-    if homeAway == 'home':
-        lineupAvailable = adv_score.home_lineup_available
-    else:
-        lineupAvailable = adv_score.away_lineup_available
     for player in lineup:
         try:
-            if test or not lineupAvailable:
-                try:
-                    split_count = len(player['stats'][0]['splits'])
-                    ab = player['stats'][0]['splits'][split_count - 1]['stat'][stat2]
-                    s = player['stats'][0]['splits'][split_count - 1]['stat'][stat1]
-                except KeyError as e:
-                    # print(f'KeyError({e}) in get_player_weighted_stat 1')
-                    try:
-                        ab = player['stats'][0]['stats'][stat2]
-                        s = player['stats'][0]['stats'][stat1]
-                    except KeyError as e:
-                        print(f'KeyError({e}) in get_player_weighted_stat 2')
-            else:
-                try:
-                    ab = player['stats'][0]['stats'][stat2]
-                    s = player['stats'][0]['stats'][stat1]
-                except KeyError as e:
-                    # print(f'KeyError({e}) in get_player_weighted_stat 3')
-                    try:
-                        split_count = len(player['stats'][0]['splits'])
-                        ab = player['stats'][0]['splits'][split_count - 1]['stat'][stat2]
-                        s = player['stats'][0]['splits'][split_count - 1]['stat'][stat1]
-                    except KeyError as e:
-                        print(f'KeyError({e}) in get_player_weighted_stat 4')
 
-            weighted_avg += float(s)/float(ab)
+            split_count = len(player['stats'][0]['splits'])
+            ab = player['stats'][0]['splits'][split_count - 1]['stat'][stat2]
+            s = player['stats'][0]['splits'][split_count - 1]['stat'][stat1]
+            weighted_avg += float(s) / float(ab)
         except KeyError as e:
-            print(f'KeyError({e}) in get_player_weighted_stat')
-            pass
-
-    # print(stat1 + ": " + str(weighted_avg))
+            # print(f'KeyError({e}) in get_player_weighted_stat 1')
+            try:
+                ab = player['stats'][0]['stats'][stat2]
+                s = player['stats'][0]['stats'][stat1]
+                weighted_avg += float(s) / float(ab)
+            except KeyError as e:
+                print(f'KeyError({e}) in get_player_weighted_stat 2')
     return weighted_avg
 
 
 def evaluate_player_weighted_stat(adv_score, home, away, stat1, stat2, lower_is_better=False, test=False):
-    home_weighted_avg = get_player_weighted_stat(home, stat1, stat2, adv_score, 'home', test)
-    away_weighted_avg = get_player_weighted_stat(away, stat1, stat2, adv_score, 'away', test)
+    home_weighted_avg = get_player_weighted_stat(home, stat1, stat2, test)
+    away_weighted_avg = get_player_weighted_stat(away, stat1, stat2, test)
     if lower_is_better:
         if home_weighted_avg < away_weighted_avg:
             return increase_home_advantage(adv_score, stat1)
@@ -482,7 +460,7 @@ def select_winner(adv_score, game_data, odds_data):
             try:
                 if game_data["liveData"]["linescore"]["teams"]["away"]["runs"] > game_data["liveData"]["linescore"]["teams"]["home"]["runs"]:
                     winning_abbrv = '$' + winning_abbrv
-                else:
+                elif game_data["liveData"]["linescore"]["teams"]["away"]["runs"] < game_data["liveData"]["linescore"]["teams"]["home"]["runs"]:
                     losing_abbrv = '$' + losing_abbrv
             except KeyError:
                 pass

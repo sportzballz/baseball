@@ -11,8 +11,8 @@ def main(model, model_hitting_fn, model_pitching_fn, model_vs_fn):
     teams = get_teams_list()
     lineups = get_starting_lineups()
 
-    odds_data = get_odds()
-    # odds_data = {'results': []}
+    # odds_data = get_odds()
+    odds_data = {'results': []}
 
     winners = []
     day = datetime.now(pytz.timezone('US/Eastern')).date()
@@ -36,5 +36,5 @@ def main(model, model_hitting_fn, model_pitching_fn, model_vs_fn):
 
     # write_csv(winners)
     # print_csv(winners)
-    # print_str(winners)
-    post_to_slack(winners, model)
+    print_str(winners)
+    # post_to_slack(winners, model)
