@@ -12,6 +12,7 @@ def main(model, model_hitting_fn, model_pitching_fn, model_vs_fn):
     lineups = get_starting_lineups()
 
     odds_data = get_odds()
+    # odds_data = {'results': []}
 
     winners = []
     day = datetime.now(pytz.timezone('US/Eastern')).date()

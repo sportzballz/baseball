@@ -153,8 +153,10 @@ def get_lineup_profile_by_date(lineup, d):
             if player['namefield'][0].isdigit():
                 lineup_profile.append(get_hitter_stats_by_date(player['personId'], d))
         except KeyError:
-            print("get_lineup_profile_by_date keyError")
-            lineup_profile.append(get_hitter_stats_by_date(player['personId'], d))
+            try:
+                lineup_profile.append(get_hitter_stats_by_date(player['personId'], d))
+            except KeyError:
+                print("get_lineup_profile_by_date keyError")
     return lineup_profile
 
 
@@ -166,27 +168,51 @@ def get_standard_weighted_stat(lineup, stat1, weight):
     return weighted_avg
 
 
-def get_player_weighted_stat(lineup, stat1, stat2, test=False):
+def get_player_weighted_stat(lineup, stat1, stat2, adv_score, homeAway, test=False):
     weighted_avg = 0.0
+    if homeAway == 'home':
+        lineupAvailable = adv_score.home_lineup_available
+    else:
+        lineupAvailable = adv_score.away_lineup_available
     for player in lineup:
         try:
-            if test:
-                split_count = len(player['stats'][0]['splits'])
-                ab = player['stats'][0]['splits'][split_count - 1]['stat'][stat2]
-                s = player['stats'][0]['splits'][split_count - 1]['stat'][stat1]
+            if test or not lineupAvailable:
+                try:
+                    split_count = len(player['stats'][0]['splits'])
+                    ab = player['stats'][0]['splits'][split_count - 1]['stat'][stat2]
+                    s = player['stats'][0]['splits'][split_count - 1]['stat'][stat1]
+                except KeyError as e:
+                    # print(f'KeyError({e}) in get_player_weighted_stat 1')
+                    try:
+                        ab = player['stats'][0]['stats'][stat2]
+                        s = player['stats'][0]['stats'][stat1]
+                    except KeyError as e:
+                        print(f'KeyError({e}) in get_player_weighted_stat 2')
             else:
-                ab = player['stats'][0]['stats'][stat2]
-                s = player['stats'][0]['stats'][stat1]
-            weighted_avg += float(ab) / float(s)
-        except Exception:
+                try:
+                    ab = player['stats'][0]['stats'][stat2]
+                    s = player['stats'][0]['stats'][stat1]
+                except KeyError as e:
+                    # print(f'KeyError({e}) in get_player_weighted_stat 3')
+                    try:
+                        split_count = len(player['stats'][0]['splits'])
+                        ab = player['stats'][0]['splits'][split_count - 1]['stat'][stat2]
+                        s = player['stats'][0]['splits'][split_count - 1]['stat'][stat1]
+                    except KeyError as e:
+                        print(f'KeyError({e}) in get_player_weighted_stat 4')
+
+            weighted_avg += float(s)/float(ab)
+        except KeyError as e:
+            print(f'KeyError({e}) in get_player_weighted_stat')
             pass
+
     # print(stat1 + ": " + str(weighted_avg))
     return weighted_avg
 
 
 def evaluate_player_weighted_stat(adv_score, home, away, stat1, stat2, lower_is_better=False, test=False):
-    home_weighted_avg = get_player_weighted_stat(home, stat1, stat2, test)
-    away_weighted_avg = get_player_weighted_stat(away, stat1, stat2, test)
+    home_weighted_avg = get_player_weighted_stat(home, stat1, stat2, adv_score, 'home', test)
+    away_weighted_avg = get_player_weighted_stat(away, stat1, stat2, adv_score, 'away', test)
     if lower_is_better:
         if home_weighted_avg < away_weighted_avg:
             return increase_home_advantage(adv_score, stat1)
@@ -415,11 +441,14 @@ def select_winner(adv_score, game_data, odds_data):
                 winning_abbrv = '.' + winning_abbrv
             if not adv_score.away_lineup_available:
                 losing_abbrv = '.' + losing_abbrv
-            if len(game_data["liveData"]["linescore"]["teams"]["home"]) > 0:
-                if game_data["liveData"]["linescore"]["teams"]["home"]["runs"] > game_data["liveData"]["linescore"]["teams"]["away"]["runs"]:
-                    winning_abbrv = '$' + winning_abbrv
-                elif game_data["liveData"]["linescore"]["teams"]["home"]["runs"] < game_data["liveData"]["linescore"]["teams"]["away"]["runs"]:
-                    losing_abbrv = '$' + losing_abbrv
+            try:
+                if len(game_data["liveData"]["linescore"]["teams"]["home"]) > 0:
+                    if game_data["liveData"]["linescore"]["teams"]["home"]["runs"] > game_data["liveData"]["linescore"]["teams"]["away"]["runs"]:
+                        winning_abbrv = '$' + winning_abbrv
+                    elif game_data["liveData"]["linescore"]["teams"]["home"]["runs"] < game_data["liveData"]["linescore"]["teams"]["away"]["runs"]:
+                        losing_abbrv = '$' + losing_abbrv
+            except KeyError:
+                pass
             for result in odds_data['results']:
                 if result['teams']['home']['team'] == winning_team:
                     if len(result['odds']) > 0:
@@ -450,10 +479,13 @@ def select_winner(adv_score, game_data, odds_data):
                 losing_abbrv = '.' + losing_abbrv
             if not adv_score.away_lineup_available:
                 winning_abbrv = '.' + winning_abbrv
-            if game_data["liveData"]["linescore"]["teams"]["away"]["runs"] > game_data["liveData"]["linescore"]["teams"]["home"]["runs"]:
-                winning_abbrv = '$' + winning_abbrv
-            else:
-                losing_abbrv = '$' + losing_abbrv
+            try:
+                if game_data["liveData"]["linescore"]["teams"]["away"]["runs"] > game_data["liveData"]["linescore"]["teams"]["home"]["runs"]:
+                    winning_abbrv = '$' + winning_abbrv
+                else:
+                    losing_abbrv = '$' + losing_abbrv
+            except KeyError:
+                pass
             for result in odds_data['results']:
                 if result['teams']['away']['team'] == winning_team:
                     if len(result['odds']) > 0:
@@ -477,8 +509,8 @@ def select_winner(adv_score, game_data, odds_data):
             home_abbrv = teams_dict[home_team] + "*"
             # print(f"No advantage in {away_abbrv} at {home_abbrv} on {game_date}")
             return Prediction('-', '-', '-', '-', game_date, game_time, ampm, 0, 0, 0)
-    except Exception as e:
-        print(e)
+    except KeyError as e:
+        print(f'KeyError({e})')
         return Prediction('-', '-', '-', '-', game_date, game_time, ampm, 0, 0, 0)
 
 
