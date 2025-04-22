@@ -418,7 +418,7 @@ def select_winner(adv_score, game_data, odds_data):
             if len(game_data["liveData"]["linescore"]["teams"]["home"]) > 0:
                 if game_data["liveData"]["linescore"]["teams"]["home"]["runs"] > game_data["liveData"]["linescore"]["teams"]["away"]["runs"]:
                     winning_abbrv = '$' + winning_abbrv
-                else:
+                elif game_data["liveData"]["linescore"]["teams"]["home"]["runs"] < game_data["liveData"]["linescore"]["teams"]["away"]["runs"]:
                     losing_abbrv = '$' + losing_abbrv
             for result in odds_data['results']:
                 if result['teams']['home']['team'] == winning_team:
