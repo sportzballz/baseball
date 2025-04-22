@@ -17,6 +17,7 @@ def main(model, model_hitting_fn, model_pitching_fn, model_vs_fn):
     day = datetime.now(pytz.timezone('US/Eastern')).date()
     for team in teams:
         todays_games = get_todays_games(team.id, day)
+        print(f'{team.name} will play {len(todays_games)} games today')
         if len(todays_games) > 0:
             todays_game = todays_games[0]
             game_id = todays_game['game_id']

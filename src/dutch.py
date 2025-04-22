@@ -156,7 +156,7 @@ def vs(adv_score, game_data, model, lineups):
 
 
 def main(event, context):
-    print(event)
+    # print(event)
     model = "dutch"
     pickwinners.main(model, hitting, pitching, vs)
 
