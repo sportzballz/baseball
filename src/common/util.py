@@ -174,6 +174,7 @@ def get_player_weighted_stat(lineup, stat1, stat2, test=False):
         try:
 
             split_count = len(player['stats'][0]['splits'])
+            if split_count == 0: split_count = 1
             ab = player['stats'][0]['splits'][split_count - 1]['stat'][stat2]
             s = player['stats'][0]['splits'][split_count - 1]['stat'][stat1]
             weighted_avg += float(s) / float(ab)
