@@ -185,6 +185,8 @@ def get_player_weighted_stat(lineup, stat1, stat2, test=False):
                     weighted_avg += float(s) / float(ab)
                 except KeyError as e:
                     print(f'KeyError({e}) in get_player_weighted_stat 3')
+        except ZeroDivisionError as z:
+            print(z)
         except KeyError as e:
             # print(f'KeyError({e}) in get_player_weighted_stat 1')
             try:
