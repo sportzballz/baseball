@@ -21,12 +21,15 @@ def post_todays_pick_backtest(msg: str, model: str, pick_won="none"):
     # if not is_already_posted("todays-pick-backtest"):
     client.chat_postMessage(channel=f"#todays-pick-backtest", text=msg, icon_emoji=':sportzballz:', username='SportzBallz')
 
+
 def post(msg: str, model: str):
     client = WebClient(token=os.environ['SLACK_TOKEN'])
     client.chat_postMessage(channel=f"#{model}-model", text=msg, icon_emoji=':sportzballz:', username='SportzBallz')
     hour = datetime.now(pytz.timezone('US/Eastern')).strftime("%H")
     # post todays-picks at 5pm
+    print(f'Hour is: {hour}')
     if hour == "5":
+        print(f'Posting #todays-picks')
         client.chat_postMessage(channel=f"#todays-picks", text=msg, icon_emoji=':sportzballz:', username='SportzBallz')
 
 
