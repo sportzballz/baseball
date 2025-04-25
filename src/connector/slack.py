@@ -28,7 +28,7 @@ def post(msg: str, model: str):
     hour = datetime.now(pytz.timezone('US/Eastern')).strftime("%H")
     # post todays-picks at 5pm
     print(f'Hour is: {hour}')
-    if hour == "5":
+    if hour == "19":
         print(f'Posting #todays-picks')
         client.chat_postMessage(channel=f"#todays-picks", text=msg, icon_emoji=':sportzballz:', username='SportzBallz')
 
