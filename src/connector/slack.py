@@ -32,7 +32,15 @@ def post(msg: str, model: str):
         print(f'Posting #todays-picks')
         client.chat_postMessage(channel=f"#todays-picks", text=msg, icon_emoji=':sportzballz:', username='SportzBallz')
 
-
+def post_sportzballz(msg: str):
+    client = WebClient(token=os.environ['SPORTZBALLZ_SLACK_TOKEN'])
+    client.chat_postMessage(channel=f"#todays-picks", text=msg, icon_emoji=':sportzballz:', username='sportzballz')
+    hour = datetime.now(pytz.timezone('US/Eastern')).strftime("%H")
+    # post todays-picks at 5pm
+    print(f'Hour is: {hour}')
+    if hour == "12":
+        print(f'Posting #daily-results')
+        client.chat_postMessage(channel=f"#daily-results", text=msg, icon_emoji=':sportzballz:', username='SportzBallz')
 
 def is_already_posted(target_channel: str):
     client = WebClient(token=os.environ['SLACK_TOKEN'])

@@ -29,3 +29,4 @@ jobs:
          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
          SPORTSPAGE_API_KEY: ${{ secrets.SPORTSPAGE_API_KEY }}
          SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
+         SPORTZBALLZ_SLACK_TOKEN: ${{ secrets.SPORTZBALLZ_SLACK_TOKEN }}
