@@ -284,7 +284,7 @@ def post_to_slack_backtest(msg, model):
 
 
 def post_to_slack(winners, model):
-    slack.post(str(datetime.now(pytz.timezone('US/Eastern')).date()), model)
+    # slack.post(str(datetime.now(pytz.timezone('US/Eastern')).date()), model)
     slack.post_sportzballz(str(datetime.now(pytz.timezone('US/Eastern')).date()))
     highest_confidence = 0.000
     todays_pick = [Prediction('-', '-', '-', '-', '-', '-', '-', 0, '-', '0/0')]
@@ -297,11 +297,11 @@ def post_to_slack(winners, model):
                     else:
                         highest_confidence = float(winner.confidence)
                         todays_pick = [winner]
-                slack.post(winner.to_string(), model)
+                #slack.post(winner.to_string(), model)
                 slack.post_sportzballz(winner.to_string())
                 time.sleep(1)
     except ValueError:
-        slack.post(winner.to_string(), model)
+        #slack.post(winner.to_string(), model)
         slack.post_sportzballz(winner.to_string())
     for pick in todays_pick:
         if "----" not in str(pick.odds) and "." not in pick.winning_team and "." not in pick.losing_team:
