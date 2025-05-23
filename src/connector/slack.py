@@ -36,6 +36,8 @@ def post_sportzballz(msg: str):
     print(f'Posting #daily-results')
     client = WebClient(token=os.environ['SPORTZBALLZ_SLACK_TOKEN'])
     client.chat_postMessage(channel=f"#todays-picks", text=msg, icon_emoji=':sportzballz:', username='sportzballz')
+    if '```+' == msg[:4]:
+        client.chat_postMessage(channel=f"#plus-money-picks", text=msg, icon_emoji=':sportzballz:', username='sportzballz')
     hour = datetime.now(pytz.timezone('US/Eastern')).strftime("%H")
     # post todays-picks at 5pm
     print(f'Hour is: {hour}')
