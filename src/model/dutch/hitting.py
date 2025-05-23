@@ -1,5 +1,4 @@
-from  common.util import *
-from  model.dutch.weights import *
+from util import *
 
 
 def evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile, test=False):

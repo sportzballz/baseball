@@ -3,7 +3,7 @@ import time
 from email.mime.text import MIMEText
 import requests
 from bs4 import BeautifulSoup
-from  common.objects import Lineup, LineupPlayer
+from objects import Lineup, LineupPlayer
 
 
 def get_odds_by_date(date):

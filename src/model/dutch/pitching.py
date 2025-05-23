@@ -1,5 +1,5 @@
-from  common.util import *
-from  model.dutch.weights import *
+from util import *
+# from weights import *
 
 
 def evaluate(adv_score, home_pitcher_stats, away_pitcher_stats, test=False):
