@@ -3,7 +3,7 @@ import time
 import statsapi
 from objects import *
 import pytz
-from  connector import slack
+import slack
 from stats import *
 
 
