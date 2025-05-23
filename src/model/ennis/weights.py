@@ -1,4 +1,4 @@
-from src.common.objects import WEIGHT
+from  common.objects import WEIGHT
 
 R_WEIGHT = WEIGHT(2.0, False)
 H_WEIGHT = WEIGHT(1.0, False)

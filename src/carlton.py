@@ -1,8 +1,8 @@
-import src.common.pickwinners as pickwinners
-from src.common.util import *
-import src.model.carlton.hitting as hitting
-import src.model.carlton.pitching as pitching
-import src.model.carlton.vs as vs
+import common.pickwinners as pickwinners
+from  common.util import *
+import model.carlton.hitting as hitting
+import model.carlton.pitching as pitching
+import model.carlton.vs as vs
 import src as src
 from datetime import datetime, timedelta
 # from pybaseball import pitching_stats, chadwick_register, playerid_lookup
@@ -25,7 +25,7 @@ def pitching_backtest(adv_score, game_data, model):
         else:
             home_pitcher_stats = home_pitcher['stats'][0]['splits'][0]['stat']
             away_pitcher_stats = away_pitcher['stats'][0]['splits'][0]['stat']
-            return src.model.carlton.pitching.evaluate(adv_score, home_pitcher_stats, away_pitcher_stats, test=True)
+            return model.carlton.pitching.evaluate(adv_score, home_pitcher_stats, away_pitcher_stats, test=True)
     except Exception as e:
         d = game_data['gameData']['datetime']['officialDate']
         print(f'Unable to get Pitcher Stats: {d} {e}')
@@ -44,7 +44,7 @@ def hitting_backtest(adv_score, game_data, year):
         home_lineup_profile = get_lineup_profile_by_date(home_last_batters, home_last_game_data['gameData']['datetime']['officialDate'])
         away_lineup_profile = get_lineup_profile_by_date(away_last_batters, away_last_game_data['gameData']['datetime']['officialDate'])
 
-        return src.model.carlton.hitting.evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile, test=True)
+        return model.carlton.hitting.evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile, test=True)
     except Exception as e:
         d = game_data['gameData']['datetime']['officialDate']
         print(f'Unable to get Hitting Stats: {d} {e}')
@@ -77,7 +77,7 @@ def pitching(adv_score, game_data, model, lineups):
         d = game_data['gameData']['datetime']['officialDate']
         print(f'Unable to get Pitcher Stats: {d} {e}')
         return adv_score
-    return src.model.carlton.pitching.evaluate(adv_score, home_pitcher_stats, away_pitcher_stats)
+    return model.carlton.pitching.evaluate(adv_score, home_pitcher_stats, away_pitcher_stats)
 
 
 def hitting(adv_score, game_data, model, lineups):
@@ -89,7 +89,7 @@ def hitting(adv_score, game_data, model, lineups):
     home_batting_totals = get_last_game_batting_totals(home_team_id)
     home_lineup_profile = get_lineup_profile(home_last_batters)
     away_lineup_profile = get_lineup_profile(away_last_batters)
-    return src.model.carlton.hitting.evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile)
+    return model.carlton.hitting.evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile)
 
 
 def vs(adv_score, game_data, model, lineups):
@@ -106,7 +106,7 @@ def vs(adv_score, game_data, model, lineups):
         away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
         home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
 
-        return src.model.carlton.vs.evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_team_id)
+        return model.carlton.vs.evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_team_id)
     except Exception as e:
         d = game_data['gameData']['datetime']['officialDate']
         print(f'Unable to get Pitcher Vs Stats: {d} {e}')

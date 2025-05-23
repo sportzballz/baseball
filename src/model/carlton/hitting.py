@@ -1,5 +1,5 @@
-from src.common.util import *
-from src.model.carlton.weights import *
+from  common.util import *
+from  model.carlton.weights import *
 
 
 def evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile, test=False):

@@ -1,11 +1,11 @@
 import datetime
 import os
 
-from src.ashburn import *
-from src.bowa import *
-from src.common.util import *
-from src.connector.stats import *
-from src.common.pickwinners import main
+from  ashburn import *
+from  bowa import *
+from  common.util import *
+from  connector.stats import *
+from  common.pickwinners import main
 import sys
 from datetime import datetime, timedelta
 import ashburn as ashburn

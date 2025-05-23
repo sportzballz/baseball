@@ -22,7 +22,7 @@ provider:
 
 functions:
 #  ashburn-picks:
-#    handler: src.ashburn.main
+#    handler: ashburn.main
 #    package:
 #      patterns:
 #        - '!resources/hitting/**'
@@ -35,7 +35,7 @@ functions:
 #      SLACK_TOKEN: ${env:SLACK_TOKEN}
 #      MODEL: 'ashburn'
 #  bowa-picks:
-#    handler: src.bowa.main
+#    handler: bowa.main
 #    package:
 #      patterns:
 #        - '!resources/hitting/**'
@@ -48,7 +48,7 @@ functions:
 #      SLACK_TOKEN: ${env:SLACK_TOKEN}
 #      MODEL: 'bowa'
 #  carlton-picks:
-#    handler: src.carlton.main
+#    handler: carlton.main
 #    package:
 #      patterns:
 #        - '!resources/hitting/**'
@@ -61,7 +61,7 @@ functions:
 #      SLACK_TOKEN: ${env:SLACK_TOKEN}
 #      MODEL: 'carlton'
   dutch-picks:
-    handler: src.dutch.main
+    handler: dutch.main
     package:
       patterns:
         - '!resources/hitting/**'
@@ -75,7 +75,7 @@ functions:
       SPORTZBALLZ_SLACK_TOKEN: ${env:SLACK_TOKEN}
       MODEL: 'dutch'
 #  daily-backtest:
-#    handler: src.backtest.daily
+#    handler: backtest.daily
 #    package:
 #      patterns:
 #        - '!resources/hitting/**'
@@ -88,7 +88,7 @@ functions:
 #      SLACK_TOKEN: ${env:SLACK_TOKEN}
 #      MODEL: 'dutch'
 #  ashburn-backtest:
-#    handler: src.backtest.main
+#    handler: backtest.main
 #    timeout: 900
 #    environment:
 #      SPORTSPAGE_API_KEY: ${env:SPORTSPAGE_API_KEY}

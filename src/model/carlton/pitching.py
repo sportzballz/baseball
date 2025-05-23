@@ -1,5 +1,5 @@
-from src.common.util import *
-from src.model.carlton.weights import *
+from  common.util import *
+from  model.carlton.weights import *
 
 
 def evaluate(adv_score, home_pitcher_stats, away_pitcher_stats, test=False):

@@ -1,10 +1,10 @@
 import time
 
 import statsapi
-from src.common.objects import *
+from  common.objects import *
 import pytz
-from src.connector import slack
-from src.connector.stats import *
+from  connector import slack
+from  connector.stats import *
 
 
 def get_teams():

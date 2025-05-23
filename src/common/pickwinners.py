@@ -1,10 +1,10 @@
 
 
-from src.common.util import *
-from src.connector.sportsbook import get_odds
-from src.connector.stats import *
-from src.connector.mlbstartinglineups import *
-from src.common.objects import AdvantageScore
+from  common.util import *
+from  connector.sportsbook import get_odds
+from  connector.stats import *
+from  connector.mlbstartinglineups import *
+from  common.objects import AdvantageScore
 
 
 def main(model, model_hitting_fn, model_pitching_fn, model_vs_fn):

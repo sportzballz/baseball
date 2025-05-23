@@ -1,5 +1,5 @@
 import boto3
-from src.common.util import *
+from  common.util import *
 
 # Create SQS client
 sqs = boto3.client('sqs', region_name='us-east-1')

@@ -1,10 +1,12 @@
-import src.common.pickwinners as pickwinners
-from src.common.util import *
-import src.model.dutch.hitting as hitting
-import src.model.dutch.pitching as pitching
-import src.model.dutch.vs as vs
-import src as src
+import common.pickwinners as pickwinners
+from  common.util import *
+import model.dutch.hitting as hitting
+import model.dutch.pitching as pitching
+import model.dutch.vs as vs
 from datetime import datetime, timedelta
+
+from connector.stats import *
+import model
 
 
 def pitching_backtest(adv_score, game_data, year):
@@ -27,7 +29,7 @@ def pitching_backtest(adv_score, game_data, year):
             away_splits_count = len(away_pitcher['stats'][0]['splits'])
             home_pitcher_stats = home_pitcher['stats'][0]['splits'][home_splits_count - 1]['stat']
             away_pitcher_stats = away_pitcher['stats'][0]['splits'][away_splits_count - 1]['stat']
-        return src.model.dutch.pitching.evaluate(adv_score, home_pitcher_stats, away_pitcher_stats, test=True)
+        return model.dutch.pitching.evaluate(adv_score, home_pitcher_stats, away_pitcher_stats, test=True)
     except Exception as e:
         d = game_data['gameData']['datetime']['officialDate']
         print(f'Unable to get Pitcher Stats: {d} {e}')
@@ -55,7 +57,7 @@ def hitting_backtest(adv_score, game_data, dt):
         home_lineup_profile = get_lineup_profile_by_date(home_batters, yesterday)
         away_lineup_profile = get_lineup_profile_by_date(away_batters, yesterday)
 
-        return src.model.dutch.hitting.evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile, test=True)
+        return model.dutch.hitting.evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile, test=True)
     except Exception as e:
         d = game_data['gameData']['datetime']['officialDate']
         print(f'Unable to get Hitting Stats: {d} {e}')
@@ -73,7 +75,7 @@ def vs_backtest(adv_score, game_data, dt):
         home_team_id = game_data['gameData']['teams']['home']['id']
         away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
         home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
-        return src.model.dutch.vs.evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_team_id, yesterday)
+        return model.dutch.vs.evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_team_id, yesterday)
     except Exception as e:
         print(f'Unable to get VS Stats: {e}')
         return adv_score
@@ -102,7 +104,7 @@ def pitching(adv_score, game_data, model, lineups):
         d = game_data['gameData']['datetime']['officialDate']
         print(f'Unable to get Pitcher Stats: {d} {e}')
         return adv_score
-    return src.model.dutch.pitching.evaluate(adv_score, home_pitcher_stats, away_pitcher_stats)
+    return model.dutch.pitching.evaluate(adv_score, home_pitcher_stats, away_pitcher_stats)
 
 
 def hitting(adv_score, game_data, model, lineups):
@@ -137,7 +139,7 @@ def hitting(adv_score, game_data, model, lineups):
     else:
         away_lineup_profile = get_lineup_profile_by_date(away_last_batters, yesterday)
 
-    return src.model.dutch.hitting.evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile)
+    return model.dutch.hitting.evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile)
 
 
 def vs(adv_score, game_data, model, lineups):
@@ -148,7 +150,7 @@ def vs(adv_score, game_data, model, lineups):
         away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
         home_pitcher_id = game_data['gameData']['probablePitchers']['home']['id']
 
-        return src.model.dutch.vs.evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_team_id, yesterday)
+        return model.dutch.vs.evaluate(adv_score, home_pitcher_id, away_pitcher_id, home_team_id, away_team_id, yesterday)
     except Exception as e:
         d = game_data['gameData']['datetime']['officialDate']
         print(f'Unable to get Pitcher Vs Stats: {d} {e}')

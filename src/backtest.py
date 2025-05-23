@@ -2,25 +2,25 @@ import datetime
 import json
 import os
 
-# from src.analysis.pitching.pitchingevaluation import *
-# from src.analysis.batting.battingevaluation import *
-# from src.analysis.vs.vsevaluation import evaluate_vs_matchup
-# from src.common.util import *
-# from src.connector.stats import *
+# from  analysis.pitching.pitchingevaluation import *
+# from  analysis.batting.battingevaluation import *
+# from  analysis.vs.vsevaluation import evaluate_vs_matchup
+# from  common.util import *
+# from  connector.stats import *
 from datetime import date, timedelta, datetime
 from time import sleep
 
 import statsapi
 
 from src import ennis
-from src.common.objects import AdvantageScore, BacktestMetrics, BankrollMetrics, WinLossMetrics, OddsMetrics, \
+from  common.objects import AdvantageScore, BacktestMetrics, BankrollMetrics, WinLossMetrics, OddsMetrics, \
     ConfidenceMetrics, RuntimeMetrics
-from src.common.util import get_teams_list, select_winner, post_to_slack_backtest
-from src.connector import slack
-from src.connector.sportsbook import get_odds
-from src.connector.sportsbookreview import get_odds_by_date
-from src.connector.stats import get_schedule_by_date, get_boxscore, get_game
-from src.ml import get_clf
+from  common.util import get_teams_list, select_winner, post_to_slack_backtest
+from  connector import slack
+from  connector.sportsbook import get_odds
+from  connector.sportsbookreview import get_odds_by_date
+from  connector.stats import get_schedule_by_date, get_boxscore, get_game
+from  ml import get_clf
 
 
 def format_odds_data(odds_data):
