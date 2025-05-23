@@ -28,6 +28,7 @@ jobs:
       run: |
         terraform fmt
         terraform init
+        terraform import aws_lambda_function.function sportzballz
         terraform apply \
           -var="SLACK_TOKEN=${{ secrets.SLACK_TOKEN }}" \
           -var="SPORTZBALLZ_SLACK_TOKEN=${{ secrets.SPORTZBALLZ_SLACK_TOKEN }}" \
