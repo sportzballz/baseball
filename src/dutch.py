@@ -81,7 +81,7 @@ def vs_backtest(adv_score, game_data, dt):
         return adv_score
 
 
-def pitching(adv_score, game_data, model, lineups):
+def pitching(adv_score, game_data, m, lineups):
     try:
         yesterday = (datetime.strptime(str(date.today()), '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
         away_pitcher_id = game_data['gameData']['probablePitchers']['away']['id']
@@ -107,7 +107,7 @@ def pitching(adv_score, game_data, model, lineups):
     return model.dutch.pitching.evaluate(adv_score, home_pitcher_stats, away_pitcher_stats)
 
 
-def hitting(adv_score, game_data, model, lineups):
+def hitting(adv_score, game_data, m, lineups):
     yesterday = (datetime.strptime(str(date.today()), '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
 
     away_team_id = game_data['gameData']['teams']['away']['id']
@@ -142,7 +142,7 @@ def hitting(adv_score, game_data, model, lineups):
     return model.dutch.hitting.evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile)
 
 
-def vs(adv_score, game_data, model, lineups):
+def vs(adv_score, game_data, m, lineups):
     yesterday = (datetime.strptime(str(date.today()), '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
     try:
         away_team_id = game_data['gameData']['teams']['away']['id']
