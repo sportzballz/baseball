@@ -28,10 +28,9 @@ jobs:
       run: |
         terraform fmt
         terraform init
-        terraform import aws_lambda_function.function sportzballz
         terraform apply \
           -var="SLACK_TOKEN=${{ secrets.SLACK_TOKEN }}" \
           -var="SPORTZBALLZ_SLACK_TOKEN=${{ secrets.SPORTZBALLZ_SLACK_TOKEN }}" \
-          -var="SPORTSPAGE_API_KEY: ${{ secrets.SPORTSPAGE_API_KEY }}" \
+          -var="SPORTSPAGE_API_KEY=${{ secrets.SPORTSPAGE_API_KEY }}" \
           -var="MODEL='dutch'" \
           --auto-approve=true
