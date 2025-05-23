@@ -1,5 +1,5 @@
 import common.pickwinners as pickwinners
-from util import *
+from common.util import *
 import model.dutch.hitting as hitting
 import model.dutch.pitching as pitching
 import model.dutch.vs as vs
