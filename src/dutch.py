@@ -1,10 +1,10 @@
 import common.pickwinners as pickwinners
-from common.util import *
+from  common.util import *
 import model.dutch.hitting as hitting
 import model.dutch.pitching as pitching
 import model.dutch.vs as vs
 from datetime import datetime, timedelta
-import sys
+
 from connector.stats import *
 import model
 
@@ -160,9 +160,6 @@ def vs(adv_score, game_data, m, lineups):
 def main(event, context):
     # print(event)
     model = "dutch"
-
-    print("Python path:", sys.path)
-
     pickwinners.main(model, hitting, pitching, vs)
 
 

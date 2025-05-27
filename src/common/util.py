@@ -1,10 +1,10 @@
 import time
 
 import statsapi
-from objects import *
+from  common.objects import *
 import pytz
-import slack
-from stats import *
+from  connector import slack
+from  connector.stats import *
 
 
 def get_teams():
@@ -443,7 +443,7 @@ def select_winner(adv_score, game_data, odds_data):
             for result in odds_data['results']:
                 if result['teams']['home']['team'] == winning_team:
                     if len(result['odds']) > 0:
-                        odds = f'''{result["odds"][0]["moneyline"]["current"]["homeOdds"]} ({result["odds"][0]["spread"]["current"]["homeOdds"]})'''
+                        odds = f'''{result["odds"][0]["moneyline"]["current"]["homeOdds"]}({result["odds"][0]["spread"]["current"]["homeOdds"]})'''
                     else:
                         odds = 0
                     print(
@@ -480,7 +480,7 @@ def select_winner(adv_score, game_data, odds_data):
             for result in odds_data['results']:
                 if result['teams']['away']['team'] == winning_team:
                     if len(result['odds']) > 0:
-                        odds = f'''{result["odds"][0]["moneyline"]["current"]["awayOdds"]} ({result["odds"][0]["spread"]["current"]["awayOdds"]})'''
+                        odds = f'''{result["odds"][0]["moneyline"]["current"]["awayOdds"]}({result["odds"][0]["spread"]["current"]["awayOdds"]})'''
                     else:
                         odds = 0
                     print(

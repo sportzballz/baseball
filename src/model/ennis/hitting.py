@@ -1,5 +1,5 @@
-from util import *
-from ennis.weights import *
+from  common.util import *
+from  model.ennis.weights import *
 
 
 def evaluate(adv_score, home_batting_totals, away_batting_totals, home_lineup_profile, away_lineup_profile, test=False, clf=None):

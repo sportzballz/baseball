@@ -3,9 +3,9 @@ import os
 
 from  ashburn import *
 from  bowa import *
-from util import *
-from stats import *
-from pickwinners import main
+from  common.util import *
+from  connector.stats import *
+from  common.pickwinners import main
 import sys
 from datetime import datetime, timedelta
 import ashburn as ashburn

@@ -1,5 +1,5 @@
-from util import *
-from bowa.weights import *
+from  common.util import *
+from  model.bowa.weights import *
 
 
 def evaluate(adv_score, home_pitcher_stats, away_pitcher_stats, test=False):

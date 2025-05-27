@@ -1,6 +1,6 @@
-from util import *
-from sportsbook import get_odds
-from stats import *
+from  common.util import *
+from  connector.sportsbook import get_odds
+from  connector.stats import *
 
 
 def analyze_first_run(game_data):

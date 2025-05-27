@@ -1,4 +1,4 @@
-from stats import *
+from  connector.stats import *
 
 
 def most_wins(home_team_id, away_team_id, game_ids, adv_score):

@@ -1,13 +1,13 @@
-from util import *
-from  sportsbook import get_odds
-from  stats import *
-from  mlbstartinglineups import *
-from  .objects import AdvantageScore
-import sys
+
+
+from  common.util import *
+from  connector.sportsbook import get_odds
+from  connector.stats import *
+from  connector.mlbstartinglineups import *
+from  common.objects import AdvantageScore
+
 
 def main(model, model_hitting_fn, model_pitching_fn, model_vs_fn):
-    print("Python path:", sys.path)
-
     teams = get_teams_list()
     lineups = get_starting_lineups()
 

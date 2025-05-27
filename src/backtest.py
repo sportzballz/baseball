@@ -5,21 +5,21 @@ import os
 # from  analysis.pitching.pitchingevaluation import *
 # from  analysis.batting.battingevaluation import *
 # from  analysis.vs.vsevaluation import evaluate_vs_matchup
-# from util import *
-# from stats import *
+# from  common.util import *
+# from  connector.stats import *
 from datetime import date, timedelta, datetime
 from time import sleep
 
 import statsapi
 
 from src import ennis
-from objects import AdvantageScore, BacktestMetrics, BankrollMetrics, WinLossMetrics, OddsMetrics, \
+from  common.objects import AdvantageScore, BacktestMetrics, BankrollMetrics, WinLossMetrics, OddsMetrics, \
     ConfidenceMetrics, RuntimeMetrics
-from util import get_teams_list, select_winner, post_to_slack_backtest
+from  common.util import get_teams_list, select_winner, post_to_slack_backtest
 from  connector import slack
-from sportsbook import get_odds
-from sportsbookreview import get_odds_by_date
-from stats import get_schedule_by_date, get_boxscore, get_game
+from  connector.sportsbook import get_odds
+from  connector.sportsbookreview import get_odds_by_date
+from  connector.stats import get_schedule_by_date, get_boxscore, get_game
 from  ml import get_clf
 
 
