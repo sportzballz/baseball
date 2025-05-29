@@ -89,6 +89,8 @@ def pitching(adv_score, game_data, m, lineups):
         away_pitcher = get_pitcher_stats_by_date(away_pitcher_id, yesterday)
         home_pitcher = get_pitcher_stats_by_date(home_pitcher_id, yesterday)
 
+        # away_relief = get_relief_stats_by_team(game_data['gameData'], 2025)
+
         if len(home_pitcher['stats']) == 0 or len(away_pitcher['stats']) == 0:
             # print("No pitcher stats found for yesterday. Skipping...")
             return adv_score

@@ -61,6 +61,10 @@ def get_pitcher_stats_by_date(player_id, d):
         return data
 
 
+def get_relief_stats_by_team(team_id, season):
+    return statsapi.get("team_stats",
+                 {"teamId": team_id, "season": season, "group": "pitching", "stats": "statSplits", "sitCodes": "rp"})
+
 def get_hitter_stats_by_date(player_id, d):
     year = d[:4]
     last_year = str(int(year) - 1)

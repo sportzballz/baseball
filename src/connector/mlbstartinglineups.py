@@ -5,7 +5,7 @@ from  common.objects import Lineup, LineupPlayer
 
 
 def get_starting_lineups():
-    response = requests.get('https://www.mlb.com/starting-lineups')
+    response = requests.get('https://www.mlb.com/starting-lineups', verify=False)
     soup = BeautifulSoup(response.text, 'html.parser')
 
     lineup_elements = soup.find_all("div", class_="starting-lineups__matchup")
