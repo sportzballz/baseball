@@ -5,7 +5,7 @@ echo "Executing create_pkg.sh..."
 cd $path_cwd/src
 
 # Installing python dependencies...
-FILE=$path_cwd/src/requirements.txt
+FILE=$path_cwd/requirements.txt
 echo "Requirements file: $FILE"
 cat $FILE
 if [ -f "$FILE" ]; then
