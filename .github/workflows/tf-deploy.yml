@@ -29,7 +29,6 @@ jobs:
         terraform fmt
         terraform init
         terraform import aws_lambda_function.function sportzballz
-        terraform taint null_resource.install_python_dependencies
         terraform apply \
           -var="SLACK_TOKEN=${{ secrets.SLACK_TOKEN }}" \
           -var="SPORTZBALLZ_SLACK_TOKEN=${{ secrets.SPORTZBALLZ_SLACK_TOKEN }}" \
