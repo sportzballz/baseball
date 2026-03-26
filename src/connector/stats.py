@@ -136,6 +136,8 @@ def get_away_batting_total_by_game_id(game_id):
 
 def get_last_game_batters(team_id):
     last_game_id = statsapi.last_game(team_id)
+    if last_game_id is None:
+        return []
     last_boxscore = statsapi.boxscore_data(last_game_id)
     lbs = json.dumps(last_boxscore)
     if last_boxscore['teamInfo']['home']['id'] == team_id:
@@ -165,6 +167,8 @@ def get_last_game_by_date(team_id, d):
 
 def get_last_game_batting_totals(team_id):
     last_game_id = statsapi.last_game(team_id)
+    if last_game_id is None:
+        return {}
     last_boxscore = statsapi.boxscore_data(last_game_id)
     if last_boxscore['teamInfo']['home']['id'] == team_id:
         return last_boxscore['homeBattingTotals']
