@@ -1,7 +1,6 @@
 import os
 
-from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
+from openai import OpenAI
 
 
 def get_pick_summary(predictions, model_name):
@@ -31,36 +30,33 @@ def get_pick_summary(predictions, model_name):
     if not picks_text:
         return "No valid picks today."
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system",
-         "You are an expert MLB baseball analyst. You are given a set of model-generated "
-         "picks for today's games produced by the '{model_name}' prediction model. "
-         "Each pick includes the predicted winner, moneyline odds, model confidence "
-         "(0-1 scale, higher is better), data points (winner points / total points), "
-         "starting pitchers, and game time.\n\n"
-         "Provide:\n"
-         "1. A brief summary of all today's picks\n"
-         "2. Your PICK OF THE DAY — the single best bet with a short explanation of why "
-         "it stands out (consider confidence, odds value, and pitching matchup)\n"
-         "3. Any picks to avoid or that look risky\n\n"
-         "Keep the response concise and suitable for posting in a Slack channel."
-         ),
-        ("human",
-         "Here are today's picks from the {model_name} model:\n\n{picks}\n\n"
-         "What's your summary and pick of the day?"
-         ),
-    ])
-
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0.7,
-        api_key=os.environ.get("OPENAI_API_KEY"),
+    system_prompt = (
+        f"You are an expert MLB baseball analyst. You are given a set of model-generated "
+        f"picks for today's games produced by the '{model_name}' prediction model. "
+        f"Each pick includes the predicted winner, moneyline odds, model confidence "
+        f"(0-1 scale, higher is better), data points (winner points / total points), "
+        f"starting pitchers, and game time.\n\n"
+        f"Provide:\n"
+        f"1. A brief summary of all today's picks\n"
+        f"2. Your PICK OF THE DAY — the single best bet with a short explanation of why "
+        f"it stands out (consider confidence, odds value, and pitching matchup)\n"
+        f"3. Any picks to avoid or that look risky\n\n"
+        f"Keep the response concise and suitable for posting in a Slack channel."
     )
 
-    chain = prompt | llm
-    response = chain.invoke({
-        "model_name": model_name,
-        "picks": picks_text,
-    })
+    user_prompt = (
+        f"Here are today's picks from the {model_name} model:\n\n{picks_text}\n\n"
+        f"What's your summary and pick of the day?"
+    )
 
-    return response.content
+    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        temperature=0.7,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+    )
+
+    return response.choices[0].message.content
