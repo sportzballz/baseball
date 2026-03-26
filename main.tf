@@ -22,11 +22,6 @@ variable "SPORTSPAGE_API_KEY" {
   description = "API key"
 }
 
-variable "OPENAI_API_KEY" {
-  default     = "OPENAI_API_KEY"
-  description = "API key"
-}
-
 
 variable "SLACK_TOKEN" {
   default     = "invalid"
@@ -39,6 +34,11 @@ variable "SPORTZBALLZ_SLACK_TOKEN" {
   description = "slack token"
 }
 
+variable "OPENAI_API_KEY" {
+  default     = "OPENAI_API_KEY"
+  description = "API key"
+}
+
 
 variable "MODEL" {
   default     = "dutch"
@@ -47,11 +47,6 @@ variable "MODEL" {
 
 
 resource "null_resource" "install_python_dependencies" {
-  triggers = {
-    requirements = filemd5("${path.module}/src/requirements.txt")
-    script       = filemd5("${path.module}/src/scripts/create_pkg.sh")
-  }
-
   provisioner "local-exec" {
     command = "bash ${path.module}/src/scripts/create_pkg.sh"
 
@@ -93,12 +88,9 @@ resource "aws_lambda_function" "function" {
       SPORTSPAGE_API_KEY = var.SPORTSPAGE_API_KEY
       SLACK_TOKEN = var.SLACK_TOKEN
       SPORTZBALLZ_SLACK_TOKEN = var.SPORTZBALLZ_SLACK_TOKEN
-      OPENAI_API_KEY = var.OPENAI_API_KEY
       MODEL = var.MODEL
     }
   }
   depends_on = [ aws_s3_object.file_upload ]
 }
-
-
 
