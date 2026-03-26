@@ -47,6 +47,11 @@ variable "MODEL" {
 
 
 resource "null_resource" "install_python_dependencies" {
+  triggers = {
+    requirements = filemd5("${path.module}/src/requirements.txt")
+    script       = filemd5("${path.module}/src/scripts/create_pkg.sh")
+  }
+
   provisioner "local-exec" {
     command = "bash ${path.module}/src/scripts/create_pkg.sh"
 
