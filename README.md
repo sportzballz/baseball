@@ -1,4 +1,4 @@
-# Baseball
+# Baseball 
 
 ## TODO for Ennis Model
 - [ x ] away team road record
