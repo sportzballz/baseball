@@ -22,6 +22,11 @@ variable "SPORTSPAGE_API_KEY" {
   description = "API key"
 }
 
+variable "OPENAI_API_KEY" {
+  default     = "OPENAI_API_KEY"
+  description = "API key"
+}
+
 
 variable "SLACK_TOKEN" {
   default     = "invalid"
@@ -83,6 +88,7 @@ resource "aws_lambda_function" "function" {
       SPORTSPAGE_API_KEY = var.SPORTSPAGE_API_KEY
       SLACK_TOKEN = var.SLACK_TOKEN
       SPORTZBALLZ_SLACK_TOKEN = var.SPORTZBALLZ_SLACK_TOKEN
+      OPENAI_API_KEY = var.OPENAI_API_KEY
       MODEL = var.MODEL
     }
   }

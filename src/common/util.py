@@ -1,3 +1,4 @@
+import os
 import time
 
 import statsapi
@@ -307,6 +308,17 @@ def post_to_slack(winners, model):
         if "----" not in str(pick.odds) and "." not in pick.winning_team and "." not in pick.losing_team:
             slack.post_todays_pick(str(date.today()) + " - " + model, model)
             slack.post_todays_pick(pick.to_string(), model)
+
+    # LLM-powered pick summary
+    if os.environ.get("OPENAI_API_KEY"):
+        try:
+            from connector.llm import get_pick_summary
+            valid_picks = [w for w in winners if w.winning_team != '-']
+            if valid_picks:
+                summary = get_pick_summary(valid_picks, model)
+                slack.post_sportzballz(f"```\n🤖 AI Pick Summary ({model}):\n{summary}\n```")
+        except Exception as e:
+            print(f"LLM summary failed: {e}")
 
 
 def post_to_slack_backtest(d, winners, model, metrics):
