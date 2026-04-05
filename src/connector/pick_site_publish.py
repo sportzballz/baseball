@@ -10,6 +10,33 @@ import statsapi
 
 SITE_BASE_URL = os.environ.get('SPORTZBALLZ_SITE_URL', 'https://sportzballz.io').rstrip('/')
 
+ANALYST_PANEL = [
+    {
+        'id': 'joey-falcone',
+        'name': 'Joey Falcone',
+        'title': 'Stats & Vibes High-Roller',
+        'voice': 'humorous, slick, Italian-American swagger, stat-nerd energy',
+    },
+    {
+        'id': 'jimmy-the-grecian',
+        'name': 'Jimmy the Grecian',
+        'title': 'Vegas Insider',
+        'voice': 'old-school bookmaker perspective, market discipline, veteran tone',
+    },
+    {
+        'id': 'willie-guan',
+        'name': 'Willie Guan',
+        'title': 'Quant Mathematician',
+        'voice': 'highly educated quantitative framing and probability-first language',
+    },
+    {
+        'id': 'tommy-torrance',
+        'name': 'Tommy Torrance',
+        'title': 'Pragmatist (Gen X)',
+        'voice': 'plainspoken, practical, Phillies-loving pragmatist: whatever works',
+    },
+]
+
 
 def _site_url(path: str):
     p = path if path.startswith('/') else f'/{path}'
@@ -452,33 +479,35 @@ def _analysis_paragraph(pick, idx):
     w_inj = _field(pick, f'{winner} Injuries', 'n/a')
     l_inj = _field(pick, f'{loser} Injuries', 'n/a')
 
-    voices = [
-        (
-            "Insider notebook:",
-            f"{winner} over {loser} lands as a {bucket} position at {odds}, with confidence {conf_text} and a {dp_text} data-point split. "
-            f"The matchup starts on the mound ({pitching}) and extends into signal texture, with {winner} carrying a broader indicator stack "
-            f"({w_sig_count} signals) versus {loser} ({l_sig_count})."
-        ),
-        (
-            "Beat-writer lens:",
-            f"On today’s board, {winner} over {loser} reads more process than noise. The number ({odds}) and confidence profile ({conf_text}) "
-            f"suggest a {bucket} edge, anchored by the pitching lane ({pitching}) and supported by the model’s side-specific indicator balance."
-        ),
-        (
-            "Scouting report:",
-            f"This ticket points to {winner} over {loser}, with model confidence {conf_text} ({dp_text} data points) and a market entry around {odds}. "
-            f"Primary baseball drivers remain the pitcher pairing ({pitching}) and a stronger quantitative profile on the {winner} side."
-        ),
-        (
-            "Game-script view:",
-            f"The projected flow favors {winner} over {loser}: confidence sits at {conf_text}, odds at {odds}, and the opening script starts with {pitching}. "
-            f"Indicator composition suggests {winner} has cleaner paths to leverage innings in this spot."
-        ),
-    ]
+    analyst = ANALYST_PANEL[(idx - 1) % len(ANALYST_PANEL)]
 
-    prefix, lead = voices[(idx - 1) % len(voices)]
+    voices = {
+        'joey-falcone': (
+            "Joey’s angle:",
+            f"{winner} over {loser} is the kind of {bucket} ticket you slide across the counter with a grin. Price is {odds}, confidence is {conf_text}, "
+            f"and the stat split ({dp_text}) says this isn’t just sauce. On the nerd side, {winner} shows the stronger indicator stack "
+            f"({w_sig_count} to {l_sig_count}) with {pitching} setting the first chapter."
+        ),
+        'jimmy-the-grecian': (
+            "Jimmy’s book:",
+            f"{winner} over {loser} grades as a {bucket} play at {odds}. Confidence sits at {conf_text} with a {dp_text} profile, and the edge starts with "
+            f"{pitching}. This is less about headlines and more about taking a number where the baseball and the market still agree enough to fire."
+        ),
+        'willie-guan': (
+            "Willie’s model note:",
+            f"For {winner} over {loser}, the confidence estimate ({conf_text}) and signal distribution ({dp_text}) imply a {bucket} probability edge at {odds}. "
+            f"Pitch-level context ({pitching}) plus indicator asymmetry ({w_sig_count} vs {l_sig_count}) supports positive expected value under current pricing."
+        ),
+        'tommy-torrance': (
+            "Tommy’s take:",
+            f"{winner} over {loser}. Keep it simple: {conf_text}, line at {odds}, and {pitching} gives this spot a workable shape. "
+            f"It’s a {bucket} look with enough signal separation ({w_sig_count}-{l_sig_count}) to back the play without overthinking it."
+        ),
+    }
+
+    prefix, lead = voices.get(analyst['id'], next(iter(voices.values())))
     return (
-        f"{prefix} {lead} "
+        f"{analyst['name']} ({analyst['title']}) — {prefix} {lead} "
         f"{_weather_note(venue, weather)} "
         f"{_umpire_note(ump)} "
         f"{_injury_note(winner, loser, w_inj, l_inj)} "
