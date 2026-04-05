@@ -184,12 +184,40 @@ def _fallback_commentary(context):
     weather = context["weather_summary"]
     movement = context["line_movement_text"]
     ump = context["umpire_summary"]
+    style = context.get("style", "betting desk")
+    winner_signals = context.get("winner_signals", "No model signal list available.")
+    loser_signals = context.get("loser_signals", "No model signal list available.")
+
+    if style == "beat writer notebook":
+        return (
+            f"{venue} sets the stage for {context['winner']} over {context['loser']}, and the conditions matter: {weather}. "
+            f"The model sits at {context['confidence']} confidence with {context['data_points']} data-point leverage, which gives the pick real footing. "
+            f"On the baseball side, the edge profile for {context['winner']} is driven by {winner_signals}. "
+            f"The counter-case for {context['loser']} shows up in {loser_signals}, but the market signal ({movement}) still leans playable. "
+            f"Umpire context ({ump}) is a late-variable worth watching, but this spot grades as a disciplined position rather than a flyer."
+        )
+    if style == "scouting report":
+        return (
+            f"Scouting read: {context['winning_pitcher']} vs {context['losing_pitcher']} favors {context['winner']} at {context['odds']}. "
+            f"Model confidence ({context['confidence']}, data points {context['data_points']}) supports the same direction. "
+            f"Signal stack for {context['winner']}: {winner_signals}. "
+            f"Opposition signal stack for {context['loser']}: {loser_signals}. "
+            f"Add weather ({weather}), umpire texture ({ump}), and line behavior ({movement}) and this profile stays actionable."
+        )
+    if style == "game-script breakdown":
+        return (
+            f"Game-script angle: {context['winner']} projects cleaner paths to control innings than {context['loser']}, starting with {context['winning_pitcher']} over {context['losing_pitcher']}. "
+            f"The model calls it {context['confidence']} with {context['data_points']} data points and a listed number of {context['odds']}. "
+            f"Early/ongoing pressure indicators for {context['winner']} show up in {winner_signals}. "
+            f"Pushback factors for {context['loser']} are {loser_signals}. "
+            f"Environment ({weather}), crew ({ump}), and market movement ({movement}) all point to the same side unless live conditions materially shift."
+        )
 
     return (
-        f"{context['winner']} over {context['loser']} is supported by the model confidence ({context['confidence']}) "
-        f"and listed price ({context['odds']}). Venue context: {venue}. Weather: {weather}. "
-        f"Umpire crew: {ump}. Market context: {movement}. "
-        f"Signal mix leaned {context['winner']} via: {context['winner_signals']}"
+        f"Price-first view: {context['winner']} over {context['loser']} at {context['odds']} with model confidence {context['confidence']} ({context['data_points']}). "
+        f"The strongest support for {context['winner']} comes from: {winner_signals}. "
+        f"The best resistance case for {context['loser']} comes from: {loser_signals}. "
+        f"Venue/weather ({venue}, {weather}), umpire notes ({ump}), and market movement ({movement}) keep this in the value bucket."
     )
 
 
@@ -224,6 +252,7 @@ def _llm_commentary(context):
         "game-script breakdown": "Project likely game flow (early innings, bullpen leverage, late-game path) and tie to the pick.",
     }
     style_hint = style_instructions.get(style, "Write with strong baseball context and clear pick rationale.")
+    context["style"] = style
 
     user = (
         f"Pick: {context['winner']} over {context['loser']}\n"
@@ -255,7 +284,8 @@ def _llm_commentary(context):
             ],
         )
         return (resp.choices[0].message.content or "").strip() or _fallback_commentary(context)
-    except Exception:
+    except Exception as e:
+        print(f"LLM commentary failed for {context['winner']} vs {context['loser']}: {e}")
         return _fallback_commentary(context)
 
 
@@ -313,6 +343,7 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
 
         context = {
             "pick_index": idx,
+            "style": ["betting desk", "beat writer notebook", "scouting report", "game-script breakdown"][(idx - 1) % 4],
             "winner": winner_name,
             "loser": loser_name,
             "odds": _format_odds(p.odds),
