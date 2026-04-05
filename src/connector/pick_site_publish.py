@@ -8,6 +8,43 @@ from datetime import datetime
 import statsapi
 
 
+SITE_BASE_URL = os.environ.get('SPORTZBALLZ_SITE_URL', 'https://sportzballz.io').rstrip('/')
+
+
+def _site_url(path: str):
+    p = path if path.startswith('/') else f'/{path}'
+    return f"{SITE_BASE_URL}{p}"
+
+
+def _render_robots_txt():
+    return f"""User-agent: *
+Allow: /
+
+Sitemap: {_site_url('/sitemap.xml')}
+"""
+
+
+def _render_sitemap_xml(archive_dates):
+    urls = [
+        _site_url('/'),
+        _site_url('/dashboard.html'),
+    ]
+
+    for d in sorted(set(archive_dates), reverse=True):
+        urls.append(_site_url(f'/{d}.html'))
+        urls.append(_site_url(f'/{d}-plus-money.html'))
+        urls.append(_site_url(f'/{d}-run-totals.html'))
+
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+    for u in urls:
+        lines.append(f'  <url><loc>{html.escape(u)}</loc></url>')
+    lines.append('</urlset>')
+    return '\n'.join(lines)
+
+
 def _parse_confidence(conf_text: str):
     if not conf_text:
         return None
@@ -505,6 +542,16 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None):
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SportzBallz | MLB Daily Notebook</title>
   <meta name="description" content="Warm, insider-style MLB daily pick commentary from SportzBallz." />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+  <link rel="canonical" href="{_site_url('/' + date_str + '.html')}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SportzBallz" />
+  <meta property="og:title" content="SportzBallz MLB Picks — {html.escape(date_str)}" />
+  <meta property="og:description" content="Daily MLB picks with confidence, pricing context, plus-money and run-total analysis." />
+  <meta property="og:url" content="{_site_url('/' + date_str + '.html')}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="SportzBallz MLB Picks — {html.escape(date_str)}" />
+  <meta name="twitter:description" content="Daily MLB picks with confidence, pricing context, plus-money and run-total analysis." />
   <style>
     :root {{ --bg:#0a1020; --panel:#101a33; --ink:#eaf0ff; --muted:#a7b7df; --line:#273a6b; --accent:#5cc9ff; --accent2:#88f2c7; }}
     *{{box-sizing:border-box}}
@@ -637,6 +684,14 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None):
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SportzBallz | Plus Money Picks</title>
   <meta name="description" content="SportzBallz underdog MLB picks for {html.escape(date_str)}." />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+  <link rel="canonical" href="{_site_url('/' + date_str + '-plus-money.html')}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SportzBallz" />
+  <meta property="og:title" content="SportzBallz Plus Money Picks — {html.escape(date_str)}" />
+  <meta property="og:description" content="Underdog-only MLB picks with confidence and matchup context." />
+  <meta property="og:url" content="{_site_url('/' + date_str + '-plus-money.html')}" />
+  <meta name="twitter:card" content="summary_large_image" />
   <style>
     :root {{ --bg:#0a1020; --panel:#101a33; --ink:#eaf0ff; --muted:#a7b7df; --line:#273a6b; --accent:#5cc9ff; --accent2:#88f2c7; --plus:#22c55e; }}
     *{{box-sizing:border-box}}
@@ -746,6 +801,14 @@ def _render_run_totals_html(parsed, evaluated_picks=None):
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SportzBallz | Run Total Picks</title>
   <meta name="description" content="SportzBallz MLB run total picks for {html.escape(date_str)}." />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+  <link rel="canonical" href="{_site_url('/' + date_str + '-run-totals.html')}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SportzBallz" />
+  <meta property="og:title" content="SportzBallz Run Total Picks — {html.escape(date_str)}" />
+  <meta property="og:description" content="MLB totals leans built from confidence, pricing, weather and movement context." />
+  <meta property="og:url" content="{_site_url('/' + date_str + '-run-totals.html')}" />
+  <meta name="twitter:card" content="summary_large_image" />
   <style>
     :root {{ --bg:#0a1020; --panel:#101a33; --ink:#eaf0ff; --muted:#a7b7df; --line:#273a6b; --accent:#f59e0b; --accent2:#5cc9ff; }}
     *{{box-sizing:border-box}}
@@ -820,6 +883,14 @@ def _render_top_index(latest_date: str, archive_dates):
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SportzBallz | Daily MLB Picks</title>
   <meta name="description" content="SportzBallz daily MLB picks, commentary, and betting context." />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+  <link rel="canonical" href="{_site_url('/')}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SportzBallz" />
+  <meta property="og:title" content="SportzBallz | Daily MLB Picks" />
+  <meta property="og:description" content="Daily MLB picks plus underdog and run-total cards, with performance dashboard tracking." />
+  <meta property="og:url" content="{_site_url('/')}" />
+  <meta name="twitter:card" content="summary_large_image" />
   <style>
     :root {{ --bg:#0a1020; --panel:#111a33; --line:#2a3e72; --ink:#ebf1ff; --muted:#9fb2de; --accent:#63d2ff; --accent2:#7cffc7; }}
     * {{ box-sizing: border-box; }}
@@ -943,6 +1014,15 @@ def _render_dashboard(history):
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SportzBallz | Performance Dashboard</title>
+  <meta name="description" content="SportzBallz historical MLB pick performance, records, and plus-money metrics." />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+  <link rel="canonical" href="{_site_url('/dashboard.html')}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SportzBallz" />
+  <meta property="og:title" content="SportzBallz | Performance Dashboard" />
+  <meta property="og:description" content="Track win rates, records, and plus-money outcomes over time." />
+  <meta property="og:url" content="{_site_url('/dashboard.html')}" />
+  <meta name="twitter:card" content="summary_large_image" />
   <style>
     :root {{ --bg:#0a1020; --panel:#101a33; --ink:#eaf0ff; --muted:#a7b7df; --line:#273a6b; --accent:#5cc9ff; }}
     * {{ box-sizing:border-box; }}
@@ -1040,6 +1120,8 @@ def publish_daily_site(markdown_path: str, site_repo_path: str = None):
     if parsed['date'] not in archive:
         archive = [parsed['date']] + archive
     (site_repo / 'index.html').write_text(_render_top_index(parsed['date'], archive))
+    (site_repo / 'robots.txt').write_text(_render_robots_txt())
+    (site_repo / 'sitemap.xml').write_text(_render_sitemap_xml(archive))
 
     auto_publish = os.environ.get('AUTO_PUBLISH_SITE', 'true').lower() in ('1', 'true', 'yes', 'on')
     if not auto_publish:
@@ -1048,6 +1130,7 @@ def publish_daily_site(markdown_path: str, site_repo_path: str = None):
     # Commit + push any changes
     add = _run([
         'git', 'add', 'index.html', 'dashboard.html', 'data/performance-history.json',
+        'robots.txt', 'sitemap.xml',
         f"{parsed['date']}.html", f"{parsed['date']}-plus-money.html", f"{parsed['date']}-run-totals.html"
     ], site_repo)
     if add.returncode != 0:
