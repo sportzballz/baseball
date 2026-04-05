@@ -6,6 +6,97 @@ from pathlib import Path
 from datetime import datetime
 
 
+def _parse_confidence(conf_text: str):
+    if not conf_text:
+        return None
+    m = re.search(r'([0-9]+\.[0-9]+|[0-9]+)', conf_text)
+    if not m:
+        return None
+    try:
+        return float(m.group(1))
+    except Exception:
+        return None
+
+
+def _parse_data_points(conf_text: str):
+    if not conf_text:
+        return None
+    m = re.search(r'data points:\s*(\d+)\/(\d+)', conf_text, re.IGNORECASE)
+    if not m:
+        return None
+    return int(m.group(1)), int(m.group(2))
+
+
+def _confidence_bucket(conf):
+    if conf is None:
+        return "unclear"
+    if conf >= 0.45:
+        return "high-conviction"
+    if conf >= 0.25:
+        return "solid"
+    if conf >= 0.10:
+        return "moderate"
+    return "thin"
+
+
+def _line_movement_note(text):
+    t = (text or "").lower()
+    if not t or "unavailable" in t:
+        return "Market movement is limited in the feed, so this leans more on matchup signals than tape-reading the number."
+    if "toward the pick side" in t:
+        return "The market has drifted toward the pick side, which supports the model read but can compress value at the margin."
+    if "away from the pick side" in t:
+        return "The number has moved away from the pick side, which can improve price value if you trust the underlying edge."
+    if "unchanged" in t:
+        return "The line has held steady, suggesting a relatively stable market view into first pitch."
+    return f"Line context: {text}"
+
+
+def _weather_note(venue, weather):
+    w = weather or ""
+    if "dome/retractable roof" in w.lower() or "not applicable" in w.lower():
+        return f"At {venue}, roof conditions mute weather volatility, keeping this matchup more talent-and-execution driven."
+
+    wind_match = re.search(r'(\d+)\s*mph', w.lower())
+    wind = int(wind_match.group(1)) if wind_match else None
+    if wind and wind >= 12:
+        return f"Weather is a real variable here ({weather}); that wind profile can materially influence run environment and ball carry."
+    if w and "unavailable" not in w.lower():
+        return f"Conditions at {venue} ({weather}) are worth tracking, but they don’t look extreme enough to override core matchup factors."
+    return f"Weather detail is limited from {venue}, so this reads primarily through pitcher profile, lineup edge, and market context."
+
+
+def _injury_note(winner, loser, winner_inj, loser_inj):
+    def cnt(txt):
+        if not txt or txt.lower().startswith('n/a'):
+            return 0
+        return max(1, txt.count(',') + 1)
+
+    w = cnt(winner_inj)
+    l = cnt(loser_inj)
+    if w == 0 and l == 0:
+        return "Injury reporting is light in this feed, so availability risk appears neutral on both sides."
+    if l - w >= 2:
+        return f"Availability leans slightly toward {winner}; {loser} is carrying a heavier listed injury load."
+    if w - l >= 2:
+        return f"Injury depth leans against {winner}, so this position depends more heavily on matchup execution than roster health."
+    return "Injury load looks relatively balanced, so this projects as a baseball-context and pricing decision more than a health fade."
+
+
+def _umpire_note(ump):
+    if not ump or "unavailable" in ump.lower():
+        return "Umpire assignment is unclear at publish time, so plate-profile impact remains a late variable."
+    hp = None
+    for part in ump.split(';'):
+        p = part.strip()
+        if p.lower().startswith('home plate:'):
+            hp = p.split(':', 1)[1].strip()
+            break
+    if hp:
+        return f"Home plate assignment ({hp}) is in place, which sharp bettors will monitor for zone tendencies once game action starts."
+    return f"Crew assignment is posted ({ump}), adding context for in-game strike-zone texture and pace."
+
+
 def _parse_markdown(md_text: str):
     lines = md_text.splitlines()
     date_str = ""
@@ -62,22 +153,55 @@ def _field(pick, key, default='n/a'):
     return pick['fields'].get(key, default)
 
 
-def _warm_paragraph(pick):
+def _analysis_paragraph(pick, idx):
     winner, loser = pick['winner'], pick['loser']
-    odds = _field(pick, 'Pick Odds', '----')
-    conf = _field(pick, 'Model Confidence', 'n/a').split(' ')[0]
-    pitching = _field(pick, 'Pitching Matchup', 'matchup unavailable')
-    venue = _field(pick, 'Venue', 'Unknown venue')
-    weather = _field(pick, 'Weather', 'Weather unavailable')
-    ump = _field(pick, 'Umpire Crew', 'Umpire crew unavailable')
-    move = _field(pick, 'Line Movement', 'Line movement unavailable')
+    conf_text = _field(pick, 'Model Confidence', 'n/a')
+    conf = _parse_confidence(conf_text)
+    dp = _parse_data_points(conf_text)
+    dp_text = f"{dp[0]}/{dp[1]}" if dp else "n/a"
+    bucket = _confidence_bucket(conf)
 
+    odds = _field(pick, 'Pick Odds', '----')
+    pitching = _field(pick, 'Pitching Matchup', 'n/a')
+    venue = _field(pick, 'Venue', 'n/a')
+    weather = _field(pick, 'Weather', 'n/a')
+    ump = _field(pick, 'Umpire Crew', 'n/a')
+    line_move = _field(pick, 'Line Movement', 'n/a')
+    w_sig = _field(pick, f'{winner} Model Signals', 'n/a')
+    l_sig = _field(pick, f'{loser} Model Signals', 'n/a')
+    w_inj = _field(pick, f'{winner} Injuries', 'n/a')
+    l_inj = _field(pick, f'{loser} Injuries', 'n/a')
+
+    voices = [
+        (
+            "Insider notebook:",
+            f"{winner} over {loser} lands as a {bucket} position at {odds}, with confidence {conf_text} and a {dp_text} data-point split. "
+            f"The matchup starts on the mound ({pitching}) and extends into signal texture: {winner} shows {w_sig}, while {loser} counters with {l_sig}."
+        ),
+        (
+            "Beat-writer lens:",
+            f"On today’s board, {winner} over {loser} reads more process than noise. The number ({odds}) and confidence profile ({conf_text}) "
+            f"suggest a {bucket} edge, anchored by the pitching lane ({pitching}) and supported by the model’s side-specific indicators."
+        ),
+        (
+            "Scouting report:",
+            f"This ticket points to {winner} over {loser}, with model confidence {conf_text} ({dp_text} data points) and a market entry around {odds}. "
+            f"Primary baseball drivers remain the pitcher pairing ({pitching}) and the signal stack advantage on the {winner} side."
+        ),
+        (
+            "Game-script view:",
+            f"The projected flow favors {winner} over {loser}: confidence sits at {conf_text}, odds at {odds}, and the opening script starts with {pitching}. "
+            f"Signal composition indicates {winner} has cleaner paths to leverage innings in this spot."
+        ),
+    ]
+
+    prefix, lead = voices[(idx - 1) % len(voices)]
     return (
-        f"This one leans <strong>{html.escape(winner)} over {html.escape(loser)}</strong> at "
-        f"<strong>{html.escape(odds)}</strong>, with model confidence around <strong>{html.escape(conf)}</strong>. "
-        f"The pitching lane is {html.escape(pitching)}, and the venue/weather context at {html.escape(venue)} "
-        f"({html.escape(weather)}) gives the matchup texture. Umpire assignment ({html.escape(ump)}) and market signal "
-        f"({html.escape(move)}) round out the read. The case here is classic baseball handicapping: spot, starter, and price all in conversation."
+        f"{prefix} {lead} "
+        f"{_weather_note(venue, weather)} "
+        f"{_umpire_note(ump)} "
+        f"{_injury_note(winner, loser, w_inj, l_inj)} "
+        f"{_line_movement_note(line_move)}"
     )
 
 
@@ -102,7 +226,7 @@ def _render_daily_html(parsed):
           <div><span>Pitching</span><strong>{html.escape(_field(p,'Pitching Matchup','n/a'))}</strong></div>
           <div><span>Venue</span><strong>{html.escape(_field(p,'Venue','n/a'))}</strong></div>
         </div>
-        <p class="lede">{_warm_paragraph(p)}</p>
+        <p class="lede">{_analysis_paragraph(p, i)}</p>
         <details>
           <summary>Expanded game context</summary>
           <ul>
