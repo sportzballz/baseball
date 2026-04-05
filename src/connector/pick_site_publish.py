@@ -169,6 +169,8 @@ def _analysis_paragraph(pick, idx):
     line_move = _field(pick, 'Line Movement', 'n/a')
     w_sig = _field(pick, f'{winner} Model Signals', 'n/a')
     l_sig = _field(pick, f'{loser} Model Signals', 'n/a')
+    w_sig_count = 0 if not w_sig or w_sig == 'n/a' else len([s for s in w_sig.split(',') if s.strip()])
+    l_sig_count = 0 if not l_sig or l_sig == 'n/a' else len([s for s in l_sig.split(',') if s.strip()])
     w_inj = _field(pick, f'{winner} Injuries', 'n/a')
     l_inj = _field(pick, f'{loser} Injuries', 'n/a')
 
@@ -176,22 +178,23 @@ def _analysis_paragraph(pick, idx):
         (
             "Insider notebook:",
             f"{winner} over {loser} lands as a {bucket} position at {odds}, with confidence {conf_text} and a {dp_text} data-point split. "
-            f"The matchup starts on the mound ({pitching}) and extends into signal texture: {winner} shows {w_sig}, while {loser} counters with {l_sig}."
+            f"The matchup starts on the mound ({pitching}) and extends into signal texture, with {winner} carrying a broader indicator stack "
+            f"({w_sig_count} signals) versus {loser} ({l_sig_count})."
         ),
         (
             "Beat-writer lens:",
             f"On today’s board, {winner} over {loser} reads more process than noise. The number ({odds}) and confidence profile ({conf_text}) "
-            f"suggest a {bucket} edge, anchored by the pitching lane ({pitching}) and supported by the model’s side-specific indicators."
+            f"suggest a {bucket} edge, anchored by the pitching lane ({pitching}) and supported by the model’s side-specific indicator balance."
         ),
         (
             "Scouting report:",
             f"This ticket points to {winner} over {loser}, with model confidence {conf_text} ({dp_text} data points) and a market entry around {odds}. "
-            f"Primary baseball drivers remain the pitcher pairing ({pitching}) and the signal stack advantage on the {winner} side."
+            f"Primary baseball drivers remain the pitcher pairing ({pitching}) and a stronger quantitative profile on the {winner} side."
         ),
         (
             "Game-script view:",
             f"The projected flow favors {winner} over {loser}: confidence sits at {conf_text}, odds at {odds}, and the opening script starts with {pitching}. "
-            f"Signal composition indicates {winner} has cleaner paths to leverage innings in this spot."
+            f"Indicator composition suggests {winner} has cleaner paths to leverage innings in this spot."
         ),
     ]
 
@@ -206,7 +209,11 @@ def _analysis_paragraph(pick, idx):
 
 
 def _render_daily_html(parsed):
-    picks = parsed['picks']
+    picks = sorted(
+        parsed['picks'],
+        key=lambda p: _parse_confidence(_field(p, 'Model Confidence', '')) or -1,
+        reverse=True,
+    )
     date_str = parsed['date']
     model = parsed['model']
     now = datetime.now().strftime('%Y-%m-%d %I:%M %p')
