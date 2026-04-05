@@ -41,7 +41,7 @@ The commentary includes (best effort):
 - umpire crew
 - injured-list snapshot for both teams
 - odds line movement (when opening line is available in feed)
-- LLM summary for each pick (falls back to deterministic text if no `OPENAI_API_KEY`)
+- deterministic commentary summary for each pick (no external LLM dependency)
 
 ## TODO for Ennis Model
 - [ x ] away team road record

@@ -5,7 +5,6 @@ from datetime import datetime
 import pytz
 import requests
 import statsapi
-from openai import OpenAI
 
 from common.util import get_teams_list
 
@@ -221,72 +220,10 @@ def _fallback_commentary(context):
     )
 
 
-def _llm_commentary(context):
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        return _fallback_commentary(context)
-
-    client = OpenAI(api_key=api_key)
-
-    system = (
-        "You are an MLB betting columnist writing warm, insightful pick commentary. "
-        "Use provided facts only. Do not invent injuries, weather, umpires, or line movement. "
-        "Blend model signals, matchup context, and market context naturally. "
-        "Avoid repetitive openings and boilerplate phrasing across picks. "
-        "If a field is unavailable, mention that briefly and move on. "
-        "Write 5-7 sentences with clear baseball voice and actionable angle."
-    )
-
-    style_rotation = [
-        "betting desk",
-        "beat writer notebook",
-        "scouting report",
-        "game-script breakdown",
-    ]
-    style = style_rotation[(int(context.get("pick_index", 1)) - 1) % len(style_rotation)]
-
-    style_instructions = {
-        "betting desk": "Open with pricing/value. Focus on edge vs market and risk/reward framing.",
-        "beat writer notebook": "Open with scene-setting baseball context (venue/conditions/mood) then actionable pick logic.",
-        "scouting report": "Lead with pitcher/hitter profile and matchup traits, then connect to betting angle.",
-        "game-script breakdown": "Project likely game flow (early innings, bullpen leverage, late-game path) and tie to the pick.",
-    }
-    style_hint = style_instructions.get(style, "Write with strong baseball context and clear pick rationale.")
-    context["style"] = style
-
-    user = (
-        f"Pick: {context['winner']} over {context['loser']}\n"
-        f"Writing Style Lens: {style}\n"
-        f"Style Directive: {style_hint}\n"
-        f"Odds: {context['odds']}\n"
-        f"Confidence: {context['confidence']}\n"
-        f"Data Points: {context['data_points']}\n"
-        f"Winner Data Signals: {context['winner_signals']}\n"
-        f"Loser Data Signals: {context['loser_signals']}\n"
-        f"Venue: {context['venue']}\n"
-        f"Weather: {context['weather_summary']}\n"
-        f"Umpire Crew: {context['umpire_summary']}\n"
-        f"Winner Injuries: {context['winner_injuries']}\n"
-        f"Loser Injuries: {context['loser_injuries']}\n"
-        f"Line Movement: {context['line_movement_text']}\n"
-        f"Winning Pitcher: {context['winning_pitcher']}\n"
-        f"Losing Pitcher: {context['losing_pitcher']}\n"
-        "Do not reuse generic opener phrases from prior picks. Make this read distinct.\n"
-    )
-
-    try:
-        resp = client.chat.completions.create(
-            model="gpt-4o-mini",
-            temperature=0.75,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-        )
-        return (resp.choices[0].message.content or "").strip() or _fallback_commentary(context)
-    except Exception as e:
-        print(f"LLM commentary failed for {context['winner']} vs {context['loser']}: {e}")
-        return _fallback_commentary(context)
+def _generate_commentary(context):
+    # Deterministic in-process commentary only.
+    # No external LLM calls.
+    return _fallback_commentary(context)
 
 
 def write_daily_pick_markdown(predictions, odds_data, model_name):
@@ -361,7 +298,7 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
             "losing_pitcher": p.losing_pitcher,
         }
 
-        commentary = _llm_commentary(context)
+        commentary = _generate_commentary(context)
 
         lines.append(f"## {idx}) {winner_name} over {loser_name}")
         lines.append("")
