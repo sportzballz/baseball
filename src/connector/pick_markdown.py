@@ -166,6 +166,52 @@ def _extract_line_movement(odds_entry, winner_name):
     return {"current": current, "open": open_odds, "movement": movement, "text": text}
 
 
+def _extract_total_market(odds_entry):
+    if not odds_entry:
+        return {
+            "total_current": None,
+            "over_odds": None,
+            "under_odds": None,
+            "total_open": None,
+            "text": "Total line unavailable.",
+            "movement_text": "Total movement unavailable.",
+        }
+
+    odds_obj = None
+    if odds_entry.get("odds") and len(odds_entry["odds"]) > 0:
+        odds_obj = odds_entry["odds"][0]
+
+    total_current = _safe_get(odds_obj or {}, ["total", "current", "total"])
+    over_odds = _safe_get(odds_obj or {}, ["total", "current", "overOdds"])
+    under_odds = _safe_get(odds_obj or {}, ["total", "current", "underOdds"])
+    total_open = _safe_get(odds_obj or {}, ["total", "open", "total"])
+
+    if total_current is None:
+        text = "Total line unavailable."
+    else:
+        text = f"{total_current} (Over {over_odds if over_odds is not None else '—'} / Under {under_odds if under_odds is not None else '—'})"
+
+    if total_current is None or total_open is None:
+        movement_text = "Total movement unavailable."
+    else:
+        diff = float(total_current) - float(total_open)
+        if diff == 0:
+            movement_text = f"Total unchanged at {total_current}."
+        elif diff > 0:
+            movement_text = f"Total moved up from {total_open} to {total_current} (+{diff:g})."
+        else:
+            movement_text = f"Total moved down from {total_open} to {total_current} ({diff:g})."
+
+    return {
+        "total_current": total_current,
+        "over_odds": over_odds,
+        "under_odds": under_odds,
+        "total_open": total_open,
+        "text": text,
+        "movement_text": movement_text,
+    }
+
+
 def _format_odds(odds):
     try:
         o = int(odds)
@@ -277,6 +323,7 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
 
         odds_entry = odds_lookup.get(frozenset([winner_name, loser_name]))
         line_move = _extract_line_movement(odds_entry, winner_name)
+        total_market = _extract_total_market(odds_entry)
 
         context = {
             "pick_index": idx,
@@ -294,6 +341,8 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
             "winner_injuries": ", ".join(winner_injuries) if winner_injuries else "No injured-list data available.",
             "loser_injuries": ", ".join(loser_injuries) if loser_injuries else "No injured-list data available.",
             "line_movement_text": line_move["text"],
+            "total_line_text": total_market["text"],
+            "total_movement_text": total_market["movement_text"],
             "winning_pitcher": p.winning_pitcher,
             "losing_pitcher": p.losing_pitcher,
         }
@@ -313,6 +362,8 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
         lines.append(f"- **{winner_name} Injuries:** {context['winner_injuries']}")
         lines.append(f"- **{loser_name} Injuries:** {context['loser_injuries']}")
         lines.append(f"- **Line Movement:** {context['line_movement_text']}")
+        lines.append(f"- **Total Line:** {context['total_line_text']}")
+        lines.append(f"- **Total Movement:** {context['total_movement_text']}")
         lines.append("")
         lines.append("**Commentary**")
         lines.append("")

@@ -54,6 +54,109 @@ def _line_movement_note(text):
     return f"Line context: {text}"
 
 
+def _total_odds_pick(total_line_text):
+    # expected: "8 (Over -115 / Under -105)"
+    if not total_line_text:
+        return None, None, None
+    m = re.search(r'([0-9]+(?:\.[0-9]+)?)\s*\(Over\s*([+-]?\d+|—)\s*/\s*Under\s*([+-]?\d+|—)\)', total_line_text)
+    if not m:
+        return None, None, None
+    total = float(m.group(1))
+    over_odds = None if m.group(2) == '—' else int(m.group(2))
+    under_odds = None if m.group(3) == '—' else int(m.group(3))
+    return total, over_odds, under_odds
+
+
+def _run_total_lean(pick):
+    winner, loser = pick['winner'], pick['loser']
+    weather = _field(pick, 'Weather', '')
+    venue = _field(pick, 'Venue', '')
+    w_sig = _field(pick, f'{winner} Model Signals', '')
+    l_sig = _field(pick, f'{loser} Model Signals', '')
+    total_line_text = _field(pick, 'Total Line', '')
+    total_move_text = _field(pick, 'Total Movement', '')
+
+    total, over_odds, under_odds = _total_odds_pick(total_line_text)
+    if total is None:
+        return None
+
+    sig_text = f"{w_sig}, {l_sig}".lower()
+    over_score = 0
+    under_score = 0
+    reasons = []
+
+    # Weather heuristics
+    w = weather.lower()
+    if 'dome' in w or 'roof' in w:
+        reasons.append('roof-controlled environment')
+    wind_m = re.search(r'(\d+)\s*mph', w)
+    wind = int(wind_m.group(1)) if wind_m else 0
+    if 'out to' in w and wind >= 10:
+        over_score += 2
+        reasons.append('wind blowing out')
+    if 'in from' in w and wind >= 10:
+        under_score += 2
+        reasons.append('wind blowing in')
+
+    temp_m = re.search(r'(\d+)°f', w)
+    temp = int(temp_m.group(1)) if temp_m else None
+    if temp is not None and temp >= 78:
+        over_score += 1
+        reasons.append('warm run environment')
+    if temp is not None and temp <= 52:
+        under_score += 1
+        reasons.append('cool run environment')
+    if 'rain' in w:
+        under_score += 1
+        reasons.append('rain suppression risk')
+
+    # Signal heuristics (internal only, not exposing raw names)
+    over_terms = ['runs', 'homeruns', 'doubles', 'triples', 'rbi', 'runsscoredper9', 'homerunsper9', 'batters have most runs', 'batters have most home runs']
+    under_terms = ['era', 'whip', 'strikeoutsper9', 'strikepercentage', 'pitcher has fewer runs', 'pitcher has fewer earned runs', 'pitcher has fewer home runs']
+
+    over_hits = sum(1 for t in over_terms if t in sig_text)
+    under_hits = sum(1 for t in under_terms if t in sig_text)
+    if over_hits > under_hits:
+        over_score += 1
+        reasons.append('offensive indicator edge')
+    elif under_hits > over_hits:
+        under_score += 1
+        reasons.append('run-prevention indicator edge')
+
+    # Market nudge
+    tm = total_move_text.lower()
+    if 'moved up' in tm:
+        over_score += 1
+        reasons.append('market moved total up')
+    elif 'moved down' in tm:
+        under_score += 1
+        reasons.append('market moved total down')
+
+    if over_score == under_score:
+        side = 'OVER' if (over_odds or 0) >= (under_odds or 0) else 'UNDER'
+    else:
+        side = 'OVER' if over_score > under_score else 'UNDER'
+
+    conf_text = _field(pick, 'Model Confidence', '0')
+    conf = _parse_confidence(conf_text) or 0
+    edge = abs(over_score - under_score)
+    total_conf = round((edge * 0.15) + (conf * 0.35), 3)
+
+    return {
+        'winner': winner,
+        'loser': loser,
+        'venue': venue,
+        'pick': side,
+        'line': total,
+        'over_odds': over_odds,
+        'under_odds': under_odds,
+        'confidence': total_conf,
+        'weather': weather,
+        'total_movement': total_move_text,
+        'reasons': reasons[:4],
+    }
+
+
 def _weather_note(venue, weather):
     w = weather or ""
     if "dome/retractable roof" in w.lower() or "not applicable" in w.lower():
@@ -593,9 +696,109 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None):
 '''
 
 
+def _render_run_totals_html(parsed, evaluated_picks=None):
+    source = evaluated_picks if evaluated_picks is not None else parsed['picks']
+    leans = []
+    for p in source:
+        lean = _run_total_lean(p)
+        if lean:
+            leans.append(lean)
+
+    leans.sort(key=lambda x: x['confidence'], reverse=True)
+
+    date_str = parsed['date']
+    model = parsed['model']
+    now = datetime.now().strftime('%Y-%m-%d %I:%M %p')
+
+    cards = []
+    for i, l in enumerate(leans, 1):
+        price = l['over_odds'] if l['pick'] == 'OVER' else l['under_odds']
+        cards.append(f'''
+      <article class="pick-card">
+        <div class="pick-head">
+          <div class="pick-num">Run Total {i}</div>
+          <h2>{html.escape(l['winner'])} vs {html.escape(l['loser'])} — {l['pick']} {l['line']}</h2>
+        </div>
+        <div class="meta-grid">
+          <div><span>Lean</span><strong>{l['pick']} {l['line']}</strong></div>
+          <div><span>Price</span><strong>{price if price is not None else '—'}</strong></div>
+          <div><span>Confidence</span><strong>{l['confidence']}</strong></div>
+          <div><span>Venue</span><strong>{html.escape(l['venue'])}</strong></div>
+        </div>
+        <p class="lede">Run-total lens: {l['pick']} {l['line']} in {l['winner']} vs {l['loser']}. Supporting context includes {', '.join(l['reasons']) if l['reasons'] else 'balanced conditions and market context'}.</p>
+        <details>
+          <summary>Expanded total context</summary>
+          <ul>
+            <li><strong>Weather:</strong> {html.escape(l['weather'])}</li>
+            <li><strong>Total Movement:</strong> {html.escape(l['total_movement'])}</li>
+          </ul>
+        </details>
+      </article>
+    ''')
+
+    if not cards:
+        cards.append('<article class="pick-card"><h2>No Run Total Leans Today</h2><p class="lede">Total-line data unavailable for today’s slate.</p></article>')
+
+    return f'''<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SportzBallz | Run Total Picks</title>
+  <meta name="description" content="SportzBallz MLB run total picks for {html.escape(date_str)}." />
+  <style>
+    :root {{ --bg:#0a1020; --panel:#101a33; --ink:#eaf0ff; --muted:#a7b7df; --line:#273a6b; --accent:#f59e0b; --accent2:#5cc9ff; }}
+    *{{box-sizing:border-box}}
+    body{{margin:0;font-family:Georgia,'Times New Roman',serif;background:radial-gradient(1200px 700px at 15% -10%, #1a2a55, var(--bg));color:var(--ink);line-height:1.65}}
+    .wrap{{max-width:1100px;margin:0 auto;padding:24px 16px 48px}}
+    header{{background:linear-gradient(135deg, rgba(245,158,11,.20), rgba(92,201,255,.10));border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:16px}}
+    .kicker{{font:600 12px/1.2 Inter,system-ui,sans-serif;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}}
+    h1{{margin:8px 0 10px;font-size:clamp(30px,5vw,46px);line-height:1.05}}
+    .sub{{color:var(--muted);font-family:Inter,system-ui,sans-serif;font-size:14px}}
+    .intro{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;font-size:18px}}
+    .pick-card{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 14px 0;box-shadow:0 12px 28px rgba(0,0,0,.24)}}
+    .pick-head h2{{margin:4px 0 8px;font-size:30px;line-height:1.15}}
+    .pick-head{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
+    .pick-num{{font:600 12px/1 Inter,system-ui,sans-serif;color:var(--accent);letter-spacing:.12em;text-transform:uppercase}}
+    .meta-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 12px;padding:10px 0 2px}}
+    .meta-grid div{{border:1px dashed #31508e;border-radius:10px;padding:8px 10px;background:rgba(255,255,255,.02)}}
+    .meta-grid span{{display:block;color:var(--muted);font:600 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}}
+    .meta-grid strong{{font:600 15px/1.35 Inter,system-ui,sans-serif;color:#dce8ff}}
+    .lede{{font-size:20px;margin:12px 0 8px;color:#f2f6ff}}
+    details{{margin-top:8px;border-top:1px solid #264377;padding-top:8px}}
+    summary{{cursor:pointer;font:600 14px Inter,system-ui,sans-serif;color:#fbbf24}}
+    ul{{margin:10px 0 0 18px;padding:0}}
+    li{{margin:6px 0}}
+    .toplinks{{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}}
+    .toplinks a{{display:inline-block;padding:8px 12px;border:1px solid #31508e;border-radius:9px;color:#dce8ff;text-decoration:none;font-family:Inter,system-ui,sans-serif;font-size:13px}}
+    footer{{margin-top:10px;color:var(--muted);font:12px Inter,system-ui,sans-serif;text-align:right}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div class="kicker">SportzBallz Totals Desk</div>
+      <h1>Run Total Picks — {html.escape(date_str)}</h1>
+      <div class="sub">Model: {html.escape(model)} • Updated {html.escape(now)}</div>
+      <div class="toplinks">
+        <a href="/{html.escape(date_str)}.html">Full Daily Picks</a>
+        <a href="/{html.escape(date_str)}-plus-money.html">Plus Money Picks</a>
+        <a href="/">Home</a>
+      </div>
+    </header>
+    <section class="intro">Totals-only leans built from confidence, pricing, weather/venue context, and market movement.</section>
+    {''.join(cards)}
+    <footer>Published by SportzBallz.io</footer>
+  </main>
+</body>
+</html>
+'''
+
+
 def _render_top_index(latest_date: str, archive_dates):
     latest_href = f"/{latest_date}.html"
     latest_plus_href = f"/{latest_date}-plus-money.html"
+    latest_totals_href = f"/{latest_date}-run-totals.html"
 
     archive_items = []
     for i, d in enumerate(sorted(set(archive_dates), reverse=True)):
@@ -605,6 +808,9 @@ def _render_top_index(latest_date: str, archive_dates):
         )
         archive_items.append(
             f'<li><a href="/{d}-plus-money.html"><span>{d} • Plus Money Picks</span></a></li>'
+        )
+        archive_items.append(
+            f'<li><a href="/{d}-run-totals.html"><span>{d} • Run Total Picks</span></a></li>'
         )
 
     return f'''<!doctype html>
@@ -651,6 +857,7 @@ def _render_top_index(latest_date: str, archive_dates):
         <p>Today’s full notebook with odds, confidence, pitching, venue/weather, umpire crew, injuries, and market movement.</p>
         <a class="btn" href="{latest_href}">Open {latest_date} Picks</a>
         <a class="btn" href="{latest_plus_href}" style="margin-left:8px; background:linear-gradient(90deg,#22c55e,#7cffc7);">Open {latest_date} Plus Money</a>
+        <a class="btn" href="{latest_totals_href}" style="margin-left:8px; background:linear-gradient(90deg,#f59e0b,#fcd34d);">Open {latest_date} Run Totals</a>
         <a class="btn" href="/dashboard.html" style="margin-left:8px; background:linear-gradient(90deg,#8b5cf6,#5cc9ff);">Open Dashboard</a>
         <div class="meta">Format: <code>yyyy-mm-dd.html</code></div>
       </article>
@@ -821,6 +1028,9 @@ def publish_daily_site(markdown_path: str, site_repo_path: str = None):
     plus_html = site_repo / f"{parsed['date']}-plus-money.html"
     plus_html.write_text(_render_plus_money_html(parsed, evaluated_picks, summary))
 
+    totals_html = site_repo / f"{parsed['date']}-run-totals.html"
+    totals_html.write_text(_render_run_totals_html(parsed, evaluated_picks))
+
     history_path, history = _load_history(site_repo)
     history = _upsert_history(history, summary)
     history_path.write_text(json.dumps(history, indent=2))
@@ -838,7 +1048,7 @@ def publish_daily_site(markdown_path: str, site_repo_path: str = None):
     # Commit + push any changes
     add = _run([
         'git', 'add', 'index.html', 'dashboard.html', 'data/performance-history.json',
-        f"{parsed['date']}.html", f"{parsed['date']}-plus-money.html"
+        f"{parsed['date']}.html", f"{parsed['date']}-plus-money.html", f"{parsed['date']}-run-totals.html"
     ], site_repo)
     if add.returncode != 0:
         print(add.stderr.strip())
