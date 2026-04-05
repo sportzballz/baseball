@@ -1,9 +1,11 @@
 import os
 import re
 import html
+import json
 import subprocess
 from pathlib import Path
 from datetime import datetime
+import statsapi
 
 
 def _parse_confidence(conf_text: str):
@@ -165,10 +167,128 @@ def _odds_value(odds_text: str):
         m = re.search(r'([+-]?\d+)', t)
         if not m:
             return None
-        try:
-            return int(m.group(1))
-        except Exception:
-            return None
+
+
+def _safe_int(v):
+    try:
+        return int(v)
+    except Exception:
+        return None
+
+
+def _build_matchup_games(game_date: str):
+    games = statsapi.schedule(start_date=game_date, end_date=game_date)
+    matchups = {}
+    for g in games:
+        home = g.get('home_name')
+        away = g.get('away_name')
+        if not home or not away:
+            continue
+        key = tuple(sorted([home, away]))
+
+        home_score = _safe_int(g.get('home_score'))
+        away_score = _safe_int(g.get('away_score'))
+        status = str(g.get('status', ''))
+        is_final = 'final' in status.lower()
+
+        winner = g.get('winning_team')
+        if not winner and is_final and home_score is not None and away_score is not None:
+            winner = home if home_score > away_score else away
+
+        matchups.setdefault(key, []).append({
+            'status': status,
+            'is_final': is_final,
+            'winner': winner,
+            'game_datetime': g.get('game_datetime') or '',
+            'home': home,
+            'away': away,
+            'home_score': home_score,
+            'away_score': away_score,
+        })
+
+    # keep deterministic order for doubleheaders
+    for key in matchups:
+        matchups[key].sort(key=lambda x: x.get('game_datetime', ''))
+
+    return matchups
+
+
+def _evaluate_picks(parsed):
+    matchups = _build_matchup_games(parsed['date'])
+    seen_idx = {}
+    evaluated = []
+
+    for p in parsed['picks']:
+        winner = p['winner']
+        loser = p['loser']
+        key = tuple(sorted([winner, loser]))
+        idx = seen_idx.get(key, 0)
+        seen_idx[key] = idx + 1
+
+        games = matchups.get(key, [])
+        game = games[idx] if idx < len(games) else None
+
+        result = 'PENDING'
+        status = 'Not found'
+        actual_winner = None
+
+        if game:
+            status = game.get('status', 'Unknown')
+            actual_winner = game.get('winner')
+            if game.get('is_final') and actual_winner:
+                result = 'WIN' if actual_winner == winner else 'LOSS'
+            elif game.get('is_final') and not actual_winner:
+                result = 'UNKNOWN'
+
+        ev = dict(p)
+        ev['result'] = result
+        ev['game_status'] = status
+        ev['actual_winner'] = actual_winner
+        evaluated.append(ev)
+
+    decided = [x for x in evaluated if x['result'] in ('WIN', 'LOSS')]
+    wins = len([x for x in decided if x['result'] == 'WIN'])
+    losses = len([x for x in decided if x['result'] == 'LOSS'])
+    pending = len([x for x in evaluated if x['result'] == 'PENDING'])
+
+    plus = [x for x in evaluated if (_odds_value(_field(x, 'Pick Odds', '')) or -99999) > 0]
+    plus_decided = [x for x in plus if x['result'] in ('WIN', 'LOSS')]
+    plus_wins = len([x for x in plus_decided if x['result'] == 'WIN'])
+    plus_losses = len([x for x in plus_decided if x['result'] == 'LOSS'])
+
+    summary = {
+        'date': parsed['date'],
+        'total_picks': len(evaluated),
+        'decided': len(decided),
+        'wins': wins,
+        'losses': losses,
+        'pending': pending,
+        'win_rate': round((wins / len(decided)) * 100, 1) if decided else None,
+        'plus_money_total': len(plus),
+        'plus_money_decided': len(plus_decided),
+        'plus_money_wins': plus_wins,
+        'plus_money_losses': plus_losses,
+        'plus_money_win_rate': round((plus_wins / len(plus_decided)) * 100, 1) if plus_decided else None,
+    }
+
+    return evaluated, summary
+
+
+def _render_tracker_block(summary):
+    wr = f"{summary['win_rate']}%" if summary['win_rate'] is not None else "—"
+    pwr = f"{summary['plus_money_win_rate']}%" if summary['plus_money_win_rate'] is not None else "—"
+    return f'''
+    <section class="tracker">
+      <div class="tracker-grid">
+        <div class="tcard"><span>Total Picks</span><strong>{summary['total_picks']}</strong></div>
+        <div class="tcard"><span>Decided</span><strong>{summary['decided']}</strong></div>
+        <div class="tcard"><span>Record</span><strong>{summary['wins']}-{summary['losses']}</strong></div>
+        <div class="tcard"><span>Win Rate</span><strong>{wr}</strong></div>
+        <div class="tcard"><span>Plus Money Record</span><strong>{summary['plus_money_wins']}-{summary['plus_money_losses']}</strong></div>
+        <div class="tcard"><span>Plus Money Win %</span><strong>{pwr}</strong></div>
+      </div>
+    </section>
+    '''
 
 
 def _analysis_paragraph(pick, idx):
@@ -226,9 +346,10 @@ def _analysis_paragraph(pick, idx):
     )
 
 
-def _render_daily_html(parsed):
+def _render_daily_html(parsed, evaluated_picks=None, summary=None):
+    picks_source = evaluated_picks if evaluated_picks is not None else parsed['picks']
     picks = sorted(
-        parsed['picks'],
+        picks_source,
         key=lambda p: _parse_confidence(_field(p, 'Model Confidence', '')) or -1,
         reverse=True,
     )
@@ -239,11 +360,18 @@ def _render_daily_html(parsed):
     cards = []
     for i, p in enumerate(picks, 1):
         winner, loser = p['winner'], p['loser']
+        result = p.get('result', 'PENDING')
+        result_class = 'res-pending'
+        if result == 'WIN':
+            result_class = 'res-win'
+        elif result == 'LOSS':
+            result_class = 'res-loss'
         cards.append(f'''
       <article class="pick-card">
         <div class="pick-head">
           <div class="pick-num">Pick {i}</div>
           <h2>{html.escape(winner)} over {html.escape(loser)}</h2>
+          <span class="res {result_class}">{result}</span>
         </div>
         <div class="meta-grid">
           <div><span>Odds</span><strong>{html.escape(_field(p,'Pick Odds','----'))}</strong></div>
@@ -265,6 +393,8 @@ def _render_daily_html(parsed):
       </article>
     ''')
 
+    tracker_html = _render_tracker_block(summary) if summary else ''
+
     return f'''<!doctype html>
 <html lang="en">
 <head>
@@ -284,7 +414,17 @@ def _render_daily_html(parsed):
     .intro{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;font-size:18px}}
     .pick-card{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 14px 0;box-shadow:0 12px 28px rgba(0,0,0,.24)}}
     .pick-head h2{{margin:4px 0 8px;font-size:30px;line-height:1.15}}
+    .pick-head{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
     .pick-num{{font:600 12px/1 Inter,system-ui,sans-serif;color:var(--accent);letter-spacing:.12em;text-transform:uppercase}}
+    .res{{font:700 11px/1 Inter,system-ui,sans-serif;padding:5px 8px;border-radius:999px;border:1px solid #31508e;}}
+    .res-win{{color:#7CFFB3;border-color:#2f8f57;background:rgba(52,211,153,.12)}}
+    .res-loss{{color:#ff9ca0;border-color:#a13d47;background:rgba(239,68,68,.14)}}
+    .res-pending{{color:#cfe1ff;border-color:#3c5c97;background:rgba(59,130,246,.12)}}
+    .tracker{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:16px}}
+    .tracker-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}}
+    .tcard{{border:1px dashed #31508e;border-radius:10px;padding:8px 10px;background:rgba(255,255,255,.02)}}
+    .tcard span{{display:block;color:var(--muted);font:600 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}}
+    .tcard strong{{font:700 16px/1.25 Inter,system-ui,sans-serif;color:#e7f0ff}}
     .meta-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 12px;padding:10px 0 2px}}
     .meta-grid div{{border:1px dashed #31508e;border-radius:10px;padding:8px 10px;background:rgba(255,255,255,.02)}}
     .meta-grid span{{display:block;color:var(--muted);font:600 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}}
@@ -306,6 +446,7 @@ def _render_daily_html(parsed):
       <div class="sub">Model: {html.escape(model)} • Updated {html.escape(now)}</div>
     </header>
     <section class="intro">Today’s card in a warmer, notebook-style voice — balancing matchup context, weather, umpire texture, and price discipline.</section>
+    {tracker_html}
     {''.join(cards)}
     <footer>Published by SportzBallz.io</footer>
   </main>
@@ -314,9 +455,10 @@ def _render_daily_html(parsed):
 '''
 
 
-def _render_plus_money_html(parsed):
+def _render_plus_money_html(parsed, evaluated_picks=None, summary=None):
+    source = evaluated_picks if evaluated_picks is not None else parsed['picks']
     all_picks = sorted(
-        parsed['picks'],
+        source,
         key=lambda p: _parse_confidence(_field(p, 'Model Confidence', '')) or -1,
         reverse=True,
     )
@@ -333,11 +475,18 @@ def _render_plus_money_html(parsed):
     cards = []
     for i, p in enumerate(plus_picks, 1):
         winner, loser = p['winner'], p['loser']
+        result = p.get('result', 'PENDING')
+        result_class = 'res-pending'
+        if result == 'WIN':
+            result_class = 'res-win'
+        elif result == 'LOSS':
+            result_class = 'res-loss'
         cards.append(f'''
       <article class="pick-card">
         <div class="pick-head">
           <div class="pick-num">Underdog {i}</div>
           <h2>{html.escape(winner)} over {html.escape(loser)}</h2>
+          <span class="res {result_class}">{result}</span>
         </div>
         <div class="meta-grid">
           <div><span>Odds</span><strong>{html.escape(_field(p,'Pick Odds','----'))}</strong></div>
@@ -364,6 +513,20 @@ def _render_plus_money_html(parsed):
             '<article class="pick-card"><h2>No Plus Money Picks Today</h2><p class="lede">No underdog selections met publication criteria for this slate.</p></article>'
         )
 
+    pm_summary_html = ''
+    if summary:
+        pwr = f"{summary['plus_money_win_rate']}%" if summary['plus_money_win_rate'] is not None else "—"
+        pm_summary_html = f'''
+        <section class="tracker">
+          <div class="tracker-grid">
+            <div class="tcard"><span>Plus Money Picks</span><strong>{summary['plus_money_total']}</strong></div>
+            <div class="tcard"><span>Decided</span><strong>{summary['plus_money_decided']}</strong></div>
+            <div class="tcard"><span>Record</span><strong>{summary['plus_money_wins']}-{summary['plus_money_losses']}</strong></div>
+            <div class="tcard"><span>Win Rate</span><strong>{pwr}</strong></div>
+          </div>
+        </section>
+        '''
+
     return f'''<!doctype html>
 <html lang="en">
 <head>
@@ -383,7 +546,17 @@ def _render_plus_money_html(parsed):
     .intro{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;font-size:18px}}
     .pick-card{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 14px 0;box-shadow:0 12px 28px rgba(0,0,0,.24)}}
     .pick-head h2{{margin:4px 0 8px;font-size:30px;line-height:1.15}}
+    .pick-head{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
     .pick-num{{font:600 12px/1 Inter,system-ui,sans-serif;color:var(--plus);letter-spacing:.12em;text-transform:uppercase}}
+    .res{{font:700 11px/1 Inter,system-ui,sans-serif;padding:5px 8px;border-radius:999px;border:1px solid #31508e;}}
+    .res-win{{color:#7CFFB3;border-color:#2f8f57;background:rgba(52,211,153,.12)}}
+    .res-loss{{color:#ff9ca0;border-color:#a13d47;background:rgba(239,68,68,.14)}}
+    .res-pending{{color:#cfe1ff;border-color:#3c5c97;background:rgba(59,130,246,.12)}}
+    .tracker{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:16px}}
+    .tracker-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}}
+    .tcard{{border:1px dashed #31508e;border-radius:10px;padding:8px 10px;background:rgba(255,255,255,.02)}}
+    .tcard span{{display:block;color:var(--muted);font:600 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}}
+    .tcard strong{{font:700 16px/1.25 Inter,system-ui,sans-serif;color:#e7f0ff}}
     .meta-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 12px;padding:10px 0 2px}}
     .meta-grid div{{border:1px dashed #31508e;border-radius:10px;padding:8px 10px;background:rgba(255,255,255,.02)}}
     .meta-grid span{{display:block;color:var(--muted);font:600 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}}
@@ -411,6 +584,7 @@ def _render_plus_money_html(parsed):
       </div>
     </header>
     <section class="intro">All underdog selections (positive odds) for the day, ordered by confidence.</section>
+    {pm_summary_html}
     {''.join(cards)}
     <footer>Published by SportzBallz.io</footer>
   </main>
@@ -477,6 +651,7 @@ def _render_top_index(latest_date: str, archive_dates):
         <p>Today’s full notebook with odds, confidence, pitching, venue/weather, umpire crew, injuries, and market movement.</p>
         <a class="btn" href="{latest_href}">Open {latest_date} Picks</a>
         <a class="btn" href="{latest_plus_href}" style="margin-left:8px; background:linear-gradient(90deg,#22c55e,#7cffc7);">Open {latest_date} Plus Money</a>
+        <a class="btn" href="/dashboard.html" style="margin-left:8px; background:linear-gradient(90deg,#8b5cf6,#5cc9ff);">Open Dashboard</a>
         <div class="meta">Format: <code>yyyy-mm-dd.html</code></div>
       </article>
 
@@ -505,6 +680,113 @@ def _find_archive_dates(site_repo: Path):
     return sorted(set(dates), reverse=True)
 
 
+def _load_history(site_repo: Path):
+    data_dir = site_repo / 'data'
+    data_dir.mkdir(parents=True, exist_ok=True)
+    history_path = data_dir / 'performance-history.json'
+    if not history_path.exists():
+        return history_path, []
+    try:
+        data = json.loads(history_path.read_text())
+        if isinstance(data, list):
+            return history_path, data
+    except Exception:
+        pass
+    return history_path, []
+
+
+def _upsert_history(history, summary):
+    out = [h for h in history if h.get('date') != summary.get('date')]
+    out.append(summary)
+    out.sort(key=lambda x: x.get('date', ''), reverse=True)
+    return out
+
+
+def _render_dashboard(history):
+    if history:
+        total_picks = sum(h.get('total_picks', 0) for h in history)
+        total_decided = sum(h.get('decided', 0) for h in history)
+        total_wins = sum(h.get('wins', 0) for h in history)
+        total_losses = sum(h.get('losses', 0) for h in history)
+        overall_wr = round((total_wins / total_decided) * 100, 1) if total_decided else None
+        total_pm_decided = sum(h.get('plus_money_decided', 0) for h in history)
+        total_pm_wins = sum(h.get('plus_money_wins', 0) for h in history)
+        total_pm_losses = sum(h.get('plus_money_losses', 0) for h in history)
+        overall_pm_wr = round((total_pm_wins / total_pm_decided) * 100, 1) if total_pm_decided else None
+    else:
+        total_picks = total_decided = total_wins = total_losses = 0
+        total_pm_decided = total_pm_wins = total_pm_losses = 0
+        overall_wr = overall_pm_wr = None
+
+    rows = []
+    for h in history:
+        wr = f"{h.get('win_rate')}%" if h.get('win_rate') is not None else '—'
+        pwr = f"{h.get('plus_money_win_rate')}%" if h.get('plus_money_win_rate') is not None else '—'
+        d = h.get('date', '')
+        rows.append(
+            f"<tr><td><a href='/{d}.html'>{d}</a></td><td>{h.get('wins',0)}-{h.get('losses',0)}</td><td>{wr}</td><td>{h.get('plus_money_wins',0)}-{h.get('plus_money_losses',0)}</td><td>{pwr}</td><td>{h.get('pending',0)}</td></tr>"
+        )
+
+    overall_wr_txt = f"{overall_wr}%" if overall_wr is not None else '—'
+    overall_pm_txt = f"{overall_pm_wr}%" if overall_pm_wr is not None else '—'
+
+    return f'''<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SportzBallz | Performance Dashboard</title>
+  <style>
+    :root {{ --bg:#0a1020; --panel:#101a33; --ink:#eaf0ff; --muted:#a7b7df; --line:#273a6b; --accent:#5cc9ff; }}
+    * {{ box-sizing:border-box; }}
+    body {{ margin:0; background:radial-gradient(1200px 700px at 15% -10%, #1a2a55, var(--bg)); color:var(--ink); font-family:Inter,system-ui,sans-serif; }}
+    .wrap {{ max-width:1100px; margin:0 auto; padding:24px 16px 48px; }}
+    .card {{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:14px; }}
+    h1 {{ margin:0 0 8px; font-size:34px; }}
+    .meta {{ color:var(--muted); margin-bottom:8px; }}
+    .grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; }}
+    .k {{ border:1px dashed #31508e; border-radius:10px; padding:10px; }}
+    .k span {{ display:block; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }}
+    .k strong {{ font-size:20px; }}
+    table {{ width:100%; border-collapse:collapse; }}
+    th, td {{ border-bottom:1px solid #2a3f70; padding:10px 8px; text-align:left; }}
+    th {{ color:#cfe0ff; font-size:12px; text-transform:uppercase; letter-spacing:.08em; }}
+    td {{ color:#e2ecff; }}
+    a {{ color:#8ad8ff; text-decoration:none; }}
+    .links a {{ display:inline-block; margin-right:8px; border:1px solid #31508e; border-radius:8px; padding:6px 10px; }}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="card">
+      <h1>Performance Dashboard</h1>
+      <div class="meta">Auto-tracked from published daily picks.</div>
+      <div class="links"><a href="/">Home</a></div>
+      <div class="grid">
+        <div class="k"><span>Total Picks</span><strong>{total_picks}</strong></div>
+        <div class="k"><span>Decided</span><strong>{total_decided}</strong></div>
+        <div class="k"><span>Overall Record</span><strong>{total_wins}-{total_losses}</strong></div>
+        <div class="k"><span>Overall Win %</span><strong>{overall_wr_txt}</strong></div>
+        <div class="k"><span>Plus Money Record</span><strong>{total_pm_wins}-{total_pm_losses}</strong></div>
+        <div class="k"><span>Plus Money Win %</span><strong>{overall_pm_txt}</strong></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Daily Performance</h2>
+      <table>
+        <thead><tr><th>Date</th><th>Record</th><th>Win %</th><th>Plus Money</th><th>Plus %</th><th>Pending</th></tr></thead>
+        <tbody>
+          {''.join(rows) if rows else '<tr><td colspan="6">No history yet.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  </main>
+</body>
+</html>
+'''
+
+
 def _run(cmd, cwd):
     return subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True)
 
@@ -531,11 +813,18 @@ def publish_daily_site(markdown_path: str, site_repo_path: str = None):
         print(f"Site repo not found: {site_repo}")
         return None
 
+    evaluated_picks, summary = _evaluate_picks(parsed)
+
     date_html = site_repo / f"{parsed['date']}.html"
-    date_html.write_text(_render_daily_html(parsed))
+    date_html.write_text(_render_daily_html(parsed, evaluated_picks, summary))
 
     plus_html = site_repo / f"{parsed['date']}-plus-money.html"
-    plus_html.write_text(_render_plus_money_html(parsed))
+    plus_html.write_text(_render_plus_money_html(parsed, evaluated_picks, summary))
+
+    history_path, history = _load_history(site_repo)
+    history = _upsert_history(history, summary)
+    history_path.write_text(json.dumps(history, indent=2))
+    (site_repo / 'dashboard.html').write_text(_render_dashboard(history))
 
     archive = _find_archive_dates(site_repo)
     if parsed['date'] not in archive:
@@ -547,7 +836,10 @@ def publish_daily_site(markdown_path: str, site_repo_path: str = None):
         return str(date_html)
 
     # Commit + push any changes
-    add = _run(['git', 'add', 'index.html', f"{parsed['date']}.html", f"{parsed['date']}-plus-money.html"], site_repo)
+    add = _run([
+        'git', 'add', 'index.html', 'dashboard.html', 'data/performance-history.json',
+        f"{parsed['date']}.html", f"{parsed['date']}-plus-money.html"
+    ], site_repo)
     if add.returncode != 0:
         print(add.stderr.strip())
         return str(date_html)
