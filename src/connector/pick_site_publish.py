@@ -55,6 +55,8 @@ def _render_sitemap_xml(archive_dates):
     urls = [
         _site_url('/'),
         _site_url('/dashboard.html'),
+        _site_url('/media-kit.html'),
+        _site_url('/rate-card.html'),
     ]
 
     for d in sorted(set(archive_dates), reverse=True):
@@ -70,6 +72,98 @@ def _render_sitemap_xml(archive_dates):
         lines.append(f'  <url><loc>{html.escape(u)}</loc></url>')
     lines.append('</urlset>')
     return '\n'.join(lines)
+
+
+def _render_ad_slot(slot_id: str, label: str, cta: str = '/media-kit.html'):
+    return f'''<section class="ad-slot" data-slot="{html.escape(slot_id)}">
+      <div class="ad-label">Sponsored</div>
+      <div class="ad-copy">{html.escape(label)} • Your brand could be here.</div>
+      <a class="ad-cta" href="{html.escape(cta)}">Advertise on SportzBallz</a>
+    </section>'''
+
+
+def _render_media_kit():
+    return f'''<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SportzBallz | Media Kit</title>
+  <meta name="description" content="SportzBallz media kit: audience, sponsorship inventory, and ad opportunities." />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+  <link rel="canonical" href="{_site_url('/media-kit.html')}" />
+  <style>
+    :root {{ --bg:#0b1020; --panel:#121c35; --ink:#e8efff; --muted:#9db1dc; --line:#2a3f72; --accent:#63d2ff; --accent2:#7cffc7; }}
+    * {{ box-sizing:border-box; }}
+    body {{ margin:0; background:radial-gradient(1000px 650px at 10% -10%, #20356f, var(--bg)); color:var(--ink); font-family:Inter,system-ui,sans-serif; }}
+    .wrap {{ max-width:980px; margin:0 auto; padding:24px 16px 48px; }}
+    .card {{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }}
+    h1 {{ margin:0 0 8px; }} h2 {{ margin:0 0 10px; font-size:22px; }}
+    .muted {{ color:var(--muted); }}
+    ul {{ margin:8px 0 0 18px; }} li {{ margin:6px 0; }}
+    .btn {{ display:inline-block; margin-right:8px; margin-top:8px; padding:8px 12px; border-radius:10px; text-decoration:none; color:#081224; background:linear-gradient(90deg,var(--accent),var(--accent2)); font-weight:700; }}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h1>SportzBallz Media Kit</h1>
+      <p class="muted">Daily MLB picks, plus-money cards, run-total leans, and performance tracking.</p>
+      <a class="btn" href="/rate-card.html">View Rate Card</a>
+      <a class="btn" href="/">Back to Homepage</a>
+    </section>
+    <section class="card"><h2>Audience & Format</h2><ul><li>MLB bettors seeking daily picks with structured context</li><li>Underdog/plus-money focused readers</li><li>Users who value transparent performance tracking</li></ul></section>
+    <section class="card"><h2>Sponsorship Inventory</h2><ul><li>Homepage hero sponsor</li><li>Daily picks page sponsored placement</li><li>Plus money page sponsor</li><li>Run totals page sponsor</li><li>Dashboard sponsor</li></ul></section>
+    <section class="card"><h2>Contact</h2><p>To sponsor SportzBallz, contact: <strong>ads@sportzballz.io</strong> (update as needed).</p></section>
+  </main>
+</body>
+</html>
+'''
+
+
+def _render_rate_card():
+    return f'''<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SportzBallz | Rate Card</title>
+  <meta name="description" content="SportzBallz sponsorship pricing and ad package options." />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+  <link rel="canonical" href="{_site_url('/rate-card.html')}" />
+  <style>
+    :root {{ --bg:#0b1020; --panel:#121c35; --ink:#e8efff; --muted:#9db1dc; --line:#2a3f72; --accent:#63d2ff; --accent2:#7cffc7; }}
+    * {{ box-sizing:border-box; }}
+    body {{ margin:0; background:radial-gradient(1000px 650px at 10% -10%, #20356f, var(--bg)); color:var(--ink); font-family:Inter,system-ui,sans-serif; }}
+    .wrap {{ max-width:980px; margin:0 auto; padding:24px 16px 48px; }}
+    .card {{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }}
+    table {{ width:100%; border-collapse:collapse; }} th, td {{ padding:10px 8px; border-bottom:1px solid #2a3f70; text-align:left; }}
+    th {{ font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:#cfe0ff; }}
+    .muted {{ color:var(--muted); }}
+    .btn {{ display:inline-block; margin-right:8px; margin-top:8px; padding:8px 12px; border-radius:10px; text-decoration:none; color:#081224; background:linear-gradient(90deg,var(--accent),var(--accent2)); font-weight:700; }}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h1>SportzBallz Rate Card</h1>
+      <p class="muted">Starter pricing — tune as traffic and conversion data matures.</p>
+      <a class="btn" href="/media-kit.html">Media Kit</a><a class="btn" href="/">Homepage</a>
+    </section>
+    <section class="card">
+      <table><thead><tr><th>Placement</th><th>Pricing</th><th>Notes</th></tr></thead><tbody>
+        <tr><td>Homepage sponsor</td><td>$250–$750 / month</td><td>Prime brand placement on index.</td></tr>
+        <tr><td>Daily picks sponsor</td><td>$150–$500 / month</td><td>Appears on core daily card pages.</td></tr>
+        <tr><td>Plus-money sponsor</td><td>$125–$400 / month</td><td>Targets underdog/value readers.</td></tr>
+        <tr><td>Run totals sponsor</td><td>$125–$400 / month</td><td>Targets totals-focused readers.</td></tr>
+        <tr><td>Dashboard sponsor</td><td>$150–$500 / month</td><td>Performance page audience.</td></tr>
+        <tr><td>Bundle package</td><td>$600–$1,500 / month</td><td>Index + daily + dashboard bundle.</td></tr>
+      </tbody></table>
+    </section>
+  </main>
+</body>
+</html>
+'''
 
 
 def _parse_confidence(conf_text: str):
@@ -591,6 +685,10 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None):
     h1{{margin:8px 0 10px;font-size:clamp(30px,5vw,46px);line-height:1.05}}
     .sub{{color:var(--muted);font-family:Inter,system-ui,sans-serif;font-size:14px}}
     .intro{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;font-size:18px}}
+    .ad-slot{{background:rgba(255,255,255,.03);border:1px dashed #3b5a96;border-radius:12px;padding:12px 14px;margin:0 0 14px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}}
+    .ad-label{{font:700 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#9cc4ff}}
+    .ad-copy{{color:#d9e6ff;font:500 14px/1.3 Inter,system-ui,sans-serif}}
+    .ad-cta{{display:inline-block;padding:7px 10px;border-radius:8px;border:1px solid #4c6db0;color:#dff2ff;text-decoration:none;font:600 12px Inter,system-ui,sans-serif}}
     .pick-card{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 14px 0;box-shadow:0 12px 28px rgba(0,0,0,.24)}}
     .pick-head h2{{margin:4px 0 8px;font-size:30px;line-height:1.15}}
     .pick-head{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
@@ -625,6 +723,7 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None):
       <div class="sub">Model: {html.escape(model)} • Updated {html.escape(now)}</div>
     </header>
     <section class="intro">Today’s card in a warmer, notebook-style voice — balancing matchup context, weather, umpire texture, and price discipline.</section>
+    {_render_ad_slot('daily-top', 'Daily Notebook Sponsorship')}
     {tracker_html}
     {''.join(cards)}
     <footer>Published by SportzBallz.io</footer>
@@ -731,6 +830,10 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None):
     h1{{margin:8px 0 10px;font-size:clamp(30px,5vw,46px);line-height:1.05}}
     .sub{{color:var(--muted);font-family:Inter,system-ui,sans-serif;font-size:14px}}
     .intro{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;font-size:18px}}
+    .ad-slot{{background:rgba(255,255,255,.03);border:1px dashed #3b5a96;border-radius:12px;padding:12px 14px;margin:0 0 14px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}}
+    .ad-label{{font:700 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#9cc4ff}}
+    .ad-copy{{color:#d9e6ff;font:500 14px/1.3 Inter,system-ui,sans-serif}}
+    .ad-cta{{display:inline-block;padding:7px 10px;border-radius:8px;border:1px solid #4c6db0;color:#dff2ff;text-decoration:none;font:600 12px Inter,system-ui,sans-serif}}
     .pick-card{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 14px 0;box-shadow:0 12px 28px rgba(0,0,0,.24)}}
     .pick-head h2{{margin:4px 0 8px;font-size:30px;line-height:1.15}}
     .pick-head{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
@@ -771,6 +874,7 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None):
       </div>
     </header>
     <section class="intro">All underdog selections (positive odds) for the day, ordered by confidence.</section>
+    {_render_ad_slot('plus-money-top', 'Plus Money Card Sponsorship')}
     {pm_summary_html}
     {''.join(cards)}
     <footer>Published by SportzBallz.io</footer>
@@ -848,6 +952,10 @@ def _render_run_totals_html(parsed, evaluated_picks=None):
     h1{{margin:8px 0 10px;font-size:clamp(30px,5vw,46px);line-height:1.05}}
     .sub{{color:var(--muted);font-family:Inter,system-ui,sans-serif;font-size:14px}}
     .intro{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;font-size:18px}}
+    .ad-slot{{background:rgba(255,255,255,.03);border:1px dashed #3b5a96;border-radius:12px;padding:12px 14px;margin:0 0 14px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}}
+    .ad-label{{font:700 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#9cc4ff}}
+    .ad-copy{{color:#d9e6ff;font:500 14px/1.3 Inter,system-ui,sans-serif}}
+    .ad-cta{{display:inline-block;padding:7px 10px;border-radius:8px;border:1px solid #4c6db0;color:#dff2ff;text-decoration:none;font:600 12px Inter,system-ui,sans-serif}}
     .pick-card{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 14px 0;box-shadow:0 12px 28px rgba(0,0,0,.24)}}
     .pick-head h2{{margin:4px 0 8px;font-size:30px;line-height:1.15}}
     .pick-head{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
@@ -879,6 +987,7 @@ def _render_run_totals_html(parsed, evaluated_picks=None):
       </div>
     </header>
     <section class="intro">Totals-only leans built from confidence, pricing, weather/venue context, and market movement.</section>
+    {_render_ad_slot('run-totals-top', 'Run Totals Sponsorship')}
     {''.join(cards)}
     <footer>Published by SportzBallz.io</footer>
   </main>
@@ -933,6 +1042,10 @@ def _render_top_index(latest_date: str, archive_dates):
     .cards {{ margin-top:18px; display:grid; grid-template-columns:1.2fr .8fr; gap:14px; }}
     .card {{ border:1px solid var(--line); border-radius:14px; background:var(--panel); padding:16px; }}
     .card h2 {{ margin:0 0 10px; font-size:21px; line-height:1.2; }}
+    .ad-slot{{background:rgba(255,255,255,.03);border:1px dashed #3b5a96;border-radius:12px;padding:12px 14px;margin:14px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}}
+    .ad-label{{font:700 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#9cc4ff}}
+    .ad-copy{{color:#d9e6ff;font:500 14px/1.3 Inter,system-ui,sans-serif}}
+    .ad-cta{{display:inline-block;padding:7px 10px;border-radius:8px;border:1px solid #4c6db0;color:#dff2ff;text-decoration:none;font:600 12px Inter,system-ui,sans-serif}}
     .btn {{ display:inline-block; padding:10px 14px; border-radius:10px; text-decoration:none; color:#081224; background:linear-gradient(90deg,var(--accent),var(--accent2)); font-weight:700; margin-top:8px; }}
     .meta {{ font-size:14px; color:var(--muted); margin-top:10px; }}
     ul.archive {{ list-style:none; margin:0; padding:0; display:grid; gap:10px; }}
@@ -959,7 +1072,10 @@ def _render_top_index(latest_date: str, archive_dates):
         <a class="btn" href="{latest_plus_href}" style="margin-left:8px; background:linear-gradient(90deg,#22c55e,#7cffc7);">Open {latest_date} Plus Money</a>
         <a class="btn" href="{latest_totals_href}" style="margin-left:8px; background:linear-gradient(90deg,#f59e0b,#fcd34d);">Open {latest_date} Run Totals</a>
         <a class="btn" href="/dashboard.html" style="margin-left:8px; background:linear-gradient(90deg,#8b5cf6,#5cc9ff);">Open Dashboard</a>
+        <a class="btn" href="/media-kit.html" style="margin-left:8px; background:linear-gradient(90deg,#4f46e5,#7c3aed);">Media Kit</a>
+        <a class="btn" href="/rate-card.html" style="margin-left:8px; background:linear-gradient(90deg,#0ea5e9,#22d3ee);">Rate Card</a>
         <div class="meta">Format: <code>yyyy-mm-dd.html</code></div>
+        {_render_ad_slot('index-hero', 'Homepage Sponsorship')}
       </article>
 
       <article class="card">
@@ -1061,6 +1177,10 @@ def _render_dashboard(history):
     h1 {{ margin:0 0 8px; font-size:34px; }}
     .meta {{ color:var(--muted); margin-bottom:8px; }}
     .grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; }}
+    .ad-slot{{background:rgba(255,255,255,.03);border:1px dashed #3b5a96;border-radius:12px;padding:12px 14px;margin:12px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}}
+    .ad-label{{font:700 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#9cc4ff}}
+    .ad-copy{{color:#d9e6ff;font:500 14px/1.3 Inter,system-ui,sans-serif}}
+    .ad-cta{{display:inline-block;padding:7px 10px;border-radius:8px;border:1px solid #4c6db0;color:#dff2ff;text-decoration:none;font:600 12px Inter,system-ui,sans-serif}}
     .k {{ border:1px dashed #31508e; border-radius:10px; padding:10px; }}
     .k span {{ display:block; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }}
     .k strong {{ font-size:20px; }}
@@ -1077,7 +1197,8 @@ def _render_dashboard(history):
     <div class="card">
       <h1>Performance Dashboard</h1>
       <div class="meta">Auto-tracked from published daily picks.</div>
-      <div class="links"><a href="/">Home</a></div>
+      <div class="links"><a href="/">Home</a> <a href="/media-kit.html">Media Kit</a> <a href="/rate-card.html">Rate Card</a></div>
+      {_render_ad_slot('dashboard-top', 'Dashboard Sponsorship')}
       <div class="grid">
         <div class="k"><span>Total Picks</span><strong>{total_picks}</strong></div>
         <div class="k"><span>Decided</span><strong>{total_decided}</strong></div>
@@ -1144,6 +1265,8 @@ def publish_daily_site(markdown_path: str, site_repo_path: str = None):
     history = _upsert_history(history, summary)
     history_path.write_text(json.dumps(history, indent=2))
     (site_repo / 'dashboard.html').write_text(_render_dashboard(history))
+    (site_repo / 'media-kit.html').write_text(_render_media_kit())
+    (site_repo / 'rate-card.html').write_text(_render_rate_card())
 
     archive = _find_archive_dates(site_repo)
     if parsed['date'] not in archive:
@@ -1159,7 +1282,7 @@ def publish_daily_site(markdown_path: str, site_repo_path: str = None):
     # Commit + push any changes
     add = _run([
         'git', 'add', 'index.html', 'dashboard.html', 'data/performance-history.json',
-        'robots.txt', 'sitemap.xml',
+        'media-kit.html', 'rate-card.html', 'robots.txt', 'sitemap.xml',
         f"{parsed['date']}.html", f"{parsed['date']}-plus-money.html", f"{parsed['date']}-run-totals.html"
     ], site_repo)
     if add.returncode != 0:
