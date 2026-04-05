@@ -153,6 +153,24 @@ def _field(pick, key, default='n/a'):
     return pick['fields'].get(key, default)
 
 
+def _odds_value(odds_text: str):
+    if not odds_text:
+        return None
+    t = str(odds_text).strip()
+    if t in ('----', 'n/a', 'N/A'):
+        return None
+    try:
+        return int(t)
+    except Exception:
+        m = re.search(r'([+-]?\d+)', t)
+        if not m:
+            return None
+        try:
+            return int(m.group(1))
+        except Exception:
+            return None
+
+
 def _analysis_paragraph(pick, idx):
     winner, loser = pick['winner'], pick['loser']
     conf_text = _field(pick, 'Model Confidence', 'n/a')
@@ -296,14 +314,123 @@ def _render_daily_html(parsed):
 '''
 
 
+def _render_plus_money_html(parsed):
+    all_picks = sorted(
+        parsed['picks'],
+        key=lambda p: _parse_confidence(_field(p, 'Model Confidence', '')) or -1,
+        reverse=True,
+    )
+    plus_picks = []
+    for p in all_picks:
+        ov = _odds_value(_field(p, 'Pick Odds', ''))
+        if ov is not None and ov > 0:
+            plus_picks.append(p)
+
+    date_str = parsed['date']
+    model = parsed['model']
+    now = datetime.now().strftime('%Y-%m-%d %I:%M %p')
+
+    cards = []
+    for i, p in enumerate(plus_picks, 1):
+        winner, loser = p['winner'], p['loser']
+        cards.append(f'''
+      <article class="pick-card">
+        <div class="pick-head">
+          <div class="pick-num">Underdog {i}</div>
+          <h2>{html.escape(winner)} over {html.escape(loser)}</h2>
+        </div>
+        <div class="meta-grid">
+          <div><span>Odds</span><strong>{html.escape(_field(p,'Pick Odds','----'))}</strong></div>
+          <div><span>Confidence</span><strong>{html.escape(_field(p,'Model Confidence','n/a'))}</strong></div>
+          <div><span>Pitching</span><strong>{html.escape(_field(p,'Pitching Matchup','n/a'))}</strong></div>
+          <div><span>Venue</span><strong>{html.escape(_field(p,'Venue','n/a'))}</strong></div>
+        </div>
+        <p class="lede">{_analysis_paragraph(p, i)}</p>
+        <details>
+          <summary>Expanded game context</summary>
+          <ul>
+            <li><strong>Weather:</strong> {html.escape(_field(p,'Weather','n/a'))}</li>
+            <li><strong>Umpire Crew:</strong> {html.escape(_field(p,'Umpire Crew','n/a'))}</li>
+            <li><strong>{html.escape(winner)} Injuries:</strong> {html.escape(_field(p,f'{winner} Injuries','n/a'))}</li>
+            <li><strong>{html.escape(loser)} Injuries:</strong> {html.escape(_field(p,f'{loser} Injuries','n/a'))}</li>
+            <li><strong>Line Movement:</strong> {html.escape(_field(p,'Line Movement','n/a'))}</li>
+          </ul>
+        </details>
+      </article>
+    ''')
+
+    if not cards:
+        cards.append(
+            '<article class="pick-card"><h2>No Plus Money Picks Today</h2><p class="lede">No underdog selections met publication criteria for this slate.</p></article>'
+        )
+
+    return f'''<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SportzBallz | Plus Money Picks</title>
+  <meta name="description" content="SportzBallz underdog MLB picks for {html.escape(date_str)}." />
+  <style>
+    :root {{ --bg:#0a1020; --panel:#101a33; --ink:#eaf0ff; --muted:#a7b7df; --line:#273a6b; --accent:#5cc9ff; --accent2:#88f2c7; --plus:#22c55e; }}
+    *{{box-sizing:border-box}}
+    body{{margin:0;font-family:Georgia,'Times New Roman',serif;background:radial-gradient(1200px 700px at 15% -10%, #1a2a55, var(--bg));color:var(--ink);line-height:1.65}}
+    .wrap{{max-width:1100px;margin:0 auto;padding:24px 16px 48px}}
+    header{{background:linear-gradient(135deg, rgba(34,197,94,.20), rgba(92,201,255,.10));border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:16px}}
+    .kicker{{font:600 12px/1.2 Inter,system-ui,sans-serif;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}}
+    h1{{margin:8px 0 10px;font-size:clamp(30px,5vw,46px);line-height:1.05}}
+    .sub{{color:var(--muted);font-family:Inter,system-ui,sans-serif;font-size:14px}}
+    .intro{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;font-size:18px}}
+    .pick-card{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 14px 0;box-shadow:0 12px 28px rgba(0,0,0,.24)}}
+    .pick-head h2{{margin:4px 0 8px;font-size:30px;line-height:1.15}}
+    .pick-num{{font:600 12px/1 Inter,system-ui,sans-serif;color:var(--plus);letter-spacing:.12em;text-transform:uppercase}}
+    .meta-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 12px;padding:10px 0 2px}}
+    .meta-grid div{{border:1px dashed #31508e;border-radius:10px;padding:8px 10px;background:rgba(255,255,255,.02)}}
+    .meta-grid span{{display:block;color:var(--muted);font:600 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}}
+    .meta-grid strong{{font:600 15px/1.35 Inter,system-ui,sans-serif;color:#dce8ff}}
+    .lede{{font-size:20px;margin:12px 0 8px;color:#f2f6ff}}
+    details{{margin-top:8px;border-top:1px solid #264377;padding-top:8px}}
+    summary{{cursor:pointer;font:600 14px Inter,system-ui,sans-serif;color:var(--accent)}}
+    ul{{margin:10px 0 0 18px;padding:0}}
+    li{{margin:6px 0}}
+    .toplinks{{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}}
+    .toplinks a{{display:inline-block;padding:8px 12px;border:1px solid #31508e;border-radius:9px;color:#dce8ff;text-decoration:none;font-family:Inter,system-ui,sans-serif;font-size:13px}}
+    footer{{margin-top:10px;color:var(--muted);font:12px Inter,system-ui,sans-serif;text-align:right}}
+    @media (max-width:720px){{.lede{{font-size:18px}} .pick-head h2{{font-size:24px}}}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div class="kicker">SportzBallz Plus Money Desk</div>
+      <h1>Plus Money Picks — {html.escape(date_str)}</h1>
+      <div class="sub">Model: {html.escape(model)} • Updated {html.escape(now)}</div>
+      <div class="toplinks">
+        <a href="/{html.escape(date_str)}.html">Full Daily Picks</a>
+        <a href="/">Home</a>
+      </div>
+    </header>
+    <section class="intro">All underdog selections (positive odds) for the day, ordered by confidence.</section>
+    {''.join(cards)}
+    <footer>Published by SportzBallz.io</footer>
+  </main>
+</body>
+</html>
+'''
+
+
 def _render_top_index(latest_date: str, archive_dates):
     latest_href = f"/{latest_date}.html"
+    latest_plus_href = f"/{latest_date}-plus-money.html"
 
     archive_items = []
     for i, d in enumerate(sorted(set(archive_dates), reverse=True)):
         pill = '<span class="pill">Latest</span>' if i == 0 else ''
         archive_items.append(
-            f'<li><a href="/{d}.html"><span>{d}</span>{pill}</a></li>'
+            f'<li><a href="/{d}.html"><span>{d} • Daily Picks</span>{pill}</a></li>'
+        )
+        archive_items.append(
+            f'<li><a href="/{d}-plus-money.html"><span>{d} • Plus Money Picks</span></a></li>'
         )
 
     return f'''<!doctype html>
@@ -349,6 +476,7 @@ def _render_top_index(latest_date: str, archive_dates):
         <h2>Latest Daily Picks</h2>
         <p>Today’s full notebook with odds, confidence, pitching, venue/weather, umpire crew, injuries, and market movement.</p>
         <a class="btn" href="{latest_href}">Open {latest_date} Picks</a>
+        <a class="btn" href="{latest_plus_href}" style="margin-left:8px; background:linear-gradient(90deg,#22c55e,#7cffc7);">Open {latest_date} Plus Money</a>
         <div class="meta">Format: <code>yyyy-mm-dd.html</code></div>
       </article>
 
@@ -406,6 +534,9 @@ def publish_daily_site(markdown_path: str, site_repo_path: str = None):
     date_html = site_repo / f"{parsed['date']}.html"
     date_html.write_text(_render_daily_html(parsed))
 
+    plus_html = site_repo / f"{parsed['date']}-plus-money.html"
+    plus_html.write_text(_render_plus_money_html(parsed))
+
     archive = _find_archive_dates(site_repo)
     if parsed['date'] not in archive:
         archive = [parsed['date']] + archive
@@ -416,7 +547,7 @@ def publish_daily_site(markdown_path: str, site_repo_path: str = None):
         return str(date_html)
 
     # Commit + push any changes
-    add = _run(['git', 'add', 'index.html', f"{parsed['date']}.html"], site_repo)
+    add = _run(['git', 'add', 'index.html', f"{parsed['date']}.html", f"{parsed['date']}-plus-money.html"], site_repo)
     if add.returncode != 0:
         print(add.stderr.strip())
         return str(date_html)
