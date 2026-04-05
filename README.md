@@ -1,5 +1,48 @@
 # Baseball 
 
+## Run Locally via Cron (Mac mini)
+
+This project currently runs as an AWS Lambda (`handler = dutch.main`).
+If you want it running locally as a scheduled cron job:
+
+1) **Set up local Python env**
+```bash
+./cron/setup-local.sh
+```
+
+2) **Configure secrets/env vars**
+```bash
+cp .env.local.example .env.local
+# then edit .env.local with real keys
+```
+
+3) **Test one local run**
+```bash
+./cron/run-local.sh
+```
+
+4) **Install cron schedule** (default: daily 12:00 PM)
+```bash
+./cron/install-cron.sh
+```
+
+Optional custom schedule:
+```bash
+./cron/install-cron.sh "0 17 * * 1-5"   # weekdays at 5 PM
+```
+
+Logs are written to `logs/<model>-YYYY-MM-DD.log`.
+
+Each run also generates rich pick commentary markdown at:
+- `picks/YYYY-MM-DD-pick.md`
+
+The commentary includes (best effort):
+- venue + weather context (or dome note when not applicable)
+- umpire crew
+- injured-list snapshot for both teams
+- odds line movement (when opening line is available in feed)
+- LLM summary for each pick (falls back to deterministic text if no `OPENAI_API_KEY`)
+
 ## TODO for Ennis Model
 - [ x ] away team road record
 - [ x ] home team home record

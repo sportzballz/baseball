@@ -1,9 +1,12 @@
 
 
+import os
 from  common.util import *
 from  connector.sportsbook import get_odds
 from  connector.stats import *
 from  connector.mlbstartinglineups import *
+from connector.pick_markdown import write_daily_pick_markdown
+from connector.pick_site_publish import publish_daily_site
 from  common.objects import AdvantageScore
 
 
@@ -39,4 +42,24 @@ def main(model, model_hitting_fn, model_pitching_fn, model_vs_fn):
     # write_csv(winners)
     # print_csv(winners)
     # print_str(winners)
-    post_to_slack(winners, model)
+    try:
+        post_to_slack(winners, model)
+    except Exception as e:
+        print(f"Slack post failed (continuing): {e}")
+
+    # Write rich daily markdown commentary (weather, umpires, injuries, line movement)
+    try:
+        output_path = write_daily_pick_markdown(winners, odds_data, model)
+        if output_path:
+            print(f"Wrote pick commentary: {output_path}")
+
+            # Auto-publish to sportzballz.io as yyyy-mm-dd.html + refresh top-level index
+            try:
+                site_repo = os.environ.get('SPORTZBALLZ_SITE_REPO')
+                published_path = publish_daily_site(output_path, site_repo)
+                if published_path:
+                    print(f"Published picks page: {published_path}")
+            except Exception as pe:
+                print(f"Failed to publish picks site: {pe}")
+    except Exception as e:
+        print(f"Failed to write markdown commentary: {e}")
