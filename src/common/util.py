@@ -452,19 +452,22 @@ def select_winner(adv_score, game_data, odds_data):
                         losing_abbrv = '$' + losing_abbrv
             except KeyError:
                 pass
-            for result in odds_data['results']:
-                if result['teams']['home']['team'] == winning_team:
-                    if len(result['odds']) > 0:
-                        odds = f'''{result["odds"][0]["moneyline"]["current"]["homeOdds"]}''' #({result["odds"][0]["spread"]["current"]["homeOdds"]})'''
-                    else:
-                        odds = 0
-                    print(
-                        f"Odds: {odds}, Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.home_stats}, Losing Stats: {adv_score.away_stats}")
-                    return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date,
-                                      game_time, ampm, odds,
-                                      confidence, data_points,
-                                      winning_stats=adv_score.home_stats,
-                                      losing_stats=adv_score.away_stats)
+            for result in odds_data.get('results', []):
+                home_team = result.get('teams', {}).get('home', {}).get('team')
+                away_team = result.get('teams', {}).get('away', {}).get('team')
+                if {home_team, away_team} != {winning_team, losing_team}:
+                    continue
+                if len(result.get('odds', [])) > 0:
+                    odds = f'''{result["odds"][0]["moneyline"]["current"]["homeOdds"]}'''
+                else:
+                    odds = 0
+                print(
+                    f"Odds: {odds}, Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.home_stats}, Losing Stats: {adv_score.away_stats}")
+                return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date,
+                                  game_time, ampm, odds,
+                                  confidence, data_points,
+                                  winning_stats=adv_score.home_stats,
+                                  losing_stats=adv_score.away_stats)
             print(
                 f"Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.home_stats}, Losing Stats: {adv_score.away_stats}")
             return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm,
@@ -493,20 +496,22 @@ def select_winner(adv_score, game_data, odds_data):
                     losing_abbrv = '$' + losing_abbrv
             except KeyError:
                 pass
-            for result in odds_data['results']:
-                if result['teams']['away']['team'] == winning_team:
-                    if len(result['odds']) > 0:
-                        # odds = result['odds'][0]['moneyline']['current']['awayOdds']
-                        odds = f'''{result["odds"][0]["moneyline"]["current"]["awayOdds"]}'''#({result["odds"][0]["spread"]["current"]["awayOdds"]})'''
-                    else:
-                        odds = 0
-                    print(
-                        f"Odds: {odds}, Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.away_stats}, Losing Stats: {adv_score.home_stats}")
-                    return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date,
-                                      game_time, ampm, odds,
-                                      confidence, data_points,
-                                      winning_stats=adv_score.away_stats,
-                                      losing_stats=adv_score.home_stats)
+            for result in odds_data.get('results', []):
+                home_team = result.get('teams', {}).get('home', {}).get('team')
+                away_team = result.get('teams', {}).get('away', {}).get('team')
+                if {home_team, away_team} != {winning_team, losing_team}:
+                    continue
+                if len(result.get('odds', [])) > 0:
+                    odds = f'''{result["odds"][0]["moneyline"]["current"]["awayOdds"]}'''
+                else:
+                    odds = 0
+                print(
+                    f"Odds: {odds}, Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.away_stats}, Losing Stats: {adv_score.home_stats}")
+                return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date,
+                                  game_time, ampm, odds,
+                                  confidence, data_points,
+                                  winning_stats=adv_score.away_stats,
+                                  losing_stats=adv_score.home_stats)
             print(
                 f"Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.away_stats}, Losing Stats: {adv_score.home_stats}")
             return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm, 0,
@@ -524,5 +529,4 @@ def select_winner(adv_score, game_data, odds_data):
     except KeyError as e:
         print(f'KeyError({e})')
         return Prediction('-', '-', '-', '-', game_date, game_time, ampm, 0, 0, 0)
-
 
