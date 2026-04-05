@@ -209,18 +209,26 @@ def _llm_commentary(context):
         "Write 5-7 sentences with clear baseball voice and actionable angle."
     )
 
-    style_lenses = [
-        "insider notebook tone",
-        "scouting-report tone",
-        "market-and-pricing tone",
-        "dugout/game-script tone",
-        "analytical beat-writer tone",
+    style_rotation = [
+        "betting desk",
+        "beat writer notebook",
+        "scouting report",
+        "game-script breakdown",
     ]
-    style = style_lenses[hash(f"{context['winner']}|{context['loser']}") % len(style_lenses)]
+    style = style_rotation[(int(context.get("pick_index", 1)) - 1) % len(style_rotation)]
+
+    style_instructions = {
+        "betting desk": "Open with pricing/value. Focus on edge vs market and risk/reward framing.",
+        "beat writer notebook": "Open with scene-setting baseball context (venue/conditions/mood) then actionable pick logic.",
+        "scouting report": "Lead with pitcher/hitter profile and matchup traits, then connect to betting angle.",
+        "game-script breakdown": "Project likely game flow (early innings, bullpen leverage, late-game path) and tie to the pick.",
+    }
+    style_hint = style_instructions.get(style, "Write with strong baseball context and clear pick rationale.")
 
     user = (
         f"Pick: {context['winner']} over {context['loser']}\n"
         f"Writing Style Lens: {style}\n"
+        f"Style Directive: {style_hint}\n"
         f"Odds: {context['odds']}\n"
         f"Confidence: {context['confidence']}\n"
         f"Data Points: {context['data_points']}\n"
@@ -234,6 +242,7 @@ def _llm_commentary(context):
         f"Line Movement: {context['line_movement_text']}\n"
         f"Winning Pitcher: {context['winning_pitcher']}\n"
         f"Losing Pitcher: {context['losing_pitcher']}\n"
+        "Do not reuse generic opener phrases from prior picks. Make this read distinct.\n"
     )
 
     try:
@@ -303,6 +312,7 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
         line_move = _extract_line_movement(odds_entry, winner_name)
 
         context = {
+            "pick_index": idx,
             "winner": winner_name,
             "loser": loser_name,
             "odds": _format_odds(p.odds),
