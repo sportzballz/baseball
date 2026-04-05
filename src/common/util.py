@@ -462,12 +462,16 @@ def select_winner(adv_score, game_data, odds_data):
                         f"Odds: {odds}, Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.home_stats}, Losing Stats: {adv_score.away_stats}")
                     return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date,
                                       game_time, ampm, odds,
-                                      confidence, data_points)
+                                      confidence, data_points,
+                                      winning_stats=adv_score.home_stats,
+                                      losing_stats=adv_score.away_stats)
             print(
                 f"Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.home_stats}, Losing Stats: {adv_score.away_stats}")
             return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm,
                               0, confidence,
-                              data_points)
+                              data_points,
+                              winning_stats=adv_score.home_stats,
+                              losing_stats=adv_score.away_stats)
         elif adv_score.away > adv_score.home:
             confidence = '{:1.3f}'.format(
                 round((adv_score.away - adv_score.home) / (adv_score.away + adv_score.home), 3))
@@ -500,12 +504,16 @@ def select_winner(adv_score, game_data, odds_data):
                         f"Odds: {odds}, Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.away_stats}, Losing Stats: {adv_score.home_stats}")
                     return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date,
                                       game_time, ampm, odds,
-                                      confidence, data_points)
+                                      confidence, data_points,
+                                      winning_stats=adv_score.away_stats,
+                                      losing_stats=adv_score.home_stats)
             print(
                 f"Confidence: {confidence}, Data Points: {data_points}, Winning Team: {winning_team}, Losing Team: {losing_team}, Winning Pitcher: {winning_pitcher}, Losing Pitcher: {losing_pitcher}, Game Date: {game_date}, Game Time: {game_time}, AM/PM: {ampm}, Winning Stats: {adv_score.away_stats}, Losing Stats: {adv_score.home_stats}")
             return Prediction(winning_abbrv, losing_abbrv, winning_pitcher, losing_pitcher, game_date, game_time, ampm, 0,
                               confidence,
-                              data_points)
+                              data_points,
+                              winning_stats=adv_score.away_stats,
+                              losing_stats=adv_score.home_stats)
         else:
             away_team = game_data['gameData']['teams']['away']['name']
             away_abbrv = teams_dict[away_team]
@@ -516,6 +524,5 @@ def select_winner(adv_score, game_data, odds_data):
     except KeyError as e:
         print(f'KeyError({e})')
         return Prediction('-', '-', '-', '-', game_date, game_time, ampm, 0, 0, 0)
-
 
 

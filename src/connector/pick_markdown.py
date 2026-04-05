@@ -188,7 +188,8 @@ def _fallback_commentary(context):
     return (
         f"{context['winner']} over {context['loser']} is supported by the model confidence ({context['confidence']}) "
         f"and listed price ({context['odds']}). Venue context: {venue}. Weather: {weather}. "
-        f"Umpire crew: {ump}. Market context: {movement}."
+        f"Umpire crew: {ump}. Market context: {movement}. "
+        f"Signal mix leaned {context['winner']} via: {context['winner_signals']}"
     )
 
 
@@ -200,17 +201,31 @@ def _llm_commentary(context):
     client = OpenAI(api_key=api_key)
 
     system = (
-        "You are an MLB betting analyst writing concise commentary for model picks. "
+        "You are an MLB betting columnist writing warm, insightful pick commentary. "
         "Use provided facts only. Do not invent injuries, weather, umpires, or line movement. "
-        "If a field is unavailable, mention that briefly. "
-        "Write 4-6 sentences, sharp and practical tone."
+        "Blend model signals, matchup context, and market context naturally. "
+        "Avoid repetitive openings and boilerplate phrasing across picks. "
+        "If a field is unavailable, mention that briefly and move on. "
+        "Write 5-7 sentences with clear baseball voice and actionable angle."
     )
+
+    style_lenses = [
+        "insider notebook tone",
+        "scouting-report tone",
+        "market-and-pricing tone",
+        "dugout/game-script tone",
+        "analytical beat-writer tone",
+    ]
+    style = style_lenses[hash(f"{context['winner']}|{context['loser']}") % len(style_lenses)]
 
     user = (
         f"Pick: {context['winner']} over {context['loser']}\n"
+        f"Writing Style Lens: {style}\n"
         f"Odds: {context['odds']}\n"
         f"Confidence: {context['confidence']}\n"
         f"Data Points: {context['data_points']}\n"
+        f"Winner Data Signals: {context['winner_signals']}\n"
+        f"Loser Data Signals: {context['loser_signals']}\n"
         f"Venue: {context['venue']}\n"
         f"Weather: {context['weather_summary']}\n"
         f"Umpire Crew: {context['umpire_summary']}\n"
@@ -224,7 +239,7 @@ def _llm_commentary(context):
     try:
         resp = client.chat.completions.create(
             model="gpt-4o-mini",
-            temperature=0.4,
+            temperature=0.75,
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
@@ -293,6 +308,8 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
             "odds": _format_odds(p.odds),
             "confidence": p.confidence,
             "data_points": p.data_points,
+            "winner_signals": ", ".join(p.winning_stats[:15]) if p.winning_stats else "No model signal list available.",
+            "loser_signals": ", ".join(p.losing_stats[:15]) if p.losing_stats else "No model signal list available.",
             "venue": weather.get("venue", "Unknown Venue"),
             "weather_summary": weather.get("summary", "Weather unavailable."),
             "umpire_summary": ump_summary,
@@ -310,6 +327,8 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
         lines.append(f"- **Pick Odds:** {context['odds']}")
         lines.append(f"- **Model Confidence:** {context['confidence']} (data points: {context['data_points']})")
         lines.append(f"- **Pitching Matchup:** {context['winning_pitcher']} vs {context['losing_pitcher']}")
+        lines.append(f"- **{winner_name} Model Signals:** {context['winner_signals']}")
+        lines.append(f"- **{loser_name} Model Signals:** {context['loser_signals']}")
         lines.append(f"- **Venue:** {context['venue']}")
         lines.append(f"- **Weather:** {context['weather_summary']}")
         lines.append(f"- **Umpire Crew:** {context['umpire_summary']}")

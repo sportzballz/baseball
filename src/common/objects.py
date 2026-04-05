@@ -268,7 +268,8 @@ class BacktestMetrics:
 class Prediction:
     def __init__(self, winning_team: str, losing_team: str, winning_pitcher: str, losing_pitcher: str, gameDate: str,
                  gameTime: str, ampm: str,
-                 odds: int, confidence: str, data_points: str = '0/0'):
+                 odds: int, confidence: str, data_points: str = '0/0',
+                 winning_stats=None, losing_stats=None):
         self.winning_team = winning_team
         self.losing_team = losing_team
         self.winning_pitcher = winning_pitcher
@@ -279,6 +280,8 @@ class Prediction:
         self.odds = odds
         self.confidence = confidence
         self.data_points = data_points
+        self.winning_stats = winning_stats or []
+        self.losing_stats = losing_stats or []
 
     def print_string(self):
         print(self.to_string())
