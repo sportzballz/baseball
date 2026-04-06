@@ -475,6 +475,8 @@ def _parse_markdown(md_text: str):
     model = "dutch"
     picks = []
     current = None
+    in_commentary = False
+    commentary_lines = []
 
     for line in lines:
         if line.startswith('# MLB Picks Commentary — '):
@@ -487,10 +489,14 @@ def _parse_markdown(md_text: str):
             continue
 
         if line.startswith('## '):
+            if current and commentary_lines:
+                current['commentary'] = '\n'.join(commentary_lines).strip()
+                commentary_lines = []
             title = line[3:].strip()
             m = re.match(r'\d+\)\s+(.*?)\s+over\s+(.*)$', title)
             if not m:
                 # Non-pick markdown section (e.g., AI summary heading)
+                in_commentary = False
                 continue
             if current:
                 picks.append(current)
@@ -498,10 +504,21 @@ def _parse_markdown(md_text: str):
                 'winner': m.group(1).strip() if m else title,
                 'loser': m.group(2).strip() if m else '',
                 'fields': {},
+                'commentary': '',
             }
+            in_commentary = False
             continue
 
         if current:
+            if line.strip() == '**Commentary**':
+                in_commentary = True
+                commentary_lines = []
+                continue
+
+            if in_commentary:
+                commentary_lines.append(line)
+                continue
+
             # markdown format currently: - **Pick Odds:** -109
             m1 = re.match(r'^- \*\*(.+?):\*\*\s*(.*)$', line)
             if m1:
@@ -515,6 +532,8 @@ def _parse_markdown(md_text: str):
                 continue
 
     if current:
+        if commentary_lines:
+            current['commentary'] = '\n'.join(commentary_lines).strip()
         picks.append(current)
 
     return {
@@ -526,6 +545,47 @@ def _parse_markdown(md_text: str):
 
 def _field(pick, key, default='n/a'):
     return pick['fields'].get(key, default)
+
+
+def _massage_commentary_with_llm(commentary_text, pick, date_text=''):
+    text = (commentary_text or '').strip()
+    if not text:
+        return text
+    if not os.environ.get('OPENAI_API_KEY') and not os.environ.get('OPENROUTER_API_KEY'):
+        return text
+
+    try:
+        from connector.llm import massage_commentary
+
+        context = {
+            'date': date_text,
+            'winner': pick.get('winner', ''),
+            'loser': pick.get('loser', ''),
+            'odds': _field(pick, 'Pick Odds', '----'),
+            'confidence': _field(pick, 'Model Confidence', 'n/a'),
+            'pitching_matchup': _field(pick, 'Pitching Matchup', 'n/a'),
+            'venue': _field(pick, 'Venue', 'n/a'),
+            'weather': _field(pick, 'Weather', 'n/a'),
+            'umpire': _field(pick, 'Umpire Crew', 'n/a'),
+            'line_movement': _field(pick, 'Line Movement', 'n/a'),
+            'starting_lineups': _field(pick, 'Starting Lineups', 'n/a'),
+            'lineup_change_impact': _field(pick, 'Lineup Change Impact', 'n/a'),
+        }
+        improved = massage_commentary(text, context)
+        if improved and str(improved).strip():
+            return str(improved).strip()
+    except Exception as e:
+        print(f'Commentary massage failed, using source text: {e}')
+
+    return text
+
+
+def _pick_commentary_text(pick, idx, date_text=''):
+    base = (pick.get('commentary') or '').strip()
+    if not base:
+        base = _analysis_paragraph(pick, idx, date_text)
+    base = _massage_commentary_with_llm(base, pick, date_text)
+    return _polish_commentary(base)
 
 
 def _odds_value(odds_text: str):
@@ -860,8 +920,7 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None, frozen_commen
         if _is_game_started_or_done(p) and key in frozen_commentary:
             analysis = frozen_commentary[key]
         else:
-            analysis = _analysis_paragraph(p, i, date_str)
-        analysis = _polish_commentary(analysis)
+            analysis = _pick_commentary_text(p, i, date_str)
 
         cards.append(f'''
       <article class="pick-card">
@@ -1006,8 +1065,7 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None, frozen_c
         if _is_game_started_or_done(p) and key in frozen_commentary:
             analysis = frozen_commentary[key]
         else:
-            analysis = _analysis_paragraph(p, i, date_str)
-        analysis = _polish_commentary(analysis)
+            analysis = _pick_commentary_text(p, i, date_str)
 
         cards.append(f'''
       <article class="pick-card">
@@ -1285,8 +1343,7 @@ def _render_run_line_html(parsed, evaluated_picks=None, frozen_commentary=None, 
         if _is_game_started_or_done(p) and key in frozen_commentary:
             analysis = frozen_commentary[key]
         else:
-            analysis = _analysis_paragraph(p, i, date_str)
-        analysis = _polish_commentary(analysis)
+            analysis = _pick_commentary_text(p, i, date_str)
 
         cards.append(f'''
       <article class="pick-card">
@@ -1422,8 +1479,7 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
         if _is_game_started_or_done(p) and key in frozen_commentary:
             analysis = frozen_commentary[key]
         else:
-            analysis = _analysis_paragraph(p, i, latest_date)
-        analysis = _polish_commentary(analysis)
+            analysis = _pick_commentary_text(p, i, latest_date)
         result = p.get('result', 'PENDING')
         latest_items.append(f'''
           <article class="pick-card">
@@ -1461,8 +1517,7 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
         if _is_game_started_or_done(p) and key in frozen_commentary:
             analysis = frozen_commentary[key]
         else:
-            analysis = _analysis_paragraph(p, i, latest_date)
-        analysis = _polish_commentary(analysis)
+            analysis = _pick_commentary_text(p, i, latest_date)
         result = p.get('result', 'PENDING')
         plus_items.append(f'''
           <article class="pick-card">

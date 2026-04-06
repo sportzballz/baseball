@@ -205,3 +205,78 @@ def get_pick_summaries(predictions, model_name):
             + " | ".join(errors)
         )
     return _deterministic_fallback_summary()
+
+
+def massage_commentary(commentary_text, context):
+    """
+    Rewrite a single pick commentary block for readability while preserving meaning.
+
+    Args:
+        commentary_text: original commentary text
+        context: dict with pick context (winner/loser/odds/etc)
+
+    Returns:
+        str: improved commentary text (or original text on failure)
+    """
+    original = (commentary_text or "").strip()
+    if not original:
+        return original
+
+    system_prompt = (
+        "You are an expert MLB betting editor. Rewrite commentary for clarity and flow while preserving facts, "
+        "numbers, and intent. Keep it concise, natural, and publication-ready. Do not invent new facts."
+    )
+
+    user_prompt = (
+        f"Context JSON: {str(context)}\n\n"
+        f"Original commentary:\n{original}\n\n"
+        "Rewrite this commentary in one polished paragraph."
+    )
+
+    def _call_openai(api_key, llm_model, base_url=None):
+        client = (
+            OpenAI(api_key=api_key, base_url=base_url)
+            if base_url
+            else OpenAI(api_key=api_key)
+        )
+        response = client.chat.completions.create(
+            model=llm_model,
+            temperature=0.4,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        return response.choices[0].message.content
+
+    errors = []
+
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    openai_model = os.environ.get("OPENAI_COMMENTARY_MODEL", "gpt-4o-mini")
+    if openai_key:
+        try:
+            out = _call_openai(openai_key, openai_model)
+            if out and str(out).strip():
+                return str(out).strip()
+        except Exception as e:
+            errors.append(f"openai:{e}")
+
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY")
+    openrouter_model = os.environ.get(
+        "OPENROUTER_COMMENTARY_MODEL", "openai/gpt-4o-mini"
+    )
+    if openrouter_key:
+        try:
+            out = _call_openai(
+                openrouter_key,
+                openrouter_model,
+                base_url="https://openrouter.ai/api/v1",
+            )
+            if out and str(out).strip():
+                return str(out).strip()
+        except Exception as e:
+            errors.append(f"openrouter:{e}")
+
+    if errors:
+        print("Commentary massage fallback -> original; errors: " + " | ".join(errors))
+    return original
