@@ -96,6 +96,10 @@ def refresh_plus_money_picks(msg: str):
             if not ts:
                 continue
             if _is_today_est(ts) and marker in text:
+                # Do not remove prior plus-money post if it contains started-game markers.
+                # In this codebase, "$" is applied once live score context is present.
+                if "$" in text:
+                    continue
                 try:
                     client.chat_delete(channel=channel_id, ts=ts)
                 except Exception as e:
