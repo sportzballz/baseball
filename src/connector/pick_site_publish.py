@@ -750,6 +750,7 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None, frozen_commen
           <h2>{html.escape(winner)} over {html.escape(loser)}</h2>
           <span class="res {result_class}">{result}</span>
         </div>
+        <div class="seo-line">{html.escape(winner)} vs {html.escape(loser)} prediction — {html.escape(date_str)}</div>
         <div class="meta-grid">
           <div><span>Odds</span><strong>{html.escape(_field(p,'Pick Odds','----'))}</strong></div>
           <div><span>Confidence</span><strong>{html.escape(_field(p,'Model Confidence','n/a'))}</strong></div>
@@ -777,18 +778,18 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None, frozen_commen
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SportzBallz | MLB Daily Notebook</title>
-  <meta name="description" content="Warm, insider-style MLB daily pick commentary from SportzBallz." />
+  <title>SportzBallz | MLB Predictions {html.escape(date_str)} (Team vs Team)</title>
+  <meta name="description" content="MLB team vs team predictions for {html.escape(date_str)} from SportzBallz, including confidence, odds, and matchup context." />
   <meta name="robots" content="index,follow,max-image-preview:large" />
   <link rel="canonical" href="{_site_url('/' + date_str + '.html')}" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="SportzBallz" />
-  <meta property="og:title" content="SportzBallz MLB Picks — {html.escape(date_str)}" />
-  <meta property="og:description" content="Daily MLB picks with confidence, pricing context, plus-money and run-total analysis." />
+  <meta property="og:title" content="SportzBallz MLB Predictions — {html.escape(date_str)}" />
+  <meta property="og:description" content="Team vs team predictions for {html.escape(date_str)} with confidence, pricing context, plus-money and run-total analysis." />
   <meta property="og:url" content="{_site_url('/' + date_str + '.html')}" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="SportzBallz MLB Picks — {html.escape(date_str)}" />
-  <meta name="twitter:description" content="Daily MLB picks with confidence, pricing context, plus-money and run-total analysis." />
+  <meta name="twitter:title" content="SportzBallz MLB Predictions — {html.escape(date_str)}" />
+  <meta name="twitter:description" content="Team vs team predictions for {html.escape(date_str)} with confidence, pricing context, plus-money and run-total analysis." />
   <style>
     :root {{ --bg:#0a1020; --panel:#101a33; --ink:#eaf0ff; --muted:#a7b7df; --line:#273a6b; --accent:#5cc9ff; --accent2:#88f2c7; }}
     *{{box-sizing:border-box}}
@@ -805,6 +806,7 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None, frozen_commen
     .ad-cta{{display:inline-block;padding:7px 10px;border-radius:8px;border:1px solid #4c6db0;color:#dff2ff;text-decoration:none;font:600 12px Inter,system-ui,sans-serif}}
     .pick-card{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 14px 0;box-shadow:0 12px 28px rgba(0,0,0,.24)}}
     .pick-head h2{{margin:4px 0 8px;font-size:30px;line-height:1.15}}
+    .seo-line{{font:600 12px/1.3 Inter,system-ui,sans-serif;color:#a9c6ff;letter-spacing:.02em;margin-top:2px}}
     .pick-head{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
     .pick-num{{font:600 12px/1 Inter,system-ui,sans-serif;color:var(--accent);letter-spacing:.12em;text-transform:uppercase}}
     .res{{font:700 11px/1 Inter,system-ui,sans-serif;padding:5px 8px;border-radius:999px;border:1px solid #31508e;}}
@@ -887,6 +889,7 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None, frozen_c
           <h2>{html.escape(winner)} over {html.escape(loser)}</h2>
           <span class="res {result_class}">{result}</span>
         </div>
+        <div class="seo-line">{html.escape(winner)} vs {html.escape(loser)} prediction — {html.escape(date_str)}</div>
         <div class="meta-grid">
           <div><span>Odds</span><strong>{html.escape(_field(p,'Pick Odds','----'))}</strong></div>
           <div><span>Confidence</span><strong>{html.escape(_field(p,'Model Confidence','n/a'))}</strong></div>
@@ -957,6 +960,7 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None, frozen_c
     .ad-cta{{display:inline-block;padding:7px 10px;border-radius:8px;border:1px solid #4c6db0;color:#dff2ff;text-decoration:none;font:600 12px Inter,system-ui,sans-serif}}
     .pick-card{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 14px 0;box-shadow:0 12px 28px rgba(0,0,0,.24)}}
     .pick-head h2{{margin:4px 0 8px;font-size:30px;line-height:1.15}}
+    .seo-line{{font:600 12px/1.3 Inter,system-ui,sans-serif;color:#a9c6ff;letter-spacing:.02em;margin-top:2px}}
     .pick-head{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
     .pick-num{{font:600 12px/1 Inter,system-ui,sans-serif;color:var(--plus);letter-spacing:.12em;text-transform:uppercase}}
     .res{{font:700 11px/1 Inter,system-ui,sans-serif;padding:5px 8px;border-radius:999px;border:1px solid #31508e;}}
@@ -1079,6 +1083,7 @@ def _render_run_totals_html(parsed, evaluated_picks=None):
     .ad-cta{{display:inline-block;padding:7px 10px;border-radius:8px;border:1px solid #4c6db0;color:#dff2ff;text-decoration:none;font:600 12px Inter,system-ui,sans-serif}}
     .pick-card{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 14px 0;box-shadow:0 12px 28px rgba(0,0,0,.24)}}
     .pick-head h2{{margin:4px 0 8px;font-size:30px;line-height:1.15}}
+    .seo-line{{font:600 12px/1.3 Inter,system-ui,sans-serif;color:#a9c6ff;letter-spacing:.02em;margin-top:2px}}
     .pick-head{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
     .pick-num{{font:600 12px/1 Inter,system-ui,sans-serif;color:var(--accent);letter-spacing:.12em;text-transform:uppercase}}
     .meta-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 12px;padding:10px 0 2px}}
