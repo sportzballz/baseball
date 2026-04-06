@@ -169,6 +169,67 @@ def _render_rate_card():
 '''
 
 
+def _toolbar_css():
+    return '''
+    .nav-toolbar { margin-top:12px; display:grid; grid-template-columns:1.2fr 1.4fr .8fr; gap:10px; align-items:start; }
+    .toolbar-group { border:1px solid #304b87; border-radius:10px; padding:10px; background:rgba(255,255,255,.03); }
+    .toolbar-group summary { cursor:pointer; color:#dff0ff; font-size:12px; text-transform:uppercase; letter-spacing:.08em; font-weight:800; list-style:none; text-align:center; border:1px solid #3f61a0; border-radius:10px; padding:10px 12px; background:linear-gradient(135deg, rgba(99,210,255,.18), rgba(124,255,199,.10)); }
+    .toolbar-group summary::-webkit-details-marker { display:none; }
+    .toolbar-group[open] summary { margin-bottom:8px; }
+    .toolbar-group summary a { color:#dff0ff; text-decoration:none; font-size:12px; text-transform:uppercase; letter-spacing:.08em; font-weight:800; }
+    .toolbar-links { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+    .toolbar-links a { color:#dfeeff; text-decoration:none; border:1px solid #3b5a95; border-radius:8px; padding:7px 10px; font-size:13px; background:rgba(255,255,255,.02); }
+    .toolbar-links a:hover { border-color:var(--accent, #63d2ff); }
+    .archive-group { border:1px solid #304b87; border-radius:10px; padding:10px 12px; background:rgba(255,255,255,.02); margin-bottom:10px; }
+    .archive-group summary { cursor:pointer; font-weight:700; color:#dfeeff; }
+    .archive-links { margin-top:10px; display:grid; gap:8px; }
+    .archive-links a { color:var(--ink, #ebf1ff); text-decoration:none; border:1px solid #3b5a95; border-radius:8px; padding:8px 10px; background:rgba(255,255,255,.02); }
+    .archive-links a:hover { border-color:var(--accent, #63d2ff); }
+    .pill { font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:#dff4ff; background:rgba(99,210,255,.18); border:1px solid rgba(99,210,255,.35); border-radius:999px; padding:3px 7px; white-space:nowrap; }
+    @media (max-width:1100px) { .nav-toolbar { grid-template-columns:1fr; } }
+'''
+
+
+def _render_global_toolbar(latest_date: str, archive_dates):
+    latest_href = f"/{latest_date}.html"
+    latest_plus_href = f"/{latest_date}-plus-money.html"
+    latest_totals_href = f"/{latest_date}-run-totals.html"
+
+    archive_toolbar_groups = []
+    for i, d in enumerate(sorted(set(archive_dates), reverse=True)):
+        latest_pill = ' <span class="pill">Latest</span>' if i == 0 else ''
+        archive_toolbar_groups.append(f'''
+          <details class="archive-group">
+            <summary>{d}{latest_pill}</summary>
+            <div class="archive-links">
+              <a href="/{d}.html">Daily Picks</a>
+              <a href="/{d}-plus-money.html">Plus Money Picks</a>
+              <a href="/{d}-run-totals.html">Run Total Picks</a>
+            </div>
+          </details>
+        ''')
+
+    return f'''
+      <div class="nav-toolbar">
+        <details class="toolbar-group">
+          <summary>⚾ Latest Daily Picks</summary>
+          <div class="toolbar-links">
+            <a href="{latest_href}">Daily Picks</a>
+            <a href="{latest_plus_href}">Plus Money Picks</a>
+            <a href="{latest_totals_href}">Run Total Picks</a>
+          </div>
+        </details>
+        <details class="toolbar-group">
+          <summary>🗂️ Archive</summary>
+          {''.join(archive_toolbar_groups)}
+        </details>
+        <details class="toolbar-group">
+          <summary><a href="/dashboard.html">📊 Performance Dashboard</a></summary>
+        </details>
+      </div>
+    '''
+
+
 def _parse_confidence(conf_text: str):
     if not conf_text:
         return None
@@ -719,7 +780,7 @@ def _extract_existing_commentary_map(html_path: Path):
     return out
 
 
-def _render_daily_html(parsed, evaluated_picks=None, summary=None, frozen_commentary=None):
+def _render_daily_html(parsed, evaluated_picks=None, summary=None, frozen_commentary=None, latest_date=None, archive_dates=None):
     picks_source = evaluated_picks if evaluated_picks is not None else parsed['picks']
     picks = sorted(
         picks_source,
@@ -727,6 +788,9 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None, frozen_commen
         reverse=True,
     )
     date_str = parsed['date']
+    latest_date = latest_date or date_str
+    archive_dates = archive_dates or [date_str]
+    toolbar_html = _render_global_toolbar(latest_date, archive_dates)
     model = parsed['model']
     now = datetime.now().strftime('%Y-%m-%d %I:%M %p')
 
@@ -808,6 +872,7 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None, frozen_commen
     .ad-label{{font:700 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#9cc4ff}}
     .ad-copy{{color:#d9e6ff;font:500 14px/1.3 Inter,system-ui,sans-serif}}
     .ad-cta{{display:inline-block;padding:7px 10px;border-radius:8px;border:1px solid #4c6db0;color:#dff2ff;text-decoration:none;font:600 12px Inter,system-ui,sans-serif}}
+    {_toolbar_css()}
     .pick-card{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 14px 0;box-shadow:0 12px 28px rgba(0,0,0,.24)}}
     .pick-head h2{{margin:4px 0 8px;font-size:30px;line-height:1.15}}
     .seo-line{{font:600 12px/1.3 Inter,system-ui,sans-serif;color:#a9c6ff;letter-spacing:.02em;margin-top:2px}}
@@ -842,6 +907,7 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None, frozen_commen
       <h1>MLB Daily Notebook — {html.escape(date_str)}</h1>
       <div class="sub">Model: {html.escape(model)} • Updated {html.escape(now)}</div>
     </header>
+    {toolbar_html}
     <section class="intro">Today’s card in a warmer, notebook-style voice — balancing matchup context, weather, umpire texture, and price discipline.</section>
     {_render_ad_slot('daily-top', 'Daily Notebook Sponsorship')}
     {tracker_html}
@@ -853,7 +919,7 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None, frozen_commen
 '''
 
 
-def _render_plus_money_html(parsed, evaluated_picks=None, summary=None, frozen_commentary=None):
+def _render_plus_money_html(parsed, evaluated_picks=None, summary=None, frozen_commentary=None, latest_date=None, archive_dates=None):
     source = evaluated_picks if evaluated_picks is not None else parsed['picks']
     all_picks = sorted(
         source,
@@ -867,6 +933,9 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None, frozen_c
             plus_picks.append(p)
 
     date_str = parsed['date']
+    latest_date = latest_date or date_str
+    archive_dates = archive_dates or [date_str]
+    toolbar_html = _render_global_toolbar(latest_date, archive_dates)
     model = parsed['model']
     now = datetime.now().strftime('%Y-%m-%d %I:%M %p')
 
@@ -967,6 +1036,7 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None, frozen_c
     .pick-head h2{{margin:4px 0 8px;font-size:30px;line-height:1.15}}
     .seo-line{{font:600 12px/1.3 Inter,system-ui,sans-serif;color:#a9c6ff;letter-spacing:.02em;margin-top:2px}}
     .pick-head{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
+    {_toolbar_css()}
     .pick-num{{font:600 12px/1 Inter,system-ui,sans-serif;color:var(--plus);letter-spacing:.12em;text-transform:uppercase}}
     .res{{font:700 11px/1 Inter,system-ui,sans-serif;padding:5px 8px;border-radius:999px;border:1px solid #31508e;}}
     .res-win{{color:#7CFFB3;border-color:#2f8f57;background:rgba(52,211,153,.12)}}
@@ -1003,6 +1073,7 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None, frozen_c
         <a href="/">Home</a>
       </div>
     </header>
+    {toolbar_html}
     <section class="intro">All underdog selections (positive odds) for the day, ordered by confidence.</section>
     {_render_ad_slot('plus-money-top', 'Plus Money Card Sponsorship')}
     {pm_summary_html}
@@ -1014,7 +1085,7 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None, frozen_c
 '''
 
 
-def _render_run_totals_html(parsed, evaluated_picks=None):
+def _render_run_totals_html(parsed, evaluated_picks=None, latest_date=None, archive_dates=None):
     source = evaluated_picks if evaluated_picks is not None else parsed['picks']
     leans = []
     for p in source:
@@ -1025,6 +1096,9 @@ def _render_run_totals_html(parsed, evaluated_picks=None):
     leans.sort(key=lambda x: x['confidence'], reverse=True)
 
     date_str = parsed['date']
+    latest_date = latest_date or date_str
+    archive_dates = archive_dates or [date_str]
+    toolbar_html = _render_global_toolbar(latest_date, archive_dates)
     model = parsed['model']
     now = datetime.now().strftime('%Y-%m-%d %I:%M %p')
 
@@ -1103,6 +1177,7 @@ def _render_run_totals_html(parsed, evaluated_picks=None):
     li{{margin:6px 0}}
     .toplinks{{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}}
     .toplinks a{{display:inline-block;padding:8px 12px;border:1px solid #31508e;border-radius:9px;color:#dce8ff;text-decoration:none;font-family:Inter,system-ui,sans-serif;font-size:13px}}
+    {_toolbar_css()}
     footer{{margin-top:10px;color:var(--muted);font:12px Inter,system-ui,sans-serif;text-align:right}}
   </style>
 </head>
@@ -1118,6 +1193,7 @@ def _render_run_totals_html(parsed, evaluated_picks=None):
         <a href="/">Home</a>
       </div>
     </header>
+    {toolbar_html}
     <section class="intro">Totals-only leans built from confidence, pricing, weather/venue context, and market movement.</section>
     {_render_ad_slot('run-totals-top', 'Run Totals Sponsorship')}
     {''.join(cards)}
@@ -1128,7 +1204,7 @@ def _render_run_totals_html(parsed, evaluated_picks=None):
 '''
 
 
-def _render_run_line_html(parsed, evaluated_picks=None, frozen_commentary=None):
+def _render_run_line_html(parsed, evaluated_picks=None, frozen_commentary=None, latest_date=None, archive_dates=None):
     picks_source = evaluated_picks if evaluated_picks is not None else parsed['picks']
     picks = sorted(
         picks_source,
@@ -1136,6 +1212,9 @@ def _render_run_line_html(parsed, evaluated_picks=None, frozen_commentary=None):
         reverse=True,
     )
     date_str = parsed['date']
+    latest_date = latest_date or date_str
+    archive_dates = archive_dates or [date_str]
+    toolbar_html = _render_global_toolbar(latest_date, archive_dates)
     model = parsed['model']
     now = datetime.now().strftime('%Y-%m-%d %I:%M %p')
     frozen_commentary = frozen_commentary or {}
@@ -1210,6 +1289,7 @@ def _render_run_line_html(parsed, evaluated_picks=None, frozen_commentary=None):
     .lede{{font-size:20px;margin:12px 0 8px;color:#f2f6ff}}
     .toplinks{{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}}
     .toplinks a{{display:inline-block;padding:8px 12px;border:1px solid #31508e;border-radius:9px;color:#dce8ff;text-decoration:none;font-family:Inter,system-ui,sans-serif;font-size:13px}}
+    {_toolbar_css()}
   </style>
 </head>
 <body>
@@ -1224,6 +1304,7 @@ def _render_run_line_html(parsed, evaluated_picks=None, frozen_commentary=None):
         <a href="/">Home</a>
       </div>
     </header>
+    {toolbar_html}
     <section class="intro">Run line tab is active. Current model leans are side-based until dedicated spread-market ingestion is fully wired.</section>
     {''.join(cards)}
   </main>
@@ -1403,7 +1484,7 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
     .kicker {{ color:var(--muted); text-transform:uppercase; letter-spacing:.12em; font-size:12px; margin-bottom:10px; font-weight:700; }}
     .logo {{ margin:0; line-height:1; font-size:clamp(52px, 11vw, 120px); font-weight:900; letter-spacing:.01em; text-transform:uppercase; font-family:Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif; color:#f8fbff; text-shadow:0 2px 0 #0d162e, 2px 2px 0 #0d162e, 3px 3px 0 #0d162e, 4px 4px 0 #0d162e, 0 0 20px rgba(99,210,255,.25); }}
     .logo .z {{ color:#ff5c5c; text-shadow:0 2px 0 #2a0b0b, 2px 2px 0 #2a0b0b, 3px 3px 0 #2a0b0b, 0 0 14px rgba(239,68,68,.35); }}
-    .brand-logo {{ display:block; max-width:min(90vw, 780px); margin:0 auto 8px; height:auto; }}
+    .brand-logo {{ display:block; max-width:min(52vw, 320px); margin:0 auto 6px; height:auto; }}
     .tagline {{ margin:12px 0 0; color:#d9e5ff; font-size:clamp(17px,2.2vw,24px); max-width:760px; line-height:1.35; }}
     .nav-toolbar {{ margin-top:12px; display:grid; grid-template-columns:1.2fr 1.4fr .8fr; gap:10px; align-items:start; }}
     .toolbar-group {{ border:1px solid #304b87; border-radius:10px; padding:10px; background:rgba(255,255,255,.03); }}
@@ -1450,7 +1531,7 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
       <div class="kicker">SportzBallz Daily MLB Desk</div>
       <img class="brand-logo" src="/assets/sportzballz.png" alt="SportzBallz logo" />
       <h1 class="logo" style="display:none;">SPORT<span class="z">Z</span>BALL<span class="z">Z</span></h1>
-      <p class="tagline">artificially intelligent athletic competition prognostication</p>
+
       <div class="nav-toolbar">
         <details class="toolbar-group">
           <summary>⚾ Latest Daily Picks</summary>
@@ -1490,7 +1571,7 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
           <iframe class="pick-embed" src="{latest_totals_href}" title="Run Total Picks"></iframe>
         </section>
 
-        <div class="meta">Format: <code>yyyy-mm-dd.html</code></div>
+
         {_render_ad_slot('index-hero', 'Homepage Sponsorship')}
       </article>
 
@@ -1572,7 +1653,7 @@ def _upsert_history(history, summary):
     return out
 
 
-def _render_dashboard(history):
+def _render_dashboard(history, latest_date=None, archive_dates=None):
     category_defs = [
         ('all_picks', 'All Picks', '#5cc9ff'),
         ('best_confidence_pick', 'Best Confidence Pick', '#a78bfa'),
@@ -1708,6 +1789,11 @@ def _render_dashboard(history):
     pm_roi_txt = f"{pm_total['roi_pct']}%" if pm_total['roi_pct'] is not None else '—'
     rt_roi_txt = f"{rt_total['roi_pct']}%" if rt_total['roi_pct'] is not None else '—'
 
+    if not latest_date:
+        latest_date = history[0].get('date') if history else datetime.now().strftime('%Y-%m-%d')
+    archive_dates = archive_dates or [h.get('date') for h in history if h.get('date')]
+    toolbar_html = _render_global_toolbar(latest_date, archive_dates)
+
     return f'''<!doctype html>
 <html lang="en">
 <head>
@@ -1737,6 +1823,7 @@ def _render_dashboard(history):
     .ad-label{{font:700 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#9cc4ff}}
     .ad-copy{{color:#d9e6ff;font:500 14px/1.3 Inter,system-ui,sans-serif}}
     .ad-cta{{display:inline-block;padding:7px 10px;border-radius:8px;border:1px solid #4c6db0;color:#dff2ff;text-decoration:none;font:600 12px Inter,system-ui,sans-serif}}
+    {_toolbar_css()}
     .k {{ border:1px dashed #31508e; border-radius:10px; padding:10px; }}
     .k span {{ display:block; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }}
     .k strong {{ font-size:20px; }}
@@ -1756,6 +1843,7 @@ def _render_dashboard(history):
 </head>
 <body>
   <main class="wrap">
+    {toolbar_html}
     <div class="card">
       <h1>Performance Dashboard</h1>
       <div class="meta">Auto-tracked from published daily picks. Assumption: flat <strong>$100 stake</strong> on each decided pick in each strategy bucket.</div>
@@ -1823,30 +1911,33 @@ def publish_daily_site(markdown_path: str, site_repo_path: str = None):
 
     evaluated_picks, summary = _evaluate_picks(parsed)
 
+    archive = _find_archive_dates(site_repo)
+    if parsed['date'] not in archive:
+        archive = [parsed['date']] + archive
+    archive = sorted(set(archive), reverse=True)
+    latest_global = archive[0] if archive else parsed['date']
+
     date_html = site_repo / f"{parsed['date']}.html"
     frozen_commentary = _extract_existing_commentary_map(date_html)
 
-    date_html.write_text(_render_daily_html(parsed, evaluated_picks, summary, frozen_commentary))
+    date_html.write_text(_render_daily_html(parsed, evaluated_picks, summary, frozen_commentary, latest_global, archive))
 
     plus_html = site_repo / f"{parsed['date']}-plus-money.html"
-    plus_html.write_text(_render_plus_money_html(parsed, evaluated_picks, summary, frozen_commentary))
+    plus_html.write_text(_render_plus_money_html(parsed, evaluated_picks, summary, frozen_commentary, latest_global, archive))
 
     run_line_html = site_repo / f"{parsed['date']}-run-line.html"
-    run_line_html.write_text(_render_run_line_html(parsed, evaluated_picks, frozen_commentary))
+    run_line_html.write_text(_render_run_line_html(parsed, evaluated_picks, frozen_commentary, latest_global, archive))
 
     totals_html = site_repo / f"{parsed['date']}-run-totals.html"
-    totals_html.write_text(_render_run_totals_html(parsed, evaluated_picks))
+    totals_html.write_text(_render_run_totals_html(parsed, evaluated_picks, latest_global, archive))
 
     history_path, history = _load_history(site_repo)
     history = _upsert_history(history, summary)
     history_path.write_text(json.dumps(history, indent=2))
-    (site_repo / 'dashboard.html').write_text(_render_dashboard(history))
+    (site_repo / 'dashboard.html').write_text(_render_dashboard(history, latest_global, archive))
     (site_repo / 'media-kit.html').write_text(_render_media_kit())
     (site_repo / 'rate-card.html').write_text(_render_rate_card())
 
-    archive = _find_archive_dates(site_repo)
-    if parsed['date'] not in archive:
-        archive = [parsed['date']] + archive
     (site_repo / 'index.html').write_text(_render_top_index(parsed['date'], archive, evaluated_picks, frozen_commentary))
     (site_repo / 'robots.txt').write_text(_render_robots_txt())
     (site_repo / 'sitemap.xml').write_text(_render_sitemap_xml(archive))
