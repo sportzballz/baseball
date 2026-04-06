@@ -1244,7 +1244,7 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
     for i, d in enumerate(sorted(set(archive_dates), reverse=True)):
         latest_pill = ' <span class="pill">Latest</span>' if i == 0 else ''
         archive_groups.append(f'''
-          <details class="archive-group" {'open' if i == 0 else ''}>
+          <details class="archive-group">
             <summary>{d}{latest_pill}</summary>
             <div class="archive-links">
               <a href="/{d}.html">Daily Picks</a>
@@ -1254,7 +1254,7 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
           </details>
         ''')
         archive_toolbar_groups.append(f'''
-          <details class="archive-group" {'open' if i == 0 else ''}>
+          <details class="archive-group">
             <summary>{d}{latest_pill}</summary>
             <div class="archive-links">
               <a href="/{d}.html">Daily Picks</a>
@@ -1399,15 +1399,19 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
     * {{ box-sizing: border-box; }}
     body {{ margin:0; color:var(--ink); background:radial-gradient(1100px 700px at 10% -5%, #1e2f66 0%, transparent 60%), radial-gradient(900px 600px at 95% 0%, #1b355f 0%, transparent 55%), var(--bg); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif; min-height:100vh; }}
     .wrap {{ max-width:1500px; margin:0 auto; padding:26px 16px 52px; }}
-    .hero {{ border:1px solid var(--line); border-radius:18px; padding:28px 24px; background:linear-gradient(135deg, rgba(99,210,255,.14), rgba(124,255,199,.08)); box-shadow:0 22px 45px rgba(0,0,0,.30); }}
+    .hero {{ border:1px solid var(--line); border-radius:18px; padding:28px 24px; background:linear-gradient(135deg, rgba(99,210,255,.14), rgba(124,255,199,.08)); box-shadow:0 22px 45px rgba(0,0,0,.30); text-align:center; }}
     .kicker {{ color:var(--muted); text-transform:uppercase; letter-spacing:.12em; font-size:12px; margin-bottom:10px; font-weight:700; }}
     .logo {{ margin:0; line-height:1; font-size:clamp(52px, 11vw, 120px); font-weight:900; letter-spacing:.01em; text-transform:uppercase; font-family:Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif; color:#f8fbff; text-shadow:0 2px 0 #0d162e, 2px 2px 0 #0d162e, 3px 3px 0 #0d162e, 4px 4px 0 #0d162e, 0 0 20px rgba(99,210,255,.25); }}
     .logo .z {{ color:#ff5c5c; text-shadow:0 2px 0 #2a0b0b, 2px 2px 0 #2a0b0b, 3px 3px 0 #2a0b0b, 0 0 14px rgba(239,68,68,.35); }}
+    .brand-logo {{ display:block; max-width:min(90vw, 780px); margin:0 auto 8px; height:auto; }}
     .tagline {{ margin:12px 0 0; color:#d9e5ff; font-size:clamp(17px,2.2vw,24px); max-width:760px; line-height:1.35; }}
     .nav-toolbar {{ margin-top:12px; display:grid; grid-template-columns:1.2fr 1.4fr .8fr; gap:10px; align-items:start; }}
     .toolbar-group {{ border:1px solid #304b87; border-radius:10px; padding:10px; background:rgba(255,255,255,.03); }}
-    .toolbar-title {{ color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.1em; margin-bottom:8px; font-weight:700; }}
-    .toolbar-links {{ display:flex; gap:8px; flex-wrap:wrap; }}
+    .toolbar-group summary {{ cursor:pointer; color:#dff0ff; font-size:12px; text-transform:uppercase; letter-spacing:.08em; font-weight:800; list-style:none; text-align:center; border:1px solid #3f61a0; border-radius:10px; padding:10px 12px; background:linear-gradient(135deg, rgba(99,210,255,.18), rgba(124,255,199,.10)); }}
+    .toolbar-group summary::-webkit-details-marker {{ display:none; }}
+    .toolbar-group[open] summary {{ margin-bottom:8px; }}
+    .toolbar-group summary a {{ color:#dff0ff; text-decoration:none; font-size:12px; text-transform:uppercase; letter-spacing:.08em; font-weight:800; }}
+    .toolbar-links {{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }}
     .toolbar-links a {{ color:#dfeeff; text-decoration:none; border:1px solid #3b5a95; border-radius:8px; padding:7px 10px; font-size:13px; background:rgba(255,255,255,.02); }}
     .toolbar-links a:hover {{ border-color:var(--accent); }}
     .btn {{ display:inline-block; padding:10px 14px; border-radius:10px; text-decoration:none; color:#081224; background:linear-gradient(90deg,var(--accent),var(--accent2)); font-weight:700; margin-top:8px; }}
@@ -1444,25 +1448,25 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
   <main class="wrap">
     <section class="hero">
       <div class="kicker">SportzBallz Daily MLB Desk</div>
-      <h1 class="logo">SPORT<span class="z">Z</span>BALL<span class="z">Z</span></h1>
+      <img class="brand-logo" src="/assets/sportzballz.png" alt="SportzBallz logo" />
+      <h1 class="logo" style="display:none;">SPORT<span class="z">Z</span>BALL<span class="z">Z</span></h1>
       <p class="tagline">artificially intelligent athletic competition prognostication</p>
       <div class="nav-toolbar">
-        <div class="toolbar-group">
-          <div class="toolbar-title">Latest Daily Picks</div>
+        <details class="toolbar-group">
+          <summary>⚾ Latest Daily Picks</summary>
           <div class="toolbar-links">
             <a href="{latest_href}">Daily Picks</a>
             <a href="{latest_plus_href}">Plus Money Picks</a>
             <a href="{latest_totals_href}">Run Total Picks</a>
           </div>
-        </div>
-        <div class="toolbar-group">
-          <div class="toolbar-title">Archive</div>
+        </details>
+        <details class="toolbar-group">
+          <summary>🗂️ Archive</summary>
           {''.join(archive_toolbar_groups)}
-        </div>
-        <div class="toolbar-group">
-          <div class="toolbar-title">Performance Dashboard</div>
-          <a class="btn" href="/dashboard.html" style="margin-top:0; background:linear-gradient(90deg,#8b5cf6,#5cc9ff);">Open Dashboard</a>
-        </div>
+        </details>
+        <details class="toolbar-group">
+          <summary><a href="/dashboard.html">📊 Performance Dashboard</a></summary>
+        </details>
       </div>
     </section>
 
