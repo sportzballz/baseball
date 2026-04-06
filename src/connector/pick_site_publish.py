@@ -1264,6 +1264,14 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
         lean = _run_total_lean(p)
         if lean:
             latest_totals.append((p, lean))
+    def _result_class(r):
+        rr = str(r or 'PENDING').upper()
+        if rr == 'WIN':
+            return 'res-win'
+        if rr == 'LOSS':
+            return 'res-loss'
+        return 'res-pending'
+
     latest_items = []
     for i, p in enumerate(latest_sorted, 1):
         winner, loser = p.get('winner', 'TBD'), p.get('loser', 'TBD')
@@ -1272,15 +1280,35 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
             analysis = frozen_commentary[key]
         else:
             analysis = _analysis_paragraph(p, i, latest_date)
-        latest_items.append(
-            f"<li><strong>{i}. {html.escape(winner)} over {html.escape(loser)}</strong>"
-            f"<div class='lede-inline'>{analysis}</div></li>"
-        )
+        result = p.get('result', 'PENDING')
+        latest_items.append(f'''
+          <article class="pick-card">
+            <div class="pick-head">
+              <div class="pick-num">Pick {i}</div>
+              <h3>{html.escape(winner)} over {html.escape(loser)}</h3>
+              <span class="res {_result_class(result)}">{result}</span>
+            </div>
+            <div class="meta-grid">
+              <div><span>Odds</span><strong>{html.escape(_field(p,'Pick Odds','----'))}</strong></div>
+              <div><span>Confidence</span><strong>{html.escape(_field(p,'Model Confidence','n/a'))}</strong></div>
+              <div><span>Pitching</span><strong>{html.escape(_field(p,'Pitching Matchup','n/a'))}</strong></div>
+              <div><span>Venue</span><strong>{html.escape(_field(p,'Venue','n/a'))}</strong></div>
+            </div>
+            <div class="lede-inline">{analysis}</div>
+            <details class="pick-details">
+              <summary>Expanded game context</summary>
+              <ul>
+                <li><strong>Weather:</strong> {html.escape(_field(p,'Weather','n/a'))}</li>
+                <li><strong>Umpire Crew:</strong> {html.escape(_field(p,'Umpire Crew','n/a'))}</li>
+                <li><strong>{html.escape(winner)} Injuries:</strong> {html.escape(_field(p,f'{winner} Injuries','n/a'))}</li>
+                <li><strong>{html.escape(loser)} Injuries:</strong> {html.escape(_field(p,f'{loser} Injuries','n/a'))}</li>
+                <li><strong>Line Movement:</strong> {html.escape(_field(p,'Line Movement','n/a'))}</li>
+              </ul>
+            </details>
+          </article>
+        ''')
 
-    latest_picks_html = (
-        f"<ol class='latest-picks'>{''.join(latest_items)}</ol>"
-        if latest_items else "<p class='meta'>No picks available yet for this date.</p>"
-    )
+    latest_picks_html = ''.join(latest_items) if latest_items else "<p class='meta'>No picks available yet for this date.</p>"
 
     plus_items = []
     for i, p in enumerate(latest_plus, 1):
@@ -1290,12 +1318,25 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
             analysis = frozen_commentary[key]
         else:
             analysis = _analysis_paragraph(p, i, latest_date)
-        plus_items.append(
-            f"<li><strong>{i}. {html.escape(winner)} over {html.escape(loser)}</strong>"
-            f"<div class='lede-inline'>{analysis}</div></li>"
-        )
+        result = p.get('result', 'PENDING')
+        plus_items.append(f'''
+          <article class="pick-card">
+            <div class="pick-head">
+              <div class="pick-num">Underdog {i}</div>
+              <h3>{html.escape(winner)} over {html.escape(loser)}</h3>
+              <span class="res {_result_class(result)}">{result}</span>
+            </div>
+            <div class="meta-grid">
+              <div><span>Odds</span><strong>{html.escape(_field(p,'Pick Odds','----'))}</strong></div>
+              <div><span>Confidence</span><strong>{html.escape(_field(p,'Model Confidence','n/a'))}</strong></div>
+              <div><span>Pitching</span><strong>{html.escape(_field(p,'Pitching Matchup','n/a'))}</strong></div>
+              <div><span>Venue</span><strong>{html.escape(_field(p,'Venue','n/a'))}</strong></div>
+            </div>
+            <div class="lede-inline">{analysis}</div>
+          </article>
+        ''')
     latest_plus_html = (
-        f"<ol class='latest-picks'>{''.join(plus_items)}</ol>"
+        ''.join(plus_items)
         if plus_items else "<p class='meta'>No plus money picks today.</p>"
     )
 
@@ -1306,14 +1347,23 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
         price = lean.get('over_odds') if side == 'OVER' else lean.get('under_odds')
         reasons = ', '.join(lean.get('reasons') or []) or 'balanced conditions and market context'
         rt_analysis = f"Run-total lens: {side} {line} in {p.get('winner','TBD')} vs {p.get('loser','TBD')}. Supporting context includes {reasons}."
-        total_items.append(
-            f"<li><strong>{i}. {html.escape(p.get('winner','TBD'))} vs {html.escape(p.get('loser','TBD'))}</strong>"
-            f" <span>• {side} {line}</span>"
-            f" <span>• Odds {price if price is not None else '—'}</span>"
-            f"<div class='lede-inline'>{rt_analysis}</div></li>"
-        )
+        total_items.append(f'''
+          <article class="pick-card">
+            <div class="pick-head">
+              <div class="pick-num">Run Total {i}</div>
+              <h3>{html.escape(p.get('winner','TBD'))} vs {html.escape(p.get('loser','TBD'))} — {side} {line}</h3>
+            </div>
+            <div class="meta-grid">
+              <div><span>Lean</span><strong>{side} {line}</strong></div>
+              <div><span>Odds</span><strong>{price if price is not None else '—'}</strong></div>
+              <div><span>Confidence</span><strong>{lean.get('confidence')}</strong></div>
+              <div><span>Venue</span><strong>{html.escape(lean.get('venue') or 'n/a')}</strong></div>
+            </div>
+            <div class="lede-inline">{rt_analysis}</div>
+          </article>
+        ''')
     latest_totals_html = (
-        f"<ol class='latest-picks'>{''.join(total_items)}</ol>"
+        ''.join(total_items)
         if total_items else "<p class='meta'>No run total leans available yet.</p>"
     )
 
@@ -1352,10 +1402,28 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
     .tabbar {{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }}
     .tab {{ display:inline-block; padding:9px 12px; border-radius:9px; text-decoration:none; color:#dfeeff; border:1px solid #3b5a95; background:rgba(255,255,255,.03); font-weight:600; font-size:14px; }}
     .tab.active {{ color:#081224; border-color:transparent; background:linear-gradient(90deg,var(--accent),var(--accent2)); }}
-    .latest-picks {{ margin:10px 0 0 18px; padding:0; display:grid; gap:8px; }}
-    .latest-picks li {{ color:#e7f0ff; line-height:1.35; }}
-    .latest-picks li span {{ color:#b9caef; font-size:13px; }}
-    .lede-inline {{ margin-top:6px; color:#dfe9ff; font-size:14px; line-height:1.45; }}
+    .pick-tabs {{ display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px; }}
+    .pick-tab {{ border:1px solid #3b5a95; background:rgba(255,255,255,.03); color:#dfeeff; border-radius:9px; padding:9px 12px; font-weight:700; font-size:14px; cursor:pointer; }}
+    .pick-tab.active {{ color:#081224; border-color:transparent; background:linear-gradient(90deg,var(--accent),var(--accent2)); }}
+    .pick-panel {{ display:none; }}
+    .pick-panel.active {{ display:block; }}
+    .pick-card{{background:#101a33;border:1px solid #273a6b;border-radius:14px;padding:16px 18px;margin:0 0 14px 0;box-shadow:0 12px 28px rgba(0,0,0,.24)}}
+    .pick-head{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
+    .pick-head h3{{margin:4px 0 8px;font-size:24px;line-height:1.15}}
+    .pick-num{{font:600 12px/1 Inter,system-ui,sans-serif;color:var(--accent);letter-spacing:.12em;text-transform:uppercase}}
+    .res{{font:700 11px/1 Inter,system-ui,sans-serif;padding:5px 8px;border-radius:999px;border:1px solid #31508e;}}
+    .res-win{{color:#7CFFB3;border-color:#2f8f57;background:rgba(52,211,153,.12)}}
+    .res-loss{{color:#ff9ca0;border-color:#a13d47;background:rgba(239,68,68,.14)}}
+    .res-pending{{color:#cfe1ff;border-color:#3c5c97;background:rgba(59,130,246,.12)}}
+    .meta-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 12px;padding:10px 0 2px}}
+    .meta-grid div{{border:1px dashed #31508e;border-radius:10px;padding:8px 10px;background:rgba(255,255,255,.02)}}
+    .meta-grid span{{display:block;color:#9fb2de;font:600 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}}
+    .meta-grid strong{{font:600 15px/1.35 Inter,system-ui,sans-serif;color:#dce8ff}}
+    .lede-inline {{ margin-top:8px; color:#dfe9ff; font-size:15px; line-height:1.5; }}
+    details.pick-details{{margin-top:8px;border-top:1px solid #264377;padding-top:8px}}
+    details.pick-details summary{{cursor:pointer;font:600 14px Inter,system-ui,sans-serif;color:#63d2ff}}
+    details.pick-details ul{{margin:10px 0 0 18px;padding:0;display:block}}
+    details.pick-details li{{margin:6px 0}}
     .meta {{ font-size:14px; color:var(--muted); margin-top:10px; }}
     .archive-group {{ border:1px solid #304b87; border-radius:10px; padding:10px 12px; background:rgba(255,255,255,.02); margin-bottom:10px; }}
     .archive-group summary {{ cursor:pointer; font-weight:700; color:#dfeeff; }}
@@ -1387,16 +1455,23 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
     <section class="cards">
       <article class="card">
         <h2>Latest Daily Picks</h2>
-        <p>Daily Picks for {latest_date}:</p>
-        {latest_picks_html}
-        <h2 style="margin-top:16px;">Latest Plus Money Picks</h2>
-        {latest_plus_html}
-        <h2 style="margin-top:16px;">Latest Run Total Picks</h2>
-        {latest_totals_html}
-        <div class="tabbar">
-          <a class="tab" href="{latest_plus_href}">Open Plus Money Page</a>
-          <a class="tab" href="{latest_totals_href}">Open Run Total Page</a>
+        <p>All picks for {latest_date} with full commentary.</p>
+        <div class="pick-tabs" role="tablist" aria-label="Pick type tabs">
+          <button class="pick-tab active" data-target="panel-daily" role="tab" aria-selected="true">Daily Picks</button>
+          <button class="pick-tab" data-target="panel-plus" role="tab" aria-selected="false">Plus Money Picks</button>
+          <button class="pick-tab" data-target="panel-totals" role="tab" aria-selected="false">Run Total Picks</button>
         </div>
+
+        <section id="panel-daily" class="pick-panel active" role="tabpanel">
+          {latest_picks_html}
+        </section>
+        <section id="panel-plus" class="pick-panel" role="tabpanel">
+          {latest_plus_html}
+        </section>
+        <section id="panel-totals" class="pick-panel" role="tabpanel">
+          {latest_totals_html}
+        </section>
+
         <div class="meta">Format: <code>yyyy-mm-dd.html</code></div>
         {_render_ad_slot('index-hero', 'Homepage Sponsorship')}
       </article>
@@ -1412,6 +1487,21 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
       <span class="footer-links"><a href="/media-kit.html">Media Kit</a><a href="/rate-card.html">Rate Card</a></span>
     </footer>
   </main>
+  <script>
+    (() => {{
+      const tabs = Array.from(document.querySelectorAll('.pick-tab'));
+      const panels = Array.from(document.querySelectorAll('.pick-panel'));
+      function activate(targetId) {{
+        tabs.forEach((t) => {{
+          const on = t.dataset.target === targetId;
+          t.classList.toggle('active', on);
+          t.setAttribute('aria-selected', on ? 'true' : 'false');
+        }});
+        panels.forEach((p) => p.classList.toggle('active', p.id === targetId));
+      }}
+      tabs.forEach((t) => t.addEventListener('click', () => activate(t.dataset.target)));
+    }})();
+  </script>
 </body>
 </html>
 '''
