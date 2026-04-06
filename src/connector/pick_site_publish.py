@@ -441,6 +441,34 @@ def _lineup_change_impact_note(text):
     return f"Lineup-change trend: {t}"
 
 
+def _polish_commentary(text):
+    t = (text or "").strip()
+    if not t:
+        return ""
+
+    # Normalize spacing/punctuation artifacts from generated prose.
+    t = re.sub(r'\s+', ' ', t)
+    t = t.replace('..', '.')
+    t = t.replace(' .', '.')
+    t = t.replace(' ;', ';')
+
+    # Soft cleanup of repetitive boilerplate phrasing.
+    t = t.replace('Lineup status check:', 'Lineup status:')
+    t = t.replace('market context, and market movement', 'market context and line movement')
+
+    # Remove immediate duplicate sentences if any slipped in.
+    parts = [p.strip() for p in re.split(r'(?<=[.!?])\s+', t) if p.strip()]
+    deduped = []
+    seen = set()
+    for p in parts:
+        key = p.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(p)
+    return ' '.join(deduped)
+
+
 def _parse_markdown(md_text: str):
     lines = md_text.splitlines()
     date_str = ""
@@ -830,6 +858,7 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None, frozen_commen
             analysis = frozen_commentary[key]
         else:
             analysis = _analysis_paragraph(p, i, date_str)
+        analysis = _polish_commentary(analysis)
 
         cards.append(f'''
       <article class="pick-card">
@@ -975,6 +1004,7 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None, frozen_c
             analysis = frozen_commentary[key]
         else:
             analysis = _analysis_paragraph(p, i, date_str)
+        analysis = _polish_commentary(analysis)
 
         cards.append(f'''
       <article class="pick-card">
@@ -1253,6 +1283,7 @@ def _render_run_line_html(parsed, evaluated_picks=None, frozen_commentary=None, 
             analysis = frozen_commentary[key]
         else:
             analysis = _analysis_paragraph(p, i, date_str)
+        analysis = _polish_commentary(analysis)
 
         cards.append(f'''
       <article class="pick-card">
@@ -1389,6 +1420,7 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
             analysis = frozen_commentary[key]
         else:
             analysis = _analysis_paragraph(p, i, latest_date)
+        analysis = _polish_commentary(analysis)
         result = p.get('result', 'PENDING')
         latest_items.append(f'''
           <article class="pick-card">
@@ -1427,6 +1459,7 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
             analysis = frozen_commentary[key]
         else:
             analysis = _analysis_paragraph(p, i, latest_date)
+        analysis = _polish_commentary(analysis)
         result = p.get('result', 'PENDING')
         plus_items.append(f'''
           <article class="pick-card">
