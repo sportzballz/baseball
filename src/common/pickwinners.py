@@ -36,17 +36,6 @@ def main(model, model_hitting_fn, model_pitching_fn, model_vs_fn):
                 adv_score = model_hitting_fn(adv_score, game_data, model, lineups)
                 adv_score = model_pitching_fn(adv_score, game_data, model, lineups)
                 adv_score = model_vs_fn(adv_score, game_data, model, lineups)
-
-                # Hard gate: only make picks when BOTH starting lineups are announced.
-                if not (adv_score.home_lineup_available and adv_score.away_lineup_available):
-                    home_team = game_data.get('gameData', {}).get('teams', {}).get('home', {}).get('name', 'HOME')
-                    away_team = game_data.get('gameData', {}).get('teams', {}).get('away', {}).get('name', 'AWAY')
-                    print(
-                        f"Skipping pick for {away_team} @ {home_team}: "
-                        f"lineups announced? home={adv_score.home_lineup_available}, away={adv_score.away_lineup_available}"
-                    )
-                    continue
-
                 winners.append(select_winner(adv_score, game_data, odds_data))
                 print(adv_score.to_string())
 

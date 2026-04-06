@@ -11,6 +11,27 @@ from connector.mlbstartinglineups import get_starting_lineups
 
 RECENT_LINEUP_GAMES = 5
 
+ANALYST_STYLE_LADDER = [
+    ("market maker", "Mack Ledger", "Market Maker"),
+    ("matchup film room", "Nora Splitter", "Matchup Film Room"),
+    ("quant", "Dex Numbers", "Quant"),
+    ("momentum & vibes", "Rico Heatcheck", "Momentum & Vibes"),
+    ("beat writer", "Grant Halberd", "Beat Writer"),
+    ("data scientist", "Ivy Chen", "Data Scientist"),
+    ("contrarian", "Toby Quinn", "Contrarian"),
+    ("weather/umpire specialist", "Lena Park", "Weather/Umpire Specialist"),
+    ("showman", "Vince Valentino", "Showman"),
+    ("process coach", "Maya Rios", "Process Coach"),
+    ("model whisperer", "Owen Pike", "Model Whisperer"),
+    ("underdog hunter", "Jules Archer", "Underdog Hunter"),
+    ("line movement hawk", "Roman Slate", "Line Movement Hawk"),
+    ("injury/lineup impact", "Keira Bloom", "Injury/Lineup Impact"),
+    ("totals architect", "Eli Mercer", "Totals Architect"),
+    ("clv auditor", "Sanjay Vale", "CLV Auditor"),
+]
+
+ANALYST_BY_STYLE = {s: (n, t) for s, n, t in ANALYST_STYLE_LADDER}
+
 DOME_VENUES = {
     "Rogers Centre",
     "Tropicana Field",
@@ -115,7 +136,9 @@ def _extract_weather(game_data):
 
 def _get_injuries(team_id):
     try:
-        url = f"https://statsapi.mlb.com/api/v1/teams/{team_id}/roster?rosterType=injured"
+        url = (
+            f"https://statsapi.mlb.com/api/v1/teams/{team_id}/roster?rosterType=injured"
+        )
         resp = requests.get(url, timeout=8)
         if resp.status_code != 200:
             return []
@@ -133,7 +156,12 @@ def _get_injuries(team_id):
 
 def _extract_line_movement(odds_entry, winner_name):
     if not odds_entry:
-        return {"current": None, "open": None, "movement": None, "text": "Line movement unavailable."}
+        return {
+            "current": None,
+            "open": None,
+            "movement": None,
+            "text": "Line movement unavailable.",
+        }
 
     teams = odds_entry.get("teams", {})
     side = "home" if _safe_get(teams, ["home", "team"]) == winner_name else "away"
@@ -201,9 +229,13 @@ def _extract_total_market(odds_entry):
         if diff == 0:
             movement_text = f"Total unchanged at {total_current}."
         elif diff > 0:
-            movement_text = f"Total moved up from {total_open} to {total_current} (+{diff:g})."
+            movement_text = (
+                f"Total moved up from {total_open} to {total_current} (+{diff:g})."
+            )
         else:
-            movement_text = f"Total moved down from {total_open} to {total_current} ({diff:g})."
+            movement_text = (
+                f"Total moved down from {total_open} to {total_current} ({diff:g})."
+            )
 
     return {
         "total_current": total_current,
@@ -233,7 +265,7 @@ def _lineup_announced(team_token):
     # leading "." means lineup not yet posted for that team.
     # A leading "$" can also be present for in-game winner marker.
     token = token.lstrip("$")
-    return not token.startswith('.')
+    return not token.startswith(".")
 
 
 def _lineup_status_text(winner_name, loser_name, winner_announced, loser_announced):
@@ -292,7 +324,10 @@ def _team_lineup_and_result_for_game(game_pk, team_id):
     if not side:
         return [], None
 
-    order = _safe_get(game, ["liveData", "boxscore", "teams", side, "battingOrder"], []) or []
+    order = (
+        _safe_get(game, ["liveData", "boxscore", "teams", side, "battingOrder"], [])
+        or []
+    )
     lineup_ids = []
     for pid in order[:9]:
         try:
@@ -352,9 +387,13 @@ def _lineup_change_impact(team_id, team_name, today_lineup_ids, as_of_date):
 
     impact_bits = []
     if turnover_total >= 2:
-        impact_bits.append(f"In higher-turnover comps (≤6 shared), {team_name} went {turnover_wins}-{turnover_total - turnover_wins}")
+        impact_bits.append(
+            f"In higher-turnover comps (≤6 shared), {team_name} went {turnover_wins}-{turnover_total - turnover_wins}"
+        )
     if stable_total >= 2:
-        impact_bits.append(f"in stable-lineup comps (≥8 shared), {team_name} went {stable_wins}-{stable_total - stable_wins}")
+        impact_bits.append(
+            f"in stable-lineup comps (≥8 shared), {team_name} went {stable_wins}-{stable_total - stable_wins}"
+        )
 
     if impact_bits:
         return base + " " + "; ".join(impact_bits) + "."
@@ -366,43 +405,163 @@ def _fallback_commentary(context):
     weather = context["weather_summary"]
     movement = context["line_movement_text"]
     ump = context["umpire_summary"]
-    lineup_status = context.get("lineup_status_text", "Starting lineup status unavailable at publish time.")
+    lineup_status = context.get(
+        "lineup_status_text", "Starting lineup status unavailable at publish time."
+    )
     lineup_impact = context.get("lineup_change_impact", "")
     lineup_impact_sentence = f" {lineup_impact}" if lineup_impact else ""
-    style = context.get("style", "betting desk")
+    style = context.get("style", "market maker")
+    analyst_name = context.get("analyst_name")
+    analyst_title = context.get("analyst_title")
+    if not analyst_name or not analyst_title:
+        analyst_name, analyst_title = ANALYST_BY_STYLE.get(
+            style, ("Mack Ledger", "Market Maker")
+        )
     winner_signals = context.get("winner_signals", "No model signal list available.")
     loser_signals = context.get("loser_signals", "No model signal list available.")
 
-    if style == "beat writer notebook":
+    if style == "market maker":
         return (
-            f"{venue} sets the stage for {context['winner']} over {context['loser']}, and the conditions matter: {weather}. "
-            f"The model sits at {context['confidence']} confidence with {context['data_points']} data-point leverage, which gives the pick real footing. "
-            f"On the baseball side, the edge profile for {context['winner']} is driven by {winner_signals}. "
-            f"The counter-case for {context['loser']} shows up in {loser_signals}, but the market signal ({movement}) still leans playable. "
-            f"Umpire context ({ump}) is a late-variable worth watching, but this spot grades as a disciplined position rather than a flyer. "
+            f"{analyst_name} ({analyst_title}) — Market-first card: {context['winner']} over {context['loser']} at {context['odds']}. "
+            f"Confidence ({context['confidence']}, data points {context['data_points']}) supports entry discipline, not chasing. "
+            f"Primary support for {context['winner']}: {winner_signals}. "
+            f"Resistance case for {context['loser']}: {loser_signals}. "
+            f"Weather ({weather}), umpire context ({ump}), and move profile ({movement}) frame the risk. "
             f"Lineup status: {lineup_status}{lineup_impact_sentence}"
         )
-    if style == "scouting report":
+    if style == "matchup film room":
         return (
-            f"Scouting read: {context['winning_pitcher']} vs {context['losing_pitcher']} favors {context['winner']} at {context['odds']}. "
-            f"Model confidence ({context['confidence']}, data points {context['data_points']}) supports the same direction. "
-            f"Signal stack for {context['winner']}: {winner_signals}. "
-            f"Opposition signal stack for {context['loser']}: {loser_signals}. "
-            f"Add weather ({weather}), umpire texture ({ump}), and line behavior ({movement}) and this profile stays actionable. "
+            f"{analyst_name} ({analyst_title}) — Film-room lens: {context['winning_pitcher']} vs {context['losing_pitcher']} tilts toward {context['winner']} over {context['loser']}. "
+            f"Model read is {context['confidence']} with {context['data_points']} data points. "
+            f"Winning-side indicators: {winner_signals}. "
+            f"Counter-indicators: {loser_signals}. "
+            f"Add game environment ({weather}), crew texture ({ump}), and line action ({movement}) for final fit. "
             f"Lineup status: {lineup_status}{lineup_impact_sentence}"
         )
-    if style == "game-script breakdown":
+    if style == "quant":
         return (
-            f"Game-script angle: {context['winner']} projects cleaner paths to control innings than {context['loser']}, starting with {context['winning_pitcher']} over {context['losing_pitcher']}. "
-            f"The model calls it {context['confidence']} with {context['data_points']} data points and a listed number of {context['odds']}. "
-            f"Early/ongoing pressure indicators for {context['winner']} show up in {winner_signals}. "
-            f"Pushback factors for {context['loser']} are {loser_signals}. "
-            f"Environment ({weather}), crew ({ump}), and market movement ({movement}) all point to the same side unless live conditions materially shift. "
+            f"{analyst_name} ({analyst_title}) — Probability view: {context['winner']} over {context['loser']} at {context['odds']} with confidence {context['confidence']} ({context['data_points']}). "
+            f"Edge set for {context['winner']}: {winner_signals}. "
+            f"Negative offsets from {context['loser']}: {loser_signals}. "
+            f"Exogenous factors: weather ({weather}), umpire ({ump}), market state ({movement}). "
+            f"Lineup status: {lineup_status}{lineup_impact_sentence}"
+        )
+    if style == "momentum & vibes":
+        return (
+            f"{analyst_name} ({analyst_title}) — Heatcheck angle: {context['winner']} over {context['loser']} has real juice at {context['odds']}. "
+            f"The model confidence ({context['confidence']}, {context['data_points']}) says this isn’t random noise. "
+            f"{context['winner']} momentum stack: {winner_signals}. "
+            f"{context['loser']} pushback profile: {loser_signals}. "
+            f"Conditions ({weather}), crew ({ump}), and number behavior ({movement}) all matter before first pitch. "
+            f"Lineup status: {lineup_status}{lineup_impact_sentence}"
+        )
+    if style == "beat writer":
+        return (
+            f"{analyst_name} ({analyst_title}) — {venue} hosts {context['winner']} over {context['loser']} at {context['odds']}, with model confidence {context['confidence']} ({context['data_points']}). "
+            f"The case for {context['winner']} is anchored by {winner_signals}. "
+            f"The caution flags for {context['loser']} come from {loser_signals}. "
+            f"Weather ({weather}), umpire assignment ({ump}), and line movement ({movement}) shape the read. "
+            f"Lineup status: {lineup_status}{lineup_impact_sentence}"
+        )
+    if style == "data scientist":
+        return (
+            f"{analyst_name} ({analyst_title}) — Validation pass: {context['winner']} over {context['loser']} at {context['odds']} with confidence {context['confidence']} and {context['data_points']}. "
+            f"Positive feature cluster: {winner_signals}. "
+            f"Adverse feature cluster: {loser_signals}. "
+            f"Context controls include weather ({weather}), umpire effects ({ump}), and market drift ({movement}). "
+            f"Lineup status: {lineup_status}{lineup_impact_sentence}"
+        )
+    if style == "contrarian":
+        return (
+            f"{analyst_name} ({analyst_title}) — Contrarian read: {context['winner']} over {context['loser']} at {context['odds']} looks playable if the market has overreacted. "
+            f"Model confidence is {context['confidence']} ({context['data_points']}). "
+            f"Why it still works: {winner_signals}. "
+            f"Why it can fail: {loser_signals}. "
+            f"Weather ({weather}), umpire setup ({ump}), and move direction ({movement}) decide whether price is truly mis-set. "
+            f"Lineup status: {lineup_status}{lineup_impact_sentence}"
+        )
+    if style == "weather/umpire specialist":
+        return (
+            f"{analyst_name} ({analyst_title}) — Context-heavy read: {context['winner']} over {context['loser']} at {context['odds']}. "
+            f"Confidence is {context['confidence']} with {context['data_points']} data points. "
+            f"Skill edge for {context['winner']}: {winner_signals}. "
+            f"Skill resistance for {context['loser']}: {loser_signals}. "
+            f"Weather ({weather}) and umpire profile ({ump}) are core variables, with line behavior ({movement}) as confirmation. "
+            f"Lineup status: {lineup_status}{lineup_impact_sentence}"
+        )
+    if style == "showman":
+        return (
+            f"{analyst_name} ({analyst_title}) — Spotlight pick: {context['winner']} over {context['loser']} at {context['odds']}—and yes, the numbers back the headline. "
+            f"Model confidence checks in at {context['confidence']} ({context['data_points']}). "
+            f"Headline support: {winner_signals}. "
+            f"Trap-door risks: {loser_signals}. "
+            f"Stage conditions are weather ({weather}), crew ({ump}), and market script ({movement}). "
+            f"Lineup status: {lineup_status}{lineup_impact_sentence}"
+        )
+    if style == "process coach":
+        return (
+            f"{analyst_name} ({analyst_title}) — Process-first: {context['winner']} over {context['loser']} at {context['odds']} with confidence {context['confidence']} ({context['data_points']}). "
+            f"Keep sizing tied to edge quality, not emotion. "
+            f"Support stack: {winner_signals}. "
+            f"Failure points: {loser_signals}. "
+            f"Environment ({weather}), umpire variable ({ump}), and line behavior ({movement}) complete the checklist. "
+            f"Lineup status: {lineup_status}{lineup_impact_sentence}"
+        )
+    if style == "model whisperer":
+        return (
+            f"{analyst_name} ({analyst_title}) — Model translation: {context['winner']} over {context['loser']} at {context['odds']}, confidence {context['confidence']} with {context['data_points']}. "
+            f"Top contributing signals for {context['winner']}: {winner_signals}. "
+            f"Competing signal set for {context['loser']}: {loser_signals}. "
+            f"External modifiers are weather ({weather}), umpire context ({ump}), and market movement ({movement}). "
+            f"Lineup status: {lineup_status}{lineup_impact_sentence}"
+        )
+    if style == "underdog hunter":
+        return (
+            f"{analyst_name} ({analyst_title}) — Dog-hunt lens: {context['winner']} over {context['loser']} at {context['odds']}. "
+            f"Confidence/data point profile is {context['confidence']} ({context['data_points']}), so this is selective aggression, not blind plus-money chasing. "
+            f"Underdog support: {winner_signals}. "
+            f"Favorite-side risk controls: {loser_signals}. "
+            f"Game conditions ({weather}), umpire setup ({ump}), and line behavior ({movement}) decide whether value survives to first pitch. "
+            f"Lineup status: {lineup_status}{lineup_impact_sentence}"
+        )
+    if style == "line movement hawk":
+        return (
+            f"{analyst_name} ({analyst_title}) — Tape on the number: {context['winner']} over {context['loser']} at {context['odds']}. "
+            f"Model confidence is {context['confidence']} ({context['data_points']}), but price behavior is the filter. "
+            f"Fundamental support: {winner_signals}. "
+            f"Resistance signals: {loser_signals}. "
+            f"With weather ({weather}) and umpire context ({ump}), movement profile ({movement}) tells you if the edge is still there. "
+            f"Lineup status: {lineup_status}{lineup_impact_sentence}"
+        )
+    if style == "injury/lineup impact":
+        return (
+            f"{analyst_name} ({analyst_title}) — Availability framing: {context['winner']} over {context['loser']} at {context['odds']}, confidence {context['confidence']} ({context['data_points']}). "
+            f"Edge case for {context['winner']}: {winner_signals}. "
+            f"Stress points from {context['loser']}: {loser_signals}. "
+            f"Before bet placement, reconcile injury/load context with weather ({weather}), umpire assignment ({ump}), and market movement ({movement}). "
+            f"Lineup status: {lineup_status}{lineup_impact_sentence}"
+        )
+    if style == "totals architect":
+        return (
+            f"{analyst_name} ({analyst_title}) — Run-environment read supporting {context['winner']} over {context['loser']} at {context['odds']}. "
+            f"Confidence sits at {context['confidence']} with {context['data_points']} data points. "
+            f"Scoring pressure indicators: {winner_signals}. "
+            f"Run-prevention resistance: {loser_signals}. "
+            f"Weather ({weather}) and plate profile ({ump}) are primary context; line behavior ({movement}) confirms timing. "
+            f"Lineup status: {lineup_status}{lineup_impact_sentence}"
+        )
+    if style == "clv auditor":
+        return (
+            f"{analyst_name} ({analyst_title}) — CLV discipline pass: {context['winner']} over {context['loser']} at {context['odds']}. "
+            f"The model projects confidence {context['confidence']} with {context['data_points']}, but execution quality depends on price timing. "
+            f"Core support: {winner_signals}. "
+            f"Failure conditions: {loser_signals}. "
+            f"Use weather ({weather}), umpire context ({ump}), and current move path ({movement}) to avoid paying peak tax. "
             f"Lineup status: {lineup_status}{lineup_impact_sentence}"
         )
 
     return (
-        f"Price-first view: {context['winner']} over {context['loser']} at {context['odds']} with model confidence {context['confidence']} ({context['data_points']}). "
+        f"{analyst_name} ({analyst_title}) — Price-first view: {context['winner']} over {context['loser']} at {context['odds']} with model confidence {context['confidence']} ({context['data_points']}). "
         f"The strongest support for {context['winner']} comes from: {winner_signals}. "
         f"The best resistance case for {context['loser']} comes from: {loser_signals}. "
         f"Venue/weather ({venue}, {weather}), umpire notes ({ump}), and market movement ({movement}) keep this in the value bucket. "
@@ -411,13 +570,25 @@ def _fallback_commentary(context):
 
 
 def _generate_commentary(context):
-    # Deterministic in-process commentary only.
-    # No external LLM calls.
+    # If OpenAI key exists, use get_pick_summary as requested to generate
+    # commentary for this pick context; otherwise fall back deterministically.
+    if os.environ.get("OPENAI_API_KEY"):
+        try:
+            from connector.llm import get_pick_summary
+
+            fallback = _fallback_commentary(context)
+            model_name = context.get("model_name", "dutch")
+            llm_text = get_pick_summary(context, fallback, model_name)
+            if llm_text and str(llm_text).strip():
+                return str(llm_text).strip()
+        except Exception as e:
+            print(f"LLM commentary generation failed, using fallback: {e}")
+
     return _fallback_commentary(context)
 
 
 def write_daily_pick_markdown(predictions, odds_data, model_name):
-    valid = [p for p in predictions if p.winning_team != '-']
+    valid = [p for p in predictions if p.winning_team != "-"]
     if not valid:
         return None
 
@@ -439,10 +610,13 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
     lines.append(f"# MLB Picks Commentary — {today}")
     lines.append("")
     lines.append(f"- Model: `{model_name}`")
-    lines.append(f"- Generated: {datetime.now(eastern).strftime('%Y-%m-%d %I:%M %p %Z')}")
+    lines.append(
+        f"- Generated: {datetime.now(eastern).strftime('%Y-%m-%d %I:%M %p %Z')}"
+    )
     try:
-        from connector.llm import get_pick_summary
-        ai_summary = get_pick_summary(valid, model_name)
+        from connector.llm import get_pick_summaries
+
+        ai_summary = get_pick_summaries(valid, model_name)
         lines.append(f"- AI Summary Model Path: generated during markdown build")
         lines.append("")
         lines.append("## AI Pick Summary")
@@ -467,32 +641,46 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
         game = _find_game_for_pick(schedule, winner_name, loser_name)
         game_data = statsapi.get("game", {"gamePk": game["game_id"]}) if game else {}
 
-        weather = _extract_weather(game_data) if game_data else {
-            "venue": "Unknown Venue",
-            "summary": "Weather unavailable.",
-            "dome": False,
-        }
+        weather = (
+            _extract_weather(game_data)
+            if game_data
+            else {
+                "venue": "Unknown Venue",
+                "summary": "Weather unavailable.",
+                "dome": False,
+            }
+        )
 
         umpires = _extract_umpires(game_data) if game_data else []
-        ump_summary = "; ".join(umpires) if umpires else "Umpire crew unavailable at run time."
+        ump_summary = (
+            "; ".join(umpires) if umpires else "Umpire crew unavailable at run time."
+        )
 
         winner_id = name_to_id.get(winner_name)
         loser_id = name_to_id.get(loser_name)
         winner_injuries = _get_injuries(winner_id) if winner_id else []
         loser_injuries = _get_injuries(loser_id) if loser_id else []
 
-        winner_lineup_impact = _lineup_change_impact(
-            winner_id,
-            winner_name,
-            todays_lineups.get(winner_id, []),
-            today,
-        ) if winner_id else ""
-        loser_lineup_impact = _lineup_change_impact(
-            loser_id,
-            loser_name,
-            todays_lineups.get(loser_id, []),
-            today,
-        ) if loser_id else ""
+        winner_lineup_impact = (
+            _lineup_change_impact(
+                winner_id,
+                winner_name,
+                todays_lineups.get(winner_id, []),
+                today,
+            )
+            if winner_id
+            else ""
+        )
+        loser_lineup_impact = (
+            _lineup_change_impact(
+                loser_id,
+                loser_name,
+                todays_lineups.get(loser_id, []),
+                today,
+            )
+            if loser_id
+            else ""
+        )
 
         impact_parts = []
         if winner_lineup_impact:
@@ -505,32 +693,51 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
         line_move = _extract_line_movement(odds_entry, winner_name)
         total_market = _extract_total_market(odds_entry)
 
+        style_array = [
+            {"style": s, "analyst_name": n, "analyst_title": t}
+            for s, n, t in ANALYST_STYLE_LADDER
+        ]
+        style_entry = style_array[(idx - 1) % len(style_array)]
+
         context = {
             "pick_index": idx,
-            "style": ["betting desk", "beat writer notebook", "scouting report", "game-script breakdown"][(idx - 1) % 4],
+            "style": style_entry["style"],
+            "analyst_name": style_entry["analyst_name"],
+            "analyst_title": style_entry["analyst_title"],
             "winner": winner_name,
             "loser": loser_name,
             "odds": _format_odds(p.odds),
             "confidence": p.confidence,
             "data_points": p.data_points,
-            "winner_signals": ", ".join(p.winning_stats[:15]) if p.winning_stats else "No model signal list available.",
-            "loser_signals": ", ".join(p.losing_stats[:15]) if p.losing_stats else "No model signal list available.",
+            "winner_signals": ", ".join(p.winning_stats[:15])
+            if p.winning_stats
+            else "No model signal list available.",
+            "loser_signals": ", ".join(p.losing_stats[:15])
+            if p.losing_stats
+            else "No model signal list available.",
             "venue": weather.get("venue", "Unknown Venue"),
             "weather_summary": weather.get("summary", "Weather unavailable."),
             "umpire_summary": ump_summary,
-            "winner_injuries": ", ".join(winner_injuries) if winner_injuries else "No injured-list data available.",
-            "loser_injuries": ", ".join(loser_injuries) if loser_injuries else "No injured-list data available.",
+            "winner_injuries": ", ".join(winner_injuries)
+            if winner_injuries
+            else "No injured-list data available.",
+            "loser_injuries": ", ".join(loser_injuries)
+            if loser_injuries
+            else "No injured-list data available.",
             "line_movement_text": line_move["text"],
             "total_line_text": total_market["text"],
             "total_movement_text": total_market["movement_text"],
             "winner_lineup_announced": winner_lineup_announced,
             "loser_lineup_announced": loser_lineup_announced,
-            "lineup_status_text": _lineup_status_text(winner_name, loser_name, winner_lineup_announced, loser_lineup_announced),
+            "lineup_status_text": _lineup_status_text(
+                winner_name, loser_name, winner_lineup_announced, loser_lineup_announced
+            ),
             "winner_lineup_trend": winner_lineup_impact,
             "loser_lineup_trend": loser_lineup_impact,
             "lineup_change_impact": lineup_change_impact,
             "winning_pitcher": p.winning_pitcher,
             "losing_pitcher": p.losing_pitcher,
+            "model_name": model_name,
         }
 
         commentary = _generate_commentary(context)
@@ -538,8 +745,12 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
         lines.append(f"## {idx}) {winner_name} over {loser_name}")
         lines.append("")
         lines.append(f"- **Pick Odds:** {context['odds']}")
-        lines.append(f"- **Model Confidence:** {context['confidence']} (data points: {context['data_points']})")
-        lines.append(f"- **Pitching Matchup:** {context['winning_pitcher']} vs {context['losing_pitcher']}")
+        lines.append(
+            f"- **Model Confidence:** {context['confidence']} (data points: {context['data_points']})"
+        )
+        lines.append(
+            f"- **Pitching Matchup:** {context['winning_pitcher']} vs {context['losing_pitcher']}"
+        )
         lines.append(f"- **{winner_name} Model Signals:** {context['winner_signals']}")
         lines.append(f"- **{loser_name} Model Signals:** {context['loser_signals']}")
         lines.append(f"- **Venue:** {context['venue']}")
@@ -548,9 +759,15 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
         lines.append(f"- **{winner_name} Injuries:** {context['winner_injuries']}")
         lines.append(f"- **{loser_name} Injuries:** {context['loser_injuries']}")
         lines.append(f"- **Starting Lineups:** {context['lineup_status_text']}")
-        lines.append(f"- **{winner_name} Lineup Trend:** {context['winner_lineup_trend'] or 'n/a'}")
-        lines.append(f"- **{loser_name} Lineup Trend:** {context['loser_lineup_trend'] or 'n/a'}")
-        lines.append(f"- **Lineup Change Impact:** {context['lineup_change_impact'] or 'n/a'}")
+        lines.append(
+            f"- **{winner_name} Lineup Trend:** {context['winner_lineup_trend'] or 'n/a'}"
+        )
+        lines.append(
+            f"- **{loser_name} Lineup Trend:** {context['loser_lineup_trend'] or 'n/a'}"
+        )
+        lines.append(
+            f"- **Lineup Change Impact:** {context['lineup_change_impact'] or 'n/a'}"
+        )
         lines.append(f"- **Line Movement:** {context['line_movement_text']}")
         lines.append(f"- **Total Line:** {context['total_line_text']}")
         lines.append(f"- **Total Movement:** {context['total_movement_text']}")

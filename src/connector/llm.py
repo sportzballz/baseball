@@ -3,7 +3,87 @@ import os
 from openai import OpenAI
 
 
-def get_pick_summary(predictions, model_name):
+def get_pick_summary(context, fallback_commentary, model_name):
+    """
+    Send today's picks to an LLM and get back a summary with a pick-of-the-day suggestion.
+
+    Args:
+        predictions: list of Prediction objects (already filtered to valid picks)
+        model_name: name of the model that generated the picks (e.g. 'ashburn')
+
+    Returns:
+        str: LLM-generated summary and pick-of-the-day suggestion
+    """
+    if not context:
+        return fallback_commentary or "No valid pick context."
+
+    style = context.get("style", "beat writer notebook")
+    system_prompt = (
+        f"You are an expert MLB baseball analyst with this style: '{style}'. You are given a set of model-generated "
+        f"picks for today's games produced by the '{model_name}' prediction model. "
+        f"Each pick includes the predicted winner, moneyline odds, model confidence "
+        f"(0-1 scale, higher is better), data points (winner points / total points), "
+        f"starting pitchers, and game time.  Pay attention to weather if relevant and line movement.  Look for over over advantages and underdog picks.\n\n"
+    )
+
+    user_prompt = f"Take this commentary '{fallback_commentary}' and make it better based on all the relevent context in this json '{str(context)}'\n\n"
+
+    def _deterministic_fallback_summary():
+        return fallback_commentary or "Commentary unavailable."
+
+    def _call_openai(api_key, llm_model, base_url=None):
+        client = (
+            OpenAI(api_key=api_key, base_url=base_url)
+            if base_url
+            else OpenAI(api_key=api_key)
+        )
+        response = client.chat.completions.create(
+            model=llm_model,
+            temperature=0.7,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        return response.choices[0].message.content
+
+    errors = []
+
+    # Primary: OpenAI direct
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    openai_model = os.environ.get("OPENAI_SUMMARY_MODEL", "gpt-4o-mini")
+    if openai_key:
+        try:
+            summary = _call_openai(openai_key, openai_model)
+            print(f"LLM summary provider=openai model={openai_model}")
+            return summary
+        except Exception as e:
+            errors.append(f"openai:{e}")
+
+    # Fallback provider: OpenRouter (OpenAI-compatible API)
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY")
+    openrouter_model = os.environ.get("OPENROUTER_SUMMARY_MODEL", "openai/gpt-4o-mini")
+    if openrouter_key:
+        try:
+            summary = _call_openai(
+                openrouter_key,
+                openrouter_model,
+                base_url="https://openrouter.ai/api/v1",
+            )
+            print(f"LLM summary provider=openrouter model={openrouter_model}")
+            return summary
+        except Exception as e:
+            errors.append(f"openrouter:{e}")
+
+    if errors:
+        print(
+            "LLM summary provider fallback -> deterministic; errors: "
+            + " | ".join(errors)
+        )
+    return _deterministic_fallback_summary()
+
+
+def get_pick_summaries(predictions, model_name):
     """
     Send today's picks to an LLM and get back a summary with a pick-of-the-day suggestion.
 
@@ -50,7 +130,7 @@ def get_pick_summary(predictions, model_name):
     )
 
     def _deterministic_fallback_summary():
-        valid = [p for p in predictions if p.winning_team != '-']
+        valid = [p for p in predictions if p.winning_team != "-"]
         if not valid:
             return "No valid picks today."
 
@@ -67,14 +147,20 @@ def get_pick_summary(predictions, model_name):
 
         risky = [p for p in valid if float(p.confidence) < 0.10]
         if risky:
-            risky_text = ", ".join([f"{p.winning_team} over {p.losing_team}" for p in risky[:3]])
+            risky_text = ", ".join(
+                [f"{p.winning_team} over {p.losing_team}" for p in risky[:3]]
+            )
             lines.append(f"Risk watch: lower-confidence leans include {risky_text}.")
         else:
             lines.append("Risk watch: no ultra-low-confidence plays flagged.")
         return "\n".join(lines)
 
     def _call_openai(api_key, llm_model, base_url=None):
-        client = OpenAI(api_key=api_key, base_url=base_url) if base_url else OpenAI(api_key=api_key)
+        client = (
+            OpenAI(api_key=api_key, base_url=base_url)
+            if base_url
+            else OpenAI(api_key=api_key)
+        )
         response = client.chat.completions.create(
             model=llm_model,
             temperature=0.7,
@@ -114,5 +200,8 @@ def get_pick_summary(predictions, model_name):
             errors.append(f"openrouter:{e}")
 
     if errors:
-        print("LLM summary provider fallback -> deterministic; errors: " + " | ".join(errors))
+        print(
+            "LLM summary provider fallback -> deterministic; errors: "
+            + " | ".join(errors)
+        )
     return _deterministic_fallback_summary()
