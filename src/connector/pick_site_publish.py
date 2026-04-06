@@ -1232,10 +1232,11 @@ def _render_run_line_html(parsed, evaluated_picks=None, frozen_commentary=None):
 '''
 
 
-def _render_top_index(latest_date: str, archive_dates):
+def _render_top_index(latest_date: str, archive_dates, latest_picks=None):
     latest_href = f"/{latest_date}.html"
-    latest_run_line_href = f"/{latest_date}-run-line.html"
+    latest_plus_href = f"/{latest_date}-plus-money.html"
     latest_totals_href = f"/{latest_date}-run-totals.html"
+    latest_picks = latest_picks or []
 
     archive_groups = []
     for i, d in enumerate(sorted(set(archive_dates), reverse=True)):
@@ -1250,6 +1251,25 @@ def _render_top_index(latest_date: str, archive_dates):
             </div>
           </details>
         ''')
+
+    latest_sorted = sorted(
+        latest_picks,
+        key=lambda p: _parse_confidence(_field(p, 'Model Confidence', '')) or -1,
+        reverse=True,
+    )
+    latest_items = []
+    for i, p in enumerate(latest_sorted, 1):
+        winner, loser = p.get('winner', 'TBD'), p.get('loser', 'TBD')
+        latest_items.append(
+            f"<li><strong>{i}. {html.escape(winner)} over {html.escape(loser)}</strong>"
+            f" <span>• Odds {html.escape(_field(p,'Pick Odds','----'))}</span>"
+            f" <span>• Confidence {html.escape(_field(p,'Model Confidence','n/a'))}</span></li>"
+        )
+
+    latest_picks_html = (
+        f"<ol class='latest-picks'>{''.join(latest_items)}</ol>"
+        if latest_items else "<p class='meta'>No picks available yet for this date.</p>"
+    )
 
     return f'''<!doctype html>
 <html lang="en">
@@ -1286,6 +1306,9 @@ def _render_top_index(latest_date: str, archive_dates):
     .tabbar {{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }}
     .tab {{ display:inline-block; padding:9px 12px; border-radius:9px; text-decoration:none; color:#dfeeff; border:1px solid #3b5a95; background:rgba(255,255,255,.03); font-weight:600; font-size:14px; }}
     .tab.active {{ color:#081224; border-color:transparent; background:linear-gradient(90deg,var(--accent),var(--accent2)); }}
+    .latest-picks {{ margin:10px 0 0 18px; padding:0; display:grid; gap:8px; }}
+    .latest-picks li {{ color:#e7f0ff; line-height:1.35; }}
+    .latest-picks li span {{ color:#b9caef; font-size:13px; }}
     .meta {{ font-size:14px; color:var(--muted); margin-top:10px; }}
     .archive-group {{ border:1px solid #304b87; border-radius:10px; padding:10px 12px; background:rgba(255,255,255,.02); margin-bottom:10px; }}
     .archive-group summary {{ cursor:pointer; font-weight:700; color:#dfeeff; }}
@@ -1317,11 +1340,11 @@ def _render_top_index(latest_date: str, archive_dates):
     <section class="cards">
       <article class="card">
         <h2>Latest Daily Picks</h2>
-        <p>Money Line, Run Line, and Over/Under tabs for {latest_date}. Money Line is default.</p>
+        <p>Daily Picks for {latest_date}:</p>
+        {latest_picks_html}
         <div class="tabbar">
-          <a class="tab active" href="{latest_href}">Money Line</a>
-          <a class="tab" href="{latest_run_line_href}">Run Line</a>
-          <a class="tab" href="{latest_totals_href}">Over / Under</a>
+          <a class="tab" href="{latest_plus_href}">Plus Money Picks</a>
+          <a class="tab" href="{latest_totals_href}">Run Total Picks</a>
         </div>
         <div class="meta">Format: <code>yyyy-mm-dd.html</code></div>
         {_render_ad_slot('index-hero', 'Homepage Sponsorship')}
@@ -1650,7 +1673,7 @@ def publish_daily_site(markdown_path: str, site_repo_path: str = None):
     archive = _find_archive_dates(site_repo)
     if parsed['date'] not in archive:
         archive = [parsed['date']] + archive
-    (site_repo / 'index.html').write_text(_render_top_index(parsed['date'], archive))
+    (site_repo / 'index.html').write_text(_render_top_index(parsed['date'], archive, evaluated_picks))
     (site_repo / 'robots.txt').write_text(_render_robots_txt())
     (site_repo / 'sitemap.xml').write_text(_render_sitemap_xml(archive))
 
