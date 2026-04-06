@@ -1240,9 +1240,20 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
     frozen_commentary = frozen_commentary or {}
 
     archive_groups = []
+    archive_toolbar_groups = []
     for i, d in enumerate(sorted(set(archive_dates), reverse=True)):
         latest_pill = ' <span class="pill">Latest</span>' if i == 0 else ''
         archive_groups.append(f'''
+          <details class="archive-group" {'open' if i == 0 else ''}>
+            <summary>{d}{latest_pill}</summary>
+            <div class="archive-links">
+              <a href="/{d}.html">Daily Picks</a>
+              <a href="/{d}-plus-money.html">Plus Money Picks</a>
+              <a href="/{d}-run-totals.html">Run Total Picks</a>
+            </div>
+          </details>
+        ''')
+        archive_toolbar_groups.append(f'''
           <details class="archive-group" {'open' if i == 0 else ''}>
             <summary>{d}{latest_pill}</summary>
             <div class="archive-links">
@@ -1387,16 +1398,20 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
     :root {{ --bg:#0a1020; --panel:#111a33; --line:#2a3e72; --ink:#ebf1ff; --muted:#9fb2de; --accent:#63d2ff; --accent2:#7cffc7; }}
     * {{ box-sizing: border-box; }}
     body {{ margin:0; color:var(--ink); background:radial-gradient(1100px 700px at 10% -5%, #1e2f66 0%, transparent 60%), radial-gradient(900px 600px at 95% 0%, #1b355f 0%, transparent 55%), var(--bg); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif; min-height:100vh; }}
-    .wrap {{ max-width:1100px; margin:0 auto; padding:26px 16px 52px; }}
+    .wrap {{ max-width:1500px; margin:0 auto; padding:26px 16px 52px; }}
     .hero {{ border:1px solid var(--line); border-radius:18px; padding:28px 24px; background:linear-gradient(135deg, rgba(99,210,255,.14), rgba(124,255,199,.08)); box-shadow:0 22px 45px rgba(0,0,0,.30); }}
     .kicker {{ color:var(--muted); text-transform:uppercase; letter-spacing:.12em; font-size:12px; margin-bottom:10px; font-weight:700; }}
     .logo {{ margin:0; line-height:1; font-size:clamp(52px, 11vw, 120px); font-weight:900; letter-spacing:.01em; text-transform:uppercase; font-family:Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif; color:#f8fbff; text-shadow:0 2px 0 #0d162e, 2px 2px 0 #0d162e, 3px 3px 0 #0d162e, 4px 4px 0 #0d162e, 0 0 20px rgba(99,210,255,.25); }}
     .logo .z {{ color:#ff5c5c; text-shadow:0 2px 0 #2a0b0b, 2px 2px 0 #2a0b0b, 3px 3px 0 #2a0b0b, 0 0 14px rgba(239,68,68,.35); }}
     .tagline {{ margin:12px 0 0; color:#d9e5ff; font-size:clamp(17px,2.2vw,24px); max-width:760px; line-height:1.35; }}
-    .toolbar {{ margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }}
-    .toolbar .label {{ color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.1em; }}
+    .nav-toolbar {{ margin-top:12px; display:grid; grid-template-columns:1.2fr 1.4fr .8fr; gap:10px; align-items:start; }}
+    .toolbar-group {{ border:1px solid #304b87; border-radius:10px; padding:10px; background:rgba(255,255,255,.03); }}
+    .toolbar-title {{ color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.1em; margin-bottom:8px; font-weight:700; }}
+    .toolbar-links {{ display:flex; gap:8px; flex-wrap:wrap; }}
+    .toolbar-links a {{ color:#dfeeff; text-decoration:none; border:1px solid #3b5a95; border-radius:8px; padding:7px 10px; font-size:13px; background:rgba(255,255,255,.02); }}
+    .toolbar-links a:hover {{ border-color:var(--accent); }}
     .btn {{ display:inline-block; padding:10px 14px; border-radius:10px; text-decoration:none; color:#081224; background:linear-gradient(90deg,var(--accent),var(--accent2)); font-weight:700; margin-top:8px; }}
-    .cards {{ margin-top:18px; display:grid; grid-template-columns:1.2fr .8fr; gap:14px; }}
+    .cards {{ margin-top:18px; display:grid; grid-template-columns:1fr; gap:14px; }}
     .card {{ border:1px solid var(--line); border-radius:14px; background:var(--panel); padding:16px; }}
     .card h2 {{ margin:0 0 10px; font-size:21px; line-height:1.2; }}
     .tabbar {{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }}
@@ -1421,6 +1436,7 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
     .ad-cta{{display:inline-block;padding:7px 10px;border-radius:8px;border:1px solid #4c6db0;color:#dff2ff;text-decoration:none;font:600 12px Inter,system-ui,sans-serif}}
     footer {{ margin-top:16px; color:var(--muted); font-size:12px; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }}
     .footer-links a {{ color:#c8dbff; text-decoration:none; margin-right:10px; }}
+    @media (max-width:1100px) {{ .nav-toolbar {{ grid-template-columns:1fr; }} }}
     @media (max-width:860px) {{ .cards {{ grid-template-columns:1fr; }} .logo {{ font-size:clamp(44px,18vw,90px); }} }}
   </style>
 </head>
@@ -1430,9 +1446,23 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
       <div class="kicker">SportzBallz Daily MLB Desk</div>
       <h1 class="logo">SPORT<span class="z">Z</span>BALL<span class="z">Z</span></h1>
       <p class="tagline">artificially intelligent athletic competition prognostication</p>
-      <div class="toolbar">
-        <div class="label">Dashboard</div>
-        <a class="btn" href="/dashboard.html" style="margin-top:0; background:linear-gradient(90deg,#8b5cf6,#5cc9ff);">Open Dashboard</a>
+      <div class="nav-toolbar">
+        <div class="toolbar-group">
+          <div class="toolbar-title">Latest Daily Picks</div>
+          <div class="toolbar-links">
+            <a href="{latest_href}">Daily Picks</a>
+            <a href="{latest_plus_href}">Plus Money Picks</a>
+            <a href="{latest_totals_href}">Run Total Picks</a>
+          </div>
+        </div>
+        <div class="toolbar-group">
+          <div class="toolbar-title">Archive</div>
+          {''.join(archive_toolbar_groups)}
+        </div>
+        <div class="toolbar-group">
+          <div class="toolbar-title">Performance Dashboard</div>
+          <a class="btn" href="/dashboard.html" style="margin-top:0; background:linear-gradient(90deg,#8b5cf6,#5cc9ff);">Open Dashboard</a>
+        </div>
       </div>
     </section>
 
@@ -1460,10 +1490,6 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
         {_render_ad_slot('index-hero', 'Homepage Sponsorship')}
       </article>
 
-      <article class="card">
-        <h2>Archive</h2>
-        {''.join(archive_groups)}
-      </article>
     </section>
 
     <footer>
