@@ -1,12 +1,15 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 import requests
 import statsapi
 
 from common.util import get_teams_list
+from connector.mlbstartinglineups import get_starting_lineups
+
+RECENT_LINEUP_GAMES = 5
 
 DOME_VENUES = {
     "Rogers Centre",
@@ -243,12 +246,129 @@ def _lineup_status_text(winner_name, loser_name, winner_announced, loser_announc
     return f"{winner_name} lineup not announced; {loser_name} lineup announced at publish time."
 
 
+def _today_lineups_by_team():
+    out = {}
+    try:
+        for lu in get_starting_lineups() or []:
+            ids = []
+            for p in getattr(lu, "lineup_players", []) or []:
+                try:
+                    ids.append(int(p.get("personId")))
+                except Exception:
+                    continue
+            if ids:
+                out[int(lu.team_id)] = ids[:9]
+    except Exception:
+        return {}
+    return out
+
+
+def _recent_team_games(team_id, as_of_date, max_games=RECENT_LINEUP_GAMES):
+    # Pull enough history window to capture previous few completed games.
+    end_date = datetime.strptime(as_of_date, "%Y-%m-%d").date() - timedelta(days=1)
+    start_date = end_date - timedelta(days=25)
+    try:
+        games = statsapi.schedule(
+            start_date=str(start_date),
+            end_date=str(end_date),
+            team=team_id,
+        )
+    except Exception:
+        games = []
+
+    games = sorted(games, key=lambda g: g.get("game_datetime") or "", reverse=True)
+    return games[:max_games]
+
+
+def _team_lineup_and_result_for_game(game_pk, team_id):
+    try:
+        game = statsapi.get("game", {"gamePk": game_pk})
+    except Exception:
+        return [], None
+
+    home_id = _safe_get(game, ["gameData", "teams", "home", "id"])
+    away_id = _safe_get(game, ["gameData", "teams", "away", "id"])
+    side = "home" if home_id == team_id else ("away" if away_id == team_id else None)
+    if not side:
+        return [], None
+
+    order = _safe_get(game, ["liveData", "boxscore", "teams", side, "battingOrder"], []) or []
+    lineup_ids = []
+    for pid in order[:9]:
+        try:
+            lineup_ids.append(int(pid))
+        except Exception:
+            continue
+
+    team_runs = _safe_get(game, ["liveData", "linescore", "teams", side, "runs"])
+    opp_side = "away" if side == "home" else "home"
+    opp_runs = _safe_get(game, ["liveData", "linescore", "teams", opp_side, "runs"])
+    won = None
+    if isinstance(team_runs, int) and isinstance(opp_runs, int):
+        won = team_runs > opp_runs
+
+    return lineup_ids, won
+
+
+def _lineup_change_impact(team_id, team_name, today_lineup_ids, as_of_date):
+    if not today_lineup_ids:
+        return ""
+
+    recent = _recent_team_games(team_id, as_of_date, RECENT_LINEUP_GAMES)
+    if not recent:
+        return ""
+
+    today_set = set(today_lineup_ids)
+    overlaps = []
+    turnover_wins = turnover_total = 0
+    stable_wins = stable_total = 0
+
+    for g in recent:
+        game_pk = g.get("game_id")
+        if not game_pk:
+            continue
+        prev_ids, won = _team_lineup_and_result_for_game(game_pk, team_id)
+        if not prev_ids:
+            continue
+        shared = len(today_set.intersection(set(prev_ids)))
+        overlaps.append(shared)
+
+        if won is None:
+            continue
+        if shared <= 6:
+            turnover_total += 1
+            if won:
+                turnover_wins += 1
+        elif shared >= 8:
+            stable_total += 1
+            if won:
+                stable_wins += 1
+
+    if not overlaps:
+        return ""
+
+    avg_shared = round(sum(overlaps) / len(overlaps), 1)
+    base = f"Compared with last {len(overlaps)} games, today's announced lineup shares {avg_shared}/9 starters on average."
+
+    impact_bits = []
+    if turnover_total >= 2:
+        impact_bits.append(f"In higher-turnover comps (≤6 shared), {team_name} went {turnover_wins}-{turnover_total - turnover_wins}")
+    if stable_total >= 2:
+        impact_bits.append(f"in stable-lineup comps (≥8 shared), {team_name} went {stable_wins}-{stable_total - stable_wins}")
+
+    if impact_bits:
+        return base + " " + "; ".join(impact_bits) + "."
+    return base
+
+
 def _fallback_commentary(context):
     venue = context["venue"]
     weather = context["weather_summary"]
     movement = context["line_movement_text"]
     ump = context["umpire_summary"]
     lineup_status = context.get("lineup_status_text", "Starting lineup status unavailable at publish time.")
+    lineup_impact = context.get("lineup_change_impact", "")
+    lineup_impact_sentence = f" {lineup_impact}" if lineup_impact else ""
     style = context.get("style", "betting desk")
     winner_signals = context.get("winner_signals", "No model signal list available.")
     loser_signals = context.get("loser_signals", "No model signal list available.")
@@ -260,7 +380,7 @@ def _fallback_commentary(context):
             f"On the baseball side, the edge profile for {context['winner']} is driven by {winner_signals}. "
             f"The counter-case for {context['loser']} shows up in {loser_signals}, but the market signal ({movement}) still leans playable. "
             f"Umpire context ({ump}) is a late-variable worth watching, but this spot grades as a disciplined position rather than a flyer. "
-            f"Lineup status: {lineup_status}"
+            f"Lineup status: {lineup_status}{lineup_impact_sentence}"
         )
     if style == "scouting report":
         return (
@@ -269,7 +389,7 @@ def _fallback_commentary(context):
             f"Signal stack for {context['winner']}: {winner_signals}. "
             f"Opposition signal stack for {context['loser']}: {loser_signals}. "
             f"Add weather ({weather}), umpire texture ({ump}), and line behavior ({movement}) and this profile stays actionable. "
-            f"Lineup status: {lineup_status}"
+            f"Lineup status: {lineup_status}{lineup_impact_sentence}"
         )
     if style == "game-script breakdown":
         return (
@@ -278,7 +398,7 @@ def _fallback_commentary(context):
             f"Early/ongoing pressure indicators for {context['winner']} show up in {winner_signals}. "
             f"Pushback factors for {context['loser']} are {loser_signals}. "
             f"Environment ({weather}), crew ({ump}), and market movement ({movement}) all point to the same side unless live conditions materially shift. "
-            f"Lineup status: {lineup_status}"
+            f"Lineup status: {lineup_status}{lineup_impact_sentence}"
         )
 
     return (
@@ -286,7 +406,7 @@ def _fallback_commentary(context):
         f"The strongest support for {context['winner']} comes from: {winner_signals}. "
         f"The best resistance case for {context['loser']} comes from: {loser_signals}. "
         f"Venue/weather ({venue}, {weather}), umpire notes ({ump}), and market movement ({movement}) keep this in the value bucket. "
-        f"Lineup status: {lineup_status}"
+        f"Lineup status: {lineup_status}{lineup_impact_sentence}"
     )
 
 
@@ -306,6 +426,7 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
 
     abbr_to_name, name_to_id = _get_team_maps()
     schedule = _build_schedule_lookup(today)
+    todays_lineups = _today_lineups_by_team()
 
     odds_lookup = {}
     for o in odds_data.get("results", []):
@@ -348,6 +469,26 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
         winner_injuries = _get_injuries(winner_id) if winner_id else []
         loser_injuries = _get_injuries(loser_id) if loser_id else []
 
+        winner_lineup_impact = _lineup_change_impact(
+            winner_id,
+            winner_name,
+            todays_lineups.get(winner_id, []),
+            today,
+        ) if winner_id else ""
+        loser_lineup_impact = _lineup_change_impact(
+            loser_id,
+            loser_name,
+            todays_lineups.get(loser_id, []),
+            today,
+        ) if loser_id else ""
+
+        impact_parts = []
+        if winner_lineup_impact:
+            impact_parts.append(f"{winner_name}: {winner_lineup_impact}")
+        if loser_lineup_impact:
+            impact_parts.append(f"{loser_name}: {loser_lineup_impact}")
+        lineup_change_impact = " ".join(impact_parts)
+
         odds_entry = odds_lookup.get(frozenset([winner_name, loser_name]))
         line_move = _extract_line_movement(odds_entry, winner_name)
         total_market = _extract_total_market(odds_entry)
@@ -373,6 +514,9 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
             "winner_lineup_announced": winner_lineup_announced,
             "loser_lineup_announced": loser_lineup_announced,
             "lineup_status_text": _lineup_status_text(winner_name, loser_name, winner_lineup_announced, loser_lineup_announced),
+            "winner_lineup_trend": winner_lineup_impact,
+            "loser_lineup_trend": loser_lineup_impact,
+            "lineup_change_impact": lineup_change_impact,
             "winning_pitcher": p.winning_pitcher,
             "losing_pitcher": p.losing_pitcher,
         }
@@ -392,6 +536,9 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
         lines.append(f"- **{winner_name} Injuries:** {context['winner_injuries']}")
         lines.append(f"- **{loser_name} Injuries:** {context['loser_injuries']}")
         lines.append(f"- **Starting Lineups:** {context['lineup_status_text']}")
+        lines.append(f"- **{winner_name} Lineup Trend:** {context['winner_lineup_trend'] or 'n/a'}")
+        lines.append(f"- **{loser_name} Lineup Trend:** {context['loser_lineup_trend'] or 'n/a'}")
+        lines.append(f"- **Lineup Change Impact:** {context['lineup_change_impact'] or 'n/a'}")
         lines.append(f"- **Line Movement:** {context['line_movement_text']}")
         lines.append(f"- **Total Line:** {context['total_line_text']}")
         lines.append(f"- **Total Movement:** {context['total_movement_text']}")

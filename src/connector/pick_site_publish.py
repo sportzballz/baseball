@@ -432,6 +432,15 @@ def _lineup_status_note(text):
     return f"Lineup status: {t}"
 
 
+def _lineup_change_impact_note(text):
+    t = (text or "").strip()
+    if not t or t.lower() in ("n/a", "unavailable"):
+        return ""
+    if "unavailable" in t.lower():
+        return f"Lineup trend context: {t}"
+    return f"Lineup-change trend: {t}"
+
+
 def _parse_markdown(md_text: str):
     lines = md_text.splitlines()
     date_str = ""
@@ -737,6 +746,7 @@ def _analysis_paragraph(pick, idx, date_text=''):
     w_inj = _field(pick, f'{winner} Injuries', 'n/a')
     l_inj = _field(pick, f'{loser} Injuries', 'n/a')
     lineups = _field(pick, 'Starting Lineups', 'n/a')
+    lineup_impact = _field(pick, 'Lineup Change Impact', 'n/a')
 
     analyst = _pick_analyst(pick, idx, date_text)
 
@@ -752,6 +762,7 @@ def _analysis_paragraph(pick, idx, date_text=''):
         f"{_weather_note(venue, weather)} "
         f"{_umpire_note(ump)} "
         f"{_lineup_status_note(lineups)} "
+        f"{_lineup_change_impact_note(lineup_impact)} "
         f"{_injury_note(winner, loser, w_inj, l_inj)} "
         f"{_line_movement_note(line_move)}"
     )
@@ -843,6 +854,7 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None, frozen_commen
             <li><strong>{html.escape(winner)} Injuries:</strong> {html.escape(_field(p,f'{winner} Injuries','n/a'))}</li>
             <li><strong>{html.escape(loser)} Injuries:</strong> {html.escape(_field(p,f'{loser} Injuries','n/a'))}</li>
             <li><strong>Starting Lineups:</strong> {html.escape(_field(p,'Starting Lineups','n/a'))}</li>
+            <li><strong>Lineup Change Impact:</strong> {html.escape(_field(p,'Lineup Change Impact','n/a'))}</li>
             <li><strong>Line Movement:</strong> {html.escape(_field(p,'Line Movement','n/a'))}</li>
           </ul>
         </details>
@@ -987,6 +999,7 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None, frozen_c
             <li><strong>{html.escape(winner)} Injuries:</strong> {html.escape(_field(p,f'{winner} Injuries','n/a'))}</li>
             <li><strong>{html.escape(loser)} Injuries:</strong> {html.escape(_field(p,f'{loser} Injuries','n/a'))}</li>
             <li><strong>Starting Lineups:</strong> {html.escape(_field(p,'Starting Lineups','n/a'))}</li>
+            <li><strong>Lineup Change Impact:</strong> {html.escape(_field(p,'Lineup Change Impact','n/a'))}</li>
             <li><strong>Line Movement:</strong> {html.escape(_field(p,'Line Movement','n/a'))}</li>
           </ul>
         </details>
