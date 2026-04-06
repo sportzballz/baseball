@@ -422,6 +422,15 @@ def select_winner(adv_score, game_data, odds_data):
     print(f'select winner: {adv_score.to_string()}')
     teams_dict = get_teams_dict()
     try:
+        # Hard gate: both lineups must be available before a pick is emitted.
+        if not (adv_score.home_lineup_available and adv_score.away_lineup_available):
+            print(
+                "Skipping select_winner because both starting lineups are not announced: "
+                f"home={adv_score.home_lineup_available}, away={adv_score.away_lineup_available}"
+            )
+            game_date = game_data['gameData']['datetime']['officialDate']
+            return Prediction('-', '-', '-', '-', game_date, '-', '-', 0, 0, 0)
+
         est = pytz.timezone('US/Eastern')
         utc = pytz.utc
         game_date = game_data['gameData']['datetime']['officialDate']
@@ -529,4 +538,3 @@ def select_winner(adv_score, game_data, odds_data):
     except KeyError as e:
         print(f'KeyError({e})')
         return Prediction('-', '-', '-', '-', game_date, game_time, ampm, 0, 0, 0)
-
