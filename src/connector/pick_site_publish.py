@@ -61,6 +61,7 @@ def _render_sitemap_xml(archive_dates):
 
     for d in sorted(set(archive_dates), reverse=True):
         urls.append(_site_url(f'/{d}.html'))
+        urls.append(_site_url(f'/{d}-run-line.html'))
         urls.append(_site_url(f'/{d}-plus-money.html'))
         urls.append(_site_url(f'/{d}-run-totals.html'))
 
@@ -1127,23 +1128,128 @@ def _render_run_totals_html(parsed, evaluated_picks=None):
 '''
 
 
+def _render_run_line_html(parsed, evaluated_picks=None, frozen_commentary=None):
+    picks_source = evaluated_picks if evaluated_picks is not None else parsed['picks']
+    picks = sorted(
+        picks_source,
+        key=lambda p: _parse_confidence(_field(p, 'Model Confidence', '')) or -1,
+        reverse=True,
+    )
+    date_str = parsed['date']
+    model = parsed['model']
+    now = datetime.now().strftime('%Y-%m-%d %I:%M %p')
+    frozen_commentary = frozen_commentary or {}
+
+    cards = []
+    for i, p in enumerate(picks, 1):
+        winner, loser = p['winner'], p['loser']
+        result = p.get('result', 'PENDING')
+        result_class = 'res-pending'
+        if result == 'WIN':
+            result_class = 'res-win'
+        elif result == 'LOSS':
+            result_class = 'res-loss'
+
+        key = f"{winner}|||{loser}"
+        if _is_game_started_or_done(p) and key in frozen_commentary:
+            analysis = frozen_commentary[key]
+        else:
+            analysis = _analysis_paragraph(p, i, date_str)
+
+        cards.append(f'''
+      <article class="pick-card">
+        <div class="pick-head">
+          <div class="pick-num">Run Line {i}</div>
+          <h2>{html.escape(winner)} vs {html.escape(loser)} — Run Line Lean</h2>
+          <span class="res {result_class}">{result}</span>
+        </div>
+        <div class="seo-line">{html.escape(winner)} vs {html.escape(loser)} run line prediction — {html.escape(date_str)}</div>
+        <div class="meta-grid">
+          <div><span>Run Line</span><strong>Model lean side: {html.escape(winner)}</strong></div>
+          <div><span>Confidence</span><strong>{html.escape(_field(p,'Model Confidence','n/a'))}</strong></div>
+          <div><span>Pitching</span><strong>{html.escape(_field(p,'Pitching Matchup','n/a'))}</strong></div>
+          <div><span>Venue</span><strong>{html.escape(_field(p,'Venue','n/a'))}</strong></div>
+        </div>
+        <p class="lede">{analysis}</p>
+      </article>
+    ''')
+
+    return f'''<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%E2%9A%BE%3C/text%3E%3C/svg%3E" />
+  <title>SportzBallz | Run Line Picks {html.escape(date_str)}</title>
+  <meta name="description" content="MLB run line predictions for {html.escape(date_str)} from SportzBallz." />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+  <link rel="canonical" href="{_site_url('/' + date_str + '-run-line.html')}" />
+  <style>
+    :root {{ --bg:#0a1020; --panel:#101a33; --ink:#eaf0ff; --muted:#a7b7df; --line:#273a6b; --accent:#f97316; }}
+    *{{box-sizing:border-box}}
+    body{{margin:0;font-family:Georgia,'Times New Roman',serif;background:radial-gradient(1200px 700px at 15% -10%, #1a2a55, var(--bg));color:var(--ink);line-height:1.65}}
+    .wrap{{max-width:1100px;margin:0 auto;padding:24px 16px 48px}}
+    header{{background:linear-gradient(135deg, rgba(249,115,22,.20), rgba(92,201,255,.10));border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:16px}}
+    .kicker{{font:600 12px/1.2 Inter,system-ui,sans-serif;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}}
+    h1{{margin:8px 0 10px;font-size:clamp(30px,5vw,46px);line-height:1.05}}
+    .sub{{color:var(--muted);font-family:Inter,system-ui,sans-serif;font-size:14px}}
+    .intro{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;font-size:18px}}
+    .pick-card{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 14px 0;box-shadow:0 12px 28px rgba(0,0,0,.24)}}
+    .pick-head h2{{margin:4px 0 8px;font-size:30px;line-height:1.15}}
+    .pick-head{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
+    .pick-num{{font:600 12px/1 Inter,system-ui,sans-serif;color:var(--accent);letter-spacing:.12em;text-transform:uppercase}}
+    .seo-line{{font:600 12px/1.3 Inter,system-ui,sans-serif;color:#a9c6ff;letter-spacing:.02em;margin-top:2px}}
+    .res{{font:700 11px/1 Inter,system-ui,sans-serif;padding:5px 8px;border-radius:999px;border:1px solid #31508e;}}
+    .res-win{{color:#7CFFB3;border-color:#2f8f57;background:rgba(52,211,153,.12)}}
+    .res-loss{{color:#ff9ca0;border-color:#a13d47;background:rgba(239,68,68,.14)}}
+    .res-pending{{color:#cfe1ff;border-color:#3c5c97;background:rgba(59,130,246,.12)}}
+    .meta-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 12px;padding:10px 0 2px}}
+    .meta-grid div{{border:1px dashed #31508e;border-radius:10px;padding:8px 10px;background:rgba(255,255,255,.02)}}
+    .meta-grid span{{display:block;color:var(--muted);font:600 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}}
+    .meta-grid strong{{font:600 15px/1.35 Inter,system-ui,sans-serif;color:#dce8ff}}
+    .lede{{font-size:20px;margin:12px 0 8px;color:#f2f6ff}}
+    .toplinks{{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}}
+    .toplinks a{{display:inline-block;padding:8px 12px;border:1px solid #31508e;border-radius:9px;color:#dce8ff;text-decoration:none;font-family:Inter,system-ui,sans-serif;font-size:13px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div class="kicker">SportzBallz Run Line Desk</div>
+      <h1>Run Line Picks — {html.escape(date_str)}</h1>
+      <div class="sub">Model: {html.escape(model)} • Updated {html.escape(now)}</div>
+      <div class="toplinks">
+        <a href="/{html.escape(date_str)}.html">Money Line</a>
+        <a href="/{html.escape(date_str)}-run-totals.html">Over / Under</a>
+        <a href="/">Home</a>
+      </div>
+    </header>
+    <section class="intro">Run line tab is active. Current model leans are side-based until dedicated spread-market ingestion is fully wired.</section>
+    {''.join(cards)}
+  </main>
+</body>
+</html>
+'''
+
+
 def _render_top_index(latest_date: str, archive_dates):
     latest_href = f"/{latest_date}.html"
-    latest_plus_href = f"/{latest_date}-plus-money.html"
+    latest_run_line_href = f"/{latest_date}-run-line.html"
     latest_totals_href = f"/{latest_date}-run-totals.html"
 
-    archive_items = []
+    archive_groups = []
     for i, d in enumerate(sorted(set(archive_dates), reverse=True)):
-        pill = '<span class="pill">Latest</span>' if i == 0 else ''
-        archive_items.append(
-            f'<li><a href="/{d}.html"><span>{d} • Daily Picks</span>{pill}</a></li>'
-        )
-        archive_items.append(
-            f'<li><a href="/{d}-plus-money.html"><span>{d} • Plus Money Picks</span></a></li>'
-        )
-        archive_items.append(
-            f'<li><a href="/{d}-run-totals.html"><span>{d} • Run Total Picks</span></a></li>'
-        )
+        latest_pill = ' <span class="pill">Latest</span>' if i == 0 else ''
+        archive_groups.append(f'''
+          <details class="archive-group" {'open' if i == 0 else ''}>
+            <summary>{d}{latest_pill}</summary>
+            <div class="archive-links">
+              <a href="/{d}.html">Daily Picks</a>
+              <a href="/{d}-plus-money.html">Plus Money Picks</a>
+              <a href="/{d}-run-totals.html">Run Total Picks</a>
+            </div>
+          </details>
+        ''')
 
     return f'''<!doctype html>
 <html lang="en">
@@ -1171,20 +1277,28 @@ def _render_top_index(latest_date: str, archive_dates):
     .logo {{ margin:0; line-height:1; font-size:clamp(52px, 11vw, 120px); font-weight:900; letter-spacing:.01em; text-transform:uppercase; font-family:Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif; color:#f8fbff; text-shadow:0 2px 0 #0d162e, 2px 2px 0 #0d162e, 3px 3px 0 #0d162e, 4px 4px 0 #0d162e, 0 0 20px rgba(99,210,255,.25); }}
     .logo .z {{ color:#ff5c5c; text-shadow:0 2px 0 #2a0b0b, 2px 2px 0 #2a0b0b, 3px 3px 0 #2a0b0b, 0 0 14px rgba(239,68,68,.35); }}
     .tagline {{ margin:12px 0 0; color:#d9e5ff; font-size:clamp(17px,2.2vw,24px); max-width:760px; line-height:1.35; }}
+    .toolbar {{ margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }}
+    .toolbar .label {{ color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.1em; }}
+    .btn {{ display:inline-block; padding:10px 14px; border-radius:10px; text-decoration:none; color:#081224; background:linear-gradient(90deg,var(--accent),var(--accent2)); font-weight:700; margin-top:8px; }}
     .cards {{ margin-top:18px; display:grid; grid-template-columns:1.2fr .8fr; gap:14px; }}
     .card {{ border:1px solid var(--line); border-radius:14px; background:var(--panel); padding:16px; }}
     .card h2 {{ margin:0 0 10px; font-size:21px; line-height:1.2; }}
+    .tabbar {{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }}
+    .tab {{ display:inline-block; padding:9px 12px; border-radius:9px; text-decoration:none; color:#dfeeff; border:1px solid #3b5a95; background:rgba(255,255,255,.03); font-weight:600; font-size:14px; }}
+    .tab.active {{ color:#081224; border-color:transparent; background:linear-gradient(90deg,var(--accent),var(--accent2)); }}
+    .meta {{ font-size:14px; color:var(--muted); margin-top:10px; }}
+    .archive-group {{ border:1px solid #304b87; border-radius:10px; padding:10px 12px; background:rgba(255,255,255,.02); margin-bottom:10px; }}
+    .archive-group summary {{ cursor:pointer; font-weight:700; color:#dfeeff; }}
+    .archive-links {{ margin-top:10px; display:grid; gap:8px; }}
+    .archive-links a {{ color:var(--ink); text-decoration:none; border:1px solid #3b5a95; border-radius:8px; padding:8px 10px; background:rgba(255,255,255,.02); }}
+    .archive-links a:hover {{ border-color:var(--accent); }}
+    .pill {{ font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:#dff4ff; background:rgba(99,210,255,.18); border:1px solid rgba(99,210,255,.35); border-radius:999px; padding:3px 7px; white-space:nowrap; }}
     .ad-slot{{background:rgba(255,255,255,.03);border:1px dashed #3b5a96;border-radius:12px;padding:12px 14px;margin:14px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}}
     .ad-label{{font:700 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#9cc4ff}}
     .ad-copy{{color:#d9e6ff;font:500 14px/1.3 Inter,system-ui,sans-serif}}
     .ad-cta{{display:inline-block;padding:7px 10px;border-radius:8px;border:1px solid #4c6db0;color:#dff2ff;text-decoration:none;font:600 12px Inter,system-ui,sans-serif}}
-    .btn {{ display:inline-block; padding:10px 14px; border-radius:10px; text-decoration:none; color:#081224; background:linear-gradient(90deg,var(--accent),var(--accent2)); font-weight:700; margin-top:8px; }}
-    .meta {{ font-size:14px; color:var(--muted); margin-top:10px; }}
-    ul.archive {{ list-style:none; margin:0; padding:0; display:grid; gap:10px; }}
-    ul.archive li a {{ display:flex; justify-content:space-between; align-items:center; gap:10px; text-decoration:none; color:var(--ink); background:rgba(255,255,255,.02); border:1px solid #304b87; border-radius:10px; padding:10px 12px; font-size:15px; }}
-    ul.archive li a:hover {{ border-color:var(--accent); transform:translateY(-1px); }}
-    .pill {{ font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:#dff4ff; background:rgba(99,210,255,.18); border:1px solid rgba(99,210,255,.35); border-radius:999px; padding:4px 8px; white-space:nowrap; }}
-    footer {{ margin-top:16px; color:var(--muted); font-size:12px; text-align:right; }}
+    footer {{ margin-top:16px; color:var(--muted); font-size:12px; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }}
+    .footer-links a {{ color:#c8dbff; text-decoration:none; margin-right:10px; }}
     @media (max-width:860px) {{ .cards {{ grid-template-columns:1fr; }} .logo {{ font-size:clamp(44px,18vw,90px); }} }}
   </style>
 </head>
@@ -1194,31 +1308,35 @@ def _render_top_index(latest_date: str, archive_dates):
       <div class="kicker">SportzBallz Daily MLB Desk</div>
       <h1 class="logo">SPORT<span class="z">Z</span>BALL<span class="z">Z</span></h1>
       <p class="tagline">artificially intelligent athletic competition prognostication</p>
+      <div class="toolbar">
+        <div class="label">Dashboard</div>
+        <a class="btn" href="/dashboard.html" style="margin-top:0; background:linear-gradient(90deg,#8b5cf6,#5cc9ff);">Open Dashboard</a>
+      </div>
     </section>
 
     <section class="cards">
       <article class="card">
         <h2>Latest Daily Picks</h2>
-        <p>Today’s full notebook with odds, confidence, pitching, venue/weather, umpire crew, injuries, and market movement.</p>
-        <a class="btn" href="{latest_href}">Open {latest_date} Picks</a>
-        <a class="btn" href="{latest_plus_href}" style="margin-left:8px; background:linear-gradient(90deg,#22c55e,#7cffc7);">Open {latest_date} Plus Money</a>
-        <a class="btn" href="{latest_totals_href}" style="margin-left:8px; background:linear-gradient(90deg,#f59e0b,#fcd34d);">Open {latest_date} Run Totals</a>
-        <a class="btn" href="/dashboard.html" style="margin-left:8px; background:linear-gradient(90deg,#8b5cf6,#5cc9ff);">Open Dashboard</a>
-        <a class="btn" href="/media-kit.html" style="margin-left:8px; background:linear-gradient(90deg,#4f46e5,#7c3aed);">Media Kit</a>
-        <a class="btn" href="/rate-card.html" style="margin-left:8px; background:linear-gradient(90deg,#0ea5e9,#22d3ee);">Rate Card</a>
+        <p>Money Line, Run Line, and Over/Under tabs for {latest_date}. Money Line is default.</p>
+        <div class="tabbar">
+          <a class="tab active" href="{latest_href}">Money Line</a>
+          <a class="tab" href="{latest_run_line_href}">Run Line</a>
+          <a class="tab" href="{latest_totals_href}">Over / Under</a>
+        </div>
         <div class="meta">Format: <code>yyyy-mm-dd.html</code></div>
         {_render_ad_slot('index-hero', 'Homepage Sponsorship')}
       </article>
 
       <article class="card">
         <h2>Archive</h2>
-        <ul class="archive">
-          {''.join(archive_items)}
-        </ul>
+        {''.join(archive_groups)}
       </article>
     </section>
 
-    <footer>© SportzBallz.io</footer>
+    <footer>
+      <span>© SportzBallz.io</span>
+      <span class="footer-links"><a href="/media-kit.html">Media Kit</a><a href="/rate-card.html">Rate Card</a></span>
+    </footer>
   </main>
 </body>
 </html>
@@ -1516,6 +1634,9 @@ def publish_daily_site(markdown_path: str, site_repo_path: str = None):
     plus_html = site_repo / f"{parsed['date']}-plus-money.html"
     plus_html.write_text(_render_plus_money_html(parsed, evaluated_picks, summary, frozen_commentary))
 
+    run_line_html = site_repo / f"{parsed['date']}-run-line.html"
+    run_line_html.write_text(_render_run_line_html(parsed, evaluated_picks, frozen_commentary))
+
     totals_html = site_repo / f"{parsed['date']}-run-totals.html"
     totals_html.write_text(_render_run_totals_html(parsed, evaluated_picks))
 
@@ -1541,7 +1662,7 @@ def publish_daily_site(markdown_path: str, site_repo_path: str = None):
     add = _run([
         'git', 'add', 'index.html', 'dashboard.html', 'data/performance-history.json',
         'media-kit.html', 'rate-card.html', 'robots.txt', 'sitemap.xml',
-        f"{parsed['date']}.html", f"{parsed['date']}-plus-money.html", f"{parsed['date']}-run-totals.html"
+        f"{parsed['date']}.html", f"{parsed['date']}-plus-money.html", f"{parsed['date']}-run-line.html", f"{parsed['date']}-run-totals.html"
     ], site_repo)
     if add.returncode != 0:
         print(add.stderr.strip())
