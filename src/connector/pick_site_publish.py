@@ -505,6 +505,7 @@ def _evaluate_picks(parsed):
         ev['result'] = result
         ev['game_status'] = status
         ev['actual_winner'] = actual_winner
+        ev['_game'] = game
         evaluated.append(ev)
 
     decided = [x for x in evaluated if x['result'] in ('WIN', 'LOSS')]
@@ -558,11 +559,53 @@ def _evaluate_picks(parsed):
     best_conf = by_conf[:1]
     top3_conf = by_conf[:3]
 
+    run_totals = []
+    for ev in evaluated:
+        lean = _run_total_lean(ev)
+        if not lean:
+            continue
+
+        game = ev.get('_game') or {}
+        home_score = game.get('home_score')
+        away_score = game.get('away_score')
+        is_final = bool(game.get('is_final'))
+
+        chosen_odds = lean['over_odds'] if lean['pick'] == 'OVER' else lean['under_odds']
+        rt = {
+            'winner': ev.get('winner'),
+            'loser': ev.get('loser'),
+            'pick': lean['pick'],
+            'line': lean['line'],
+            'Pick Odds': str(chosen_odds) if chosen_odds is not None else '----',
+            'result': 'PENDING',
+            'actual_total_side': None,
+            'game_total_runs': None,
+        }
+
+        if is_final and home_score is not None and away_score is not None:
+            total_runs = int(home_score) + int(away_score)
+            rt['game_total_runs'] = total_runs
+            if total_runs > float(lean['line']):
+                actual_side = 'OVER'
+            elif total_runs < float(lean['line']):
+                actual_side = 'UNDER'
+            else:
+                actual_side = 'PUSH'
+            rt['actual_total_side'] = actual_side
+
+            if actual_side == 'PUSH':
+                rt['result'] = 'UNKNOWN'
+            else:
+                rt['result'] = 'WIN' if actual_side == lean['pick'] else 'LOSS'
+
+        run_totals.append(rt)
+
     segments = {
         'all_picks': _segment_stats(evaluated),
         'best_confidence_pick': _segment_stats(best_conf),
         'top3_confidence_picks': _segment_stats(top3_conf),
         'plus_money_picks': _segment_stats(plus),
+        'run_total_picks': _segment_stats(run_totals),
     }
 
     summary = {
@@ -1180,6 +1223,7 @@ def _render_dashboard(history):
         ('best_confidence_pick', 'Best Confidence Pick', '#a78bfa'),
         ('top3_confidence_picks', 'Top 3 Confidence Picks', '#34d399'),
         ('plus_money_picks', 'Plus Money Picks', '#f59e0b'),
+        ('run_total_picks', 'Run Total Picks', '#fb7185'),
     ]
 
     def _legacy_segment(h, key):
@@ -1205,6 +1249,16 @@ def _render_dashboard(history):
                 'decided': decided,
                 'wins': wins,
                 'losses': losses,
+                'profit': 0.0,
+                'roi_pct': None,
+                'stake_per_pick': 100.0,
+            }
+        if key == 'run_total_picks':
+            return {
+                'total': 0,
+                'decided': 0,
+                'wins': 0,
+                'losses': 0,
                 'profit': 0.0,
                 'roi_pct': None,
                 'stake_per_pick': 100.0,
@@ -1279,6 +1333,7 @@ def _render_dashboard(history):
         s_best = _seg(h, 'best_confidence_pick')
         s_top3 = _seg(h, 'top3_confidence_picks')
         s_pm = _seg(h, 'plus_money_picks')
+        s_rt = _seg(h, 'run_total_picks')
         rows.append(
             f"<tr>"
             f"<td><a href='/{d}.html'>{d}</a></td>"
@@ -1286,14 +1341,17 @@ def _render_dashboard(history):
             f"<td>{s_best.get('wins',0)}-{s_best.get('losses',0)} (${float(s_best.get('profit',0) or 0):.2f})</td>"
             f"<td>{s_top3.get('wins',0)}-{s_top3.get('losses',0)} (${float(s_top3.get('profit',0) or 0):.2f})</td>"
             f"<td>{s_pm.get('wins',0)}-{s_pm.get('losses',0)} (${float(s_pm.get('profit',0) or 0):.2f})</td>"
+            f"<td>{s_rt.get('wins',0)}-{s_rt.get('losses',0)} (${float(s_rt.get('profit',0) or 0):.2f})</td>"
             f"<td>{h.get('pending',0)}</td>"
             f"</tr>"
         )
 
     all_total = totals['all_picks']
     pm_total = totals['plus_money_picks']
+    rt_total = totals['run_total_picks']
     all_roi_txt = f"{all_total['roi_pct']}%" if all_total['roi_pct'] is not None else '—'
     pm_roi_txt = f"{pm_total['roi_pct']}%" if pm_total['roi_pct'] is not None else '—'
+    rt_roi_txt = f"{rt_total['roi_pct']}%" if rt_total['roi_pct'] is not None else '—'
 
     return f'''<!doctype html>
 <html lang="en">
@@ -1354,6 +1412,8 @@ def _render_dashboard(history):
         <div class="k"><span>All Picks ROI</span><strong>{all_roi_txt}</strong></div>
         <div class="k"><span>Plus Money Record</span><strong>{pm_total['wins']}-{pm_total['losses']}</strong></div>
         <div class="k"><span>Plus Money ROI</span><strong>{pm_roi_txt}</strong></div>
+        <div class="k"><span>Run Totals Record</span><strong>{rt_total['wins']}-{rt_total['losses']}</strong></div>
+        <div class="k"><span>Run Totals ROI</span><strong>{rt_roi_txt}</strong></div>
       </div>
     </div>
 
@@ -1367,9 +1427,9 @@ def _render_dashboard(history):
     <div class="card">
       <h2 style="margin-top:0">Daily Performance</h2>
       <table>
-        <thead><tr><th>Date</th><th>All Picks</th><th>Best Confidence</th><th>Top 3 Confidence</th><th>Plus Money</th><th>Pending</th></tr></thead>
+        <thead><tr><th>Date</th><th>All Picks</th><th>Best Confidence</th><th>Top 3 Confidence</th><th>Plus Money</th><th>Run Totals</th><th>Pending</th></tr></thead>
         <tbody>
-          {''.join(rows) if rows else '<tr><td colspan="6">No history yet.</td></tr>'}
+          {''.join(rows) if rows else '<tr><td colspan="7">No history yet.</td></tr>'}
         </tbody>
       </table>
     </div>
