@@ -342,6 +342,41 @@ def post_to_slack(winners, model):
             slack.post_todays_pick(str(date.today()) + " - " + model, model)
             slack.post_todays_pick(pick.to_string(), model)
 
+    # Lambda requirement: always refresh plus-money channel when plus-money picks exist.
+    try:
+        plus_money = []
+        for w in winners:
+            if w.winning_team == "-":
+                continue
+            odds_text = str(w.odds)
+            if odds_text.startswith("+"):
+                plus_money.append(w)
+                continue
+            try:
+                if int(odds_text) > 0:
+                    plus_money.append(w)
+            except Exception:
+                pass
+
+        if plus_money:
+            est = pytz.timezone("US/Eastern")
+            d = datetime.now(est).strftime("%Y-%m-%d")
+            lines = [f"Plus Money Picks — {d}", ""]
+            for p in sorted(plus_money, key=lambda x: float(x.confidence), reverse=True):
+                odds_val = str(p.odds)
+                if odds_val and not odds_val.startswith("+"):
+                    try:
+                        if int(odds_val) > 0:
+                            odds_val = f"+{int(odds_val)}"
+                    except Exception:
+                        pass
+                lines.append(
+                    f"- {p.winning_team} over {p.losing_team} | {odds_val} | conf {p.confidence} | {p.winning_pitcher} vs {p.losing_pitcher}"
+                )
+            slack.refresh_plus_money_picks("\n".join(lines))
+    except Exception as e:
+        print(f"Plus-money Slack refresh failed (continuing): {e}")
+
     # LLM summary generation moved to markdown generation flow
     # (connector/pick_markdown.py -> write_daily_pick_markdown)
 
