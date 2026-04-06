@@ -2,6 +2,7 @@ import os
 import re
 import html
 import json
+import hashlib
 import subprocess
 from pathlib import Path
 from datetime import datetime
@@ -11,31 +12,30 @@ import statsapi
 SITE_BASE_URL = os.environ.get('SPORTZBALLZ_SITE_URL', 'https://sportzballz.io').rstrip('/')
 
 ANALYST_PANEL = [
-    {
-        'id': 'joey-falcone',
-        'name': 'Joey Falcone',
-        'title': 'Stats & Vibes High-Roller',
-        'voice': 'humorous, slick, Italian-American swagger, stat-nerd energy',
-    },
-    {
-        'id': 'jimmy-the-grecian',
-        'name': 'Jimmy the Grecian',
-        'title': 'Vegas Insider',
-        'voice': 'old-school bookmaker perspective, market discipline, veteran tone',
-    },
-    {
-        'id': 'willie-guan',
-        'name': 'Willie Guan',
-        'title': 'Quant Mathematician',
-        'voice': 'highly educated quantitative framing and probability-first language',
-    },
-    {
-        'id': 'tommy-torrance',
-        'name': 'Tommy Torrance',
-        'title': 'Pragmatist (Gen X)',
-        'voice': 'plainspoken, practical, Phillies-loving pragmatist: whatever works',
-    },
+    {'id': 'mack-ledger', 'name': 'Mack Ledger', 'title': 'Market Maker', 'voice': 'sharp, odds-first, risk language, no fluff'},
+    {'id': 'nora-splitter', 'name': 'Nora Splitter', 'title': 'Matchup Film Room', 'voice': 'tactical, pitcher-hitter context, game-script focus'},
+    {'id': 'dex-numbers', 'name': 'Dex Numbers', 'title': 'Quant', 'voice': 'highly educated quantitative framing and probability-first language'},
+    {'id': 'rico-heatcheck', 'name': 'Rico Heatcheck', 'title': 'Momentum & Vibes', 'voice': 'energetic and fan-readable confidence framing'},
+    {'id': 'grant-halberd', 'name': 'Grant Halberd', 'title': 'Beat Writer', 'voice': 'polished concise journalist-style lead paragraphs'},
+    {'id': 'ivy-chen', 'name': 'Ivy Chen', 'title': 'Data Scientist', 'voice': 'analytical precision and edge validation'},
+    {'id': 'toby-quinn', 'name': 'Toby Quinn', 'title': 'Contrarian', 'voice': 'hunts overreactions and pricing mistakes'},
+    {'id': 'lena-park', 'name': 'Lena Park', 'title': 'Weather/Umpire Specialist', 'voice': 'context-rich with practical game impact'},
+    {'id': 'vince-valentino', 'name': 'Vince Valentino', 'title': 'Showman', 'voice': 'charismatic and entertaining with bold openers'},
+    {'id': 'maya-rios', 'name': 'Maya Rios', 'title': 'Process Coach', 'voice': 'calm and disciplined with bankroll awareness'},
+    {'id': 'owen-pike', 'name': 'Owen Pike', 'title': 'Model Whisperer', 'voice': 'probability-heavy but plain language'},
+    {'id': 'jules-archer', 'name': 'Jules Archer', 'title': 'Underdog Hunter', 'voice': 'plus-money specialist with selective aggression'},
+    {'id': 'roman-slate', 'name': 'Roman Slate', 'title': 'Line Movement Hawk', 'voice': 'serious edge-focused market movement analysis'},
+    {'id': 'keira-bloom', 'name': 'Keira Bloom', 'title': 'Injury/Lineup Impact', 'voice': 'availability and roster-impact framing'},
+    {'id': 'eli-mercer', 'name': 'Eli Mercer', 'title': 'Totals Architect', 'voice': 'run-environment and scoring-profile specialist'},
+    {'id': 'sanjay-vale', 'name': 'Sanjay Vale', 'title': 'CLV Auditor', 'voice': 'closing-line-value discipline and process rigor'},
 ]
+
+
+def _pick_analyst(pick, idx, date_text=''):
+    seed = f"{date_text}|{pick.get('winner','')}|{pick.get('loser','')}|{idx}"
+    digest = hashlib.sha256(seed.encode('utf-8')).hexdigest()
+    pos = int(digest[:8], 16) % len(ANALYST_PANEL)
+    return ANALYST_PANEL[pos]
 
 
 def _site_url(path: str):
@@ -644,7 +644,7 @@ def _render_tracker_block(summary):
     '''
 
 
-def _analysis_paragraph(pick, idx):
+def _analysis_paragraph(pick, idx, date_text=''):
     winner, loser = pick['winner'], pick['loser']
     conf_text = _field(pick, 'Model Confidence', 'n/a')
     conf = _parse_confidence(conf_text)
@@ -665,35 +665,17 @@ def _analysis_paragraph(pick, idx):
     w_inj = _field(pick, f'{winner} Injuries', 'n/a')
     l_inj = _field(pick, f'{loser} Injuries', 'n/a')
 
-    analyst = ANALYST_PANEL[(idx - 1) % len(ANALYST_PANEL)]
+    analyst = _pick_analyst(pick, idx, date_text)
 
-    voices = {
-        'joey-falcone': (
-            "Joey’s angle:",
-            f"{winner} over {loser} is the kind of {bucket} ticket you slide across the counter with a grin. Price is {odds}, confidence is {conf_text}, "
-            f"and the stat split ({dp_text}) says this isn’t just sauce. On the nerd side, {winner} shows the stronger indicator stack "
-            f"({w_sig_count} to {l_sig_count}) with {pitching} setting the first chapter."
-        ),
-        'jimmy-the-grecian': (
-            "Jimmy’s book:",
-            f"{winner} over {loser} grades as a {bucket} play at {odds}. Confidence sits at {conf_text} with a {dp_text} profile, and the edge starts with "
-            f"{pitching}. This is less about headlines and more about taking a number where the baseball and the market still agree enough to fire."
-        ),
-        'willie-guan': (
-            "Willie’s model note:",
-            f"For {winner} over {loser}, the confidence estimate ({conf_text}) and signal distribution ({dp_text}) imply a {bucket} probability edge at {odds}. "
-            f"Pitch-level context ({pitching}) plus indicator asymmetry ({w_sig_count} vs {l_sig_count}) supports positive expected value under current pricing."
-        ),
-        'tommy-torrance': (
-            "Tommy’s take:",
-            f"{winner} over {loser}. Keep it simple: {conf_text}, line at {odds}, and {pitching} gives this spot a workable shape. "
-            f"It’s a {bucket} look with enough signal separation ({w_sig_count}-{l_sig_count}) to back the play without overthinking it."
-        ),
-    }
+    lead = (
+        f"{winner} over {loser} grades as a {bucket} spot at {odds}. "
+        f"Confidence is {conf_text} with a {dp_text} split, pitching context is {pitching}, "
+        f"and signal balance leans {w_sig_count} to {l_sig_count}."
+    )
 
-    prefix, lead = voices.get(analyst['id'], next(iter(voices.values())))
     return (
-        f"{analyst['name']} ({analyst['title']}) — {prefix} {lead} "
+        f"{analyst['name']} ({analyst['title']}) — {lead} "
+        f"Voice: {analyst['voice']}. "
         f"{_weather_note(venue, weather)} "
         f"{_umpire_note(ump)} "
         f"{_injury_note(winner, loser, w_inj, l_inj)} "
@@ -701,7 +683,40 @@ def _analysis_paragraph(pick, idx):
     )
 
 
-def _render_daily_html(parsed, evaluated_picks=None, summary=None):
+def _is_game_started_or_done(pick):
+    # Freeze commentary once game is no longer pre-game/scheduled.
+    result = str(pick.get('result', '')).upper()
+    if result in ('WIN', 'LOSS', 'UNKNOWN'):
+        return True
+
+    status = str(pick.get('game_status', '')).lower()
+    if not status:
+        return False
+
+    pregame_tokens = ('scheduled', 'pre-game', 'preview')
+    return not any(tok in status for tok in pregame_tokens)
+
+
+def _extract_existing_commentary_map(html_path: Path):
+    if not html_path.exists():
+        return {}
+    try:
+        text = html_path.read_text()
+    except Exception:
+        return {}
+
+    out = {}
+    pattern = re.compile(r'<h2>\s*(.*?)\s+over\s+(.*?)\s*</h2>.*?<p class="lede">(.*?)</p>', re.S)
+    for m in pattern.finditer(text):
+        winner = html.unescape(re.sub(r'<[^>]+>', '', m.group(1)).strip())
+        loser = html.unescape(re.sub(r'<[^>]+>', '', m.group(2)).strip())
+        commentary = html.unescape(re.sub(r'<[^>]+>', '', m.group(3)).strip())
+        if winner and loser and commentary:
+            out[f"{winner}|||{loser}"] = commentary
+    return out
+
+
+def _render_daily_html(parsed, evaluated_picks=None, summary=None, frozen_commentary=None):
     picks_source = evaluated_picks if evaluated_picks is not None else parsed['picks']
     picks = sorted(
         picks_source,
@@ -712,6 +727,7 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None):
     model = parsed['model']
     now = datetime.now().strftime('%Y-%m-%d %I:%M %p')
 
+    frozen_commentary = frozen_commentary or {}
     cards = []
     for i, p in enumerate(picks, 1):
         winner, loser = p['winner'], p['loser']
@@ -721,6 +737,12 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None):
             result_class = 'res-win'
         elif result == 'LOSS':
             result_class = 'res-loss'
+        key = f"{winner}|||{loser}"
+        if _is_game_started_or_done(p) and key in frozen_commentary:
+            analysis = frozen_commentary[key]
+        else:
+            analysis = _analysis_paragraph(p, i, date_str)
+
         cards.append(f'''
       <article class="pick-card">
         <div class="pick-head">
@@ -734,7 +756,7 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None):
           <div><span>Pitching</span><strong>{html.escape(_field(p,'Pitching Matchup','n/a'))}</strong></div>
           <div><span>Venue</span><strong>{html.escape(_field(p,'Venue','n/a'))}</strong></div>
         </div>
-        <p class="lede">{_analysis_paragraph(p, i)}</p>
+        <p class="lede">{analysis}</p>
         <details>
           <summary>Expanded game context</summary>
           <ul>
@@ -825,7 +847,7 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None):
 '''
 
 
-def _render_plus_money_html(parsed, evaluated_picks=None, summary=None):
+def _render_plus_money_html(parsed, evaluated_picks=None, summary=None, frozen_commentary=None):
     source = evaluated_picks if evaluated_picks is not None else parsed['picks']
     all_picks = sorted(
         source,
@@ -842,6 +864,7 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None):
     model = parsed['model']
     now = datetime.now().strftime('%Y-%m-%d %I:%M %p')
 
+    frozen_commentary = frozen_commentary or {}
     cards = []
     for i, p in enumerate(plus_picks, 1):
         winner, loser = p['winner'], p['loser']
@@ -851,6 +874,12 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None):
             result_class = 'res-win'
         elif result == 'LOSS':
             result_class = 'res-loss'
+        key = f"{winner}|||{loser}"
+        if _is_game_started_or_done(p) and key in frozen_commentary:
+            analysis = frozen_commentary[key]
+        else:
+            analysis = _analysis_paragraph(p, i, date_str)
+
         cards.append(f'''
       <article class="pick-card">
         <div class="pick-head">
@@ -864,7 +893,7 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None):
           <div><span>Pitching</span><strong>{html.escape(_field(p,'Pitching Matchup','n/a'))}</strong></div>
           <div><span>Venue</span><strong>{html.escape(_field(p,'Venue','n/a'))}</strong></div>
         </div>
-        <p class="lede">{_analysis_paragraph(p, i)}</p>
+        <p class="lede">{analysis}</p>
         <details>
           <summary>Expanded game context</summary>
           <ul>
@@ -1468,10 +1497,12 @@ def publish_daily_site(markdown_path: str, site_repo_path: str = None):
     evaluated_picks, summary = _evaluate_picks(parsed)
 
     date_html = site_repo / f"{parsed['date']}.html"
-    date_html.write_text(_render_daily_html(parsed, evaluated_picks, summary))
+    frozen_commentary = _extract_existing_commentary_map(date_html)
+
+    date_html.write_text(_render_daily_html(parsed, evaluated_picks, summary, frozen_commentary))
 
     plus_html = site_repo / f"{parsed['date']}-plus-money.html"
-    plus_html.write_text(_render_plus_money_html(parsed, evaluated_picks, summary))
+    plus_html.write_text(_render_plus_money_html(parsed, evaluated_picks, summary, frozen_commentary))
 
     totals_html = site_repo / f"{parsed['date']}-run-totals.html"
     totals_html.write_text(_render_run_totals_html(parsed, evaluated_picks))
