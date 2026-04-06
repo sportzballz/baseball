@@ -1232,11 +1232,12 @@ def _render_run_line_html(parsed, evaluated_picks=None, frozen_commentary=None):
 '''
 
 
-def _render_top_index(latest_date: str, archive_dates, latest_picks=None):
+def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen_commentary=None):
     latest_href = f"/{latest_date}.html"
     latest_plus_href = f"/{latest_date}-plus-money.html"
     latest_totals_href = f"/{latest_date}-run-totals.html"
     latest_picks = latest_picks or []
+    frozen_commentary = frozen_commentary or {}
 
     archive_groups = []
     for i, d in enumerate(sorted(set(archive_dates), reverse=True)):
@@ -1257,18 +1258,63 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None):
         key=lambda p: _parse_confidence(_field(p, 'Model Confidence', '')) or -1,
         reverse=True,
     )
+    latest_plus = [p for p in latest_sorted if ((_odds_value(_field(p, 'Pick Odds', '')) or -99999) > 0)]
+    latest_totals = []
+    for p in latest_sorted:
+        lean = _run_total_lean(p)
+        if lean:
+            latest_totals.append((p, lean))
     latest_items = []
     for i, p in enumerate(latest_sorted, 1):
         winner, loser = p.get('winner', 'TBD'), p.get('loser', 'TBD')
+        key = f"{winner}|||{loser}"
+        if _is_game_started_or_done(p) and key in frozen_commentary:
+            analysis = frozen_commentary[key]
+        else:
+            analysis = _analysis_paragraph(p, i, latest_date)
         latest_items.append(
             f"<li><strong>{i}. {html.escape(winner)} over {html.escape(loser)}</strong>"
-            f" <span>• Odds {html.escape(_field(p,'Pick Odds','----'))}</span>"
-            f" <span>• Confidence {html.escape(_field(p,'Model Confidence','n/a'))}</span></li>"
+            f"<div class='lede-inline'>{analysis}</div></li>"
         )
 
     latest_picks_html = (
         f"<ol class='latest-picks'>{''.join(latest_items)}</ol>"
         if latest_items else "<p class='meta'>No picks available yet for this date.</p>"
+    )
+
+    plus_items = []
+    for i, p in enumerate(latest_plus, 1):
+        winner, loser = p.get('winner', 'TBD'), p.get('loser', 'TBD')
+        key = f"{winner}|||{loser}"
+        if _is_game_started_or_done(p) and key in frozen_commentary:
+            analysis = frozen_commentary[key]
+        else:
+            analysis = _analysis_paragraph(p, i, latest_date)
+        plus_items.append(
+            f"<li><strong>{i}. {html.escape(winner)} over {html.escape(loser)}</strong>"
+            f"<div class='lede-inline'>{analysis}</div></li>"
+        )
+    latest_plus_html = (
+        f"<ol class='latest-picks'>{''.join(plus_items)}</ol>"
+        if plus_items else "<p class='meta'>No plus money picks today.</p>"
+    )
+
+    total_items = []
+    for i, (p, lean) in enumerate(latest_totals, 1):
+        line = lean.get('line')
+        side = lean.get('pick')
+        price = lean.get('over_odds') if side == 'OVER' else lean.get('under_odds')
+        reasons = ', '.join(lean.get('reasons') or []) or 'balanced conditions and market context'
+        rt_analysis = f"Run-total lens: {side} {line} in {p.get('winner','TBD')} vs {p.get('loser','TBD')}. Supporting context includes {reasons}."
+        total_items.append(
+            f"<li><strong>{i}. {html.escape(p.get('winner','TBD'))} vs {html.escape(p.get('loser','TBD'))}</strong>"
+            f" <span>• {side} {line}</span>"
+            f" <span>• Odds {price if price is not None else '—'}</span>"
+            f"<div class='lede-inline'>{rt_analysis}</div></li>"
+        )
+    latest_totals_html = (
+        f"<ol class='latest-picks'>{''.join(total_items)}</ol>"
+        if total_items else "<p class='meta'>No run total leans available yet.</p>"
     )
 
     return f'''<!doctype html>
@@ -1309,6 +1355,7 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None):
     .latest-picks {{ margin:10px 0 0 18px; padding:0; display:grid; gap:8px; }}
     .latest-picks li {{ color:#e7f0ff; line-height:1.35; }}
     .latest-picks li span {{ color:#b9caef; font-size:13px; }}
+    .lede-inline {{ margin-top:6px; color:#dfe9ff; font-size:14px; line-height:1.45; }}
     .meta {{ font-size:14px; color:var(--muted); margin-top:10px; }}
     .archive-group {{ border:1px solid #304b87; border-radius:10px; padding:10px 12px; background:rgba(255,255,255,.02); margin-bottom:10px; }}
     .archive-group summary {{ cursor:pointer; font-weight:700; color:#dfeeff; }}
@@ -1342,9 +1389,13 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None):
         <h2>Latest Daily Picks</h2>
         <p>Daily Picks for {latest_date}:</p>
         {latest_picks_html}
+        <h2 style="margin-top:16px;">Latest Plus Money Picks</h2>
+        {latest_plus_html}
+        <h2 style="margin-top:16px;">Latest Run Total Picks</h2>
+        {latest_totals_html}
         <div class="tabbar">
-          <a class="tab" href="{latest_plus_href}">Plus Money Picks</a>
-          <a class="tab" href="{latest_totals_href}">Run Total Picks</a>
+          <a class="tab" href="{latest_plus_href}">Open Plus Money Page</a>
+          <a class="tab" href="{latest_totals_href}">Open Run Total Page</a>
         </div>
         <div class="meta">Format: <code>yyyy-mm-dd.html</code></div>
         {_render_ad_slot('index-hero', 'Homepage Sponsorship')}
@@ -1673,7 +1724,7 @@ def publish_daily_site(markdown_path: str, site_repo_path: str = None):
     archive = _find_archive_dates(site_repo)
     if parsed['date'] not in archive:
         archive = [parsed['date']] + archive
-    (site_repo / 'index.html').write_text(_render_top_index(parsed['date'], archive, evaluated_picks))
+    (site_repo / 'index.html').write_text(_render_top_index(parsed['date'], archive, evaluated_picks, frozen_commentary))
     (site_repo / 'robots.txt').write_text(_render_robots_txt())
     (site_repo / 'sitemap.xml').write_text(_render_sitemap_xml(archive))
 
