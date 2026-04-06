@@ -317,43 +317,33 @@ def post_to_slack(winners, model):
         print(f"Slack post failed (continuing): {e}")
     highest_confidence = 0.000
     todays_pick = [Prediction("-", "-", "-", "-", "-", "-", "-", 0, "-", "0/0")]
-    # try:
-    #     for winner in winners:
-    #         if winner.winning_team != '-':
-    #             if float(winner.confidence) >= highest_confidence:
-    #                 if highest_confidence == float(winner.confidence):
-    #                     todays_pick.append(winner)
-    #                 else:
-    #                     highest_confidence = float(winner.confidence)
-    #                     todays_pick = [winner]
-    #             #slack.post(winner.to_string(), model)
-    #             slack.post_sportzballz(winner.to_string())
-    #             time.sleep(1)
-    # except ValueError:
-    #     #slack.post(winner.to_string(), model)
-    #     slack.post_sportzballz(winner.to_string())
-    # for pick in todays_pick:
-    #     if "----" not in str(pick.odds) and "." not in pick.winning_team and "." not in pick.losing_team:
-    #         slack.post_todays_pick(str(date.today()) + " - " + model, model)
-    #         slack.post_todays_pick(pick.to_string(), model)
+    try:
+        for winner in winners:
+            if winner.winning_team != "-":
+                if float(winner.confidence) >= highest_confidence:
+                    if highest_confidence == float(winner.confidence):
+                        todays_pick.append(winner)
+                    else:
+                        highest_confidence = float(winner.confidence)
+                        todays_pick = [winner]
+                # slack.post(winner.to_string(), model)
+                slack.post_sportzballz(winner.to_string())
+                time.sleep(1)
+    except Exception as e:
+        # slack.post(winner.to_string(), model)
+        # slack.post_sportzballz(winner.to_string())
+        print(f"Exception when posting to Slack {e}")
+    for pick in todays_pick:
+        if (
+            "----" not in str(pick.odds)
+            and "." not in pick.winning_team
+            and "." not in pick.losing_team
+        ):
+            slack.post_todays_pick(str(date.today()) + " - " + model, model)
+            slack.post_todays_pick(pick.to_string(), model)
 
-    # LLM-powered pick summary
-    if os.environ.get("OPENAI_API_KEY"):
-        try:
-            from connector.llm import get_pick_summary
-
-            valid_picks = [w for w in winners if w.winning_team != "-"]
-            if valid_picks:
-                summary = get_pick_summary(valid_picks, model)
-                print("LLM summary generated successfully")
-                try:
-                    slack.post_sportzballz(
-                        f"```\n🤖 AI Pick Summary ({model}):\n{summary}\n```"
-                    )
-                except Exception as e:
-                    print(f"Slack LLM summary post failed (continuing): {e}")
-        except Exception as e:
-            print(f"LLM summary failed: {e}")
+    # LLM summary generation moved to markdown generation flow
+    # (connector/pick_markdown.py -> write_daily_pick_markdown)
 
 
 def post_to_slack_backtest(d, winners, model, metrics):

@@ -440,6 +440,18 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
     lines.append("")
     lines.append(f"- Model: `{model_name}`")
     lines.append(f"- Generated: {datetime.now(eastern).strftime('%Y-%m-%d %I:%M %p %Z')}")
+    try:
+        from connector.llm import get_pick_summary
+        ai_summary = get_pick_summary(valid, model_name)
+        lines.append(f"- AI Summary Model Path: generated during markdown build")
+        lines.append("")
+        lines.append("## AI Pick Summary")
+        lines.append("")
+        lines.append(ai_summary)
+        lines.append("")
+        print("LLM summary generated in write_daily_pick_markdown")
+    except Exception as e:
+        print(f"LLM summary in markdown generation failed: {e}")
     lines.append("")
 
     for idx, p in enumerate(valid, start=1):

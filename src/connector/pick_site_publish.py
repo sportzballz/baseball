@@ -487,10 +487,13 @@ def _parse_markdown(md_text: str):
             continue
 
         if line.startswith('## '):
-            if current:
-                picks.append(current)
             title = line[3:].strip()
             m = re.match(r'\d+\)\s+(.*?)\s+over\s+(.*)$', title)
+            if not m:
+                # Non-pick markdown section (e.g., AI summary heading)
+                continue
+            if current:
+                picks.append(current)
             current = {
                 'winner': m.group(1).strip() if m else title,
                 'loser': m.group(2).strip() if m else '',
