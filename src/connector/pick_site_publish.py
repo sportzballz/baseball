@@ -88,6 +88,7 @@ def _render_media_kit():
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%E2%9A%BE%3C/text%3E%3C/svg%3E" />
   <title>SportzBallz | Media Kit</title>
   <meta name="description" content="SportzBallz media kit: audience, sponsorship inventory, and ad opportunities." />
   <meta name="robots" content="index,follow,max-image-preview:large" />
@@ -127,6 +128,7 @@ def _render_rate_card():
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%E2%9A%BE%3C/text%3E%3C/svg%3E" />
   <title>SportzBallz | Rate Card</title>
   <meta name="description" content="SportzBallz sponsorship pricing and ad package options." />
   <meta name="robots" content="index,follow,max-image-preview:large" />
@@ -778,6 +780,7 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None, frozen_commen
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%E2%9A%BE%3C/text%3E%3C/svg%3E" />
   <title>SportzBallz | MLB Predictions {html.escape(date_str)} (Team vs Team)</title>
   <meta name="description" content="MLB team vs team predictions for {html.escape(date_str)} from SportzBallz, including confidence, odds, and matchup context." />
   <meta name="robots" content="index,follow,max-image-preview:large" />
@@ -934,6 +937,7 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None, frozen_c
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%E2%9A%BE%3C/text%3E%3C/svg%3E" />
   <title>SportzBallz | Plus Money Picks</title>
   <meta name="description" content="SportzBallz underdog MLB picks for {html.escape(date_str)}." />
   <meta name="robots" content="index,follow,max-image-preview:large" />
@@ -1057,6 +1061,7 @@ def _render_run_totals_html(parsed, evaluated_picks=None):
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%E2%9A%BE%3C/text%3E%3C/svg%3E" />
   <title>SportzBallz | Run Total Picks</title>
   <meta name="description" content="SportzBallz MLB run total picks for {html.escape(date_str)}." />
   <meta name="robots" content="index,follow,max-image-preview:large" />
@@ -1145,6 +1150,7 @@ def _render_top_index(latest_date: str, archive_dates):
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%E2%9A%BE%3C/text%3E%3C/svg%3E" />
   <title>SportzBallz | Daily MLB Picks</title>
   <meta name="description" content="SportzBallz daily MLB picks, commentary, and betting context." />
   <meta name="robots" content="index,follow,max-image-preview:large" />
@@ -1392,6 +1398,7 @@ def _render_dashboard(history):
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%E2%9A%BE%3C/text%3E%3C/svg%3E" />
   <title>SportzBallz | Performance Dashboard</title>
   <meta name="description" content="SportzBallz historical MLB pick performance, records, and plus-money metrics." />
   <meta name="robots" content="index,follow,max-image-preview:large" />
