@@ -517,6 +517,54 @@ def _evaluate_picks(parsed):
     plus_wins = len([x for x in plus_decided if x['result'] == 'WIN'])
     plus_losses = len([x for x in plus_decided if x['result'] == 'LOSS'])
 
+    stake = 100.0
+
+    def _profit_for_pick(p):
+        result = p.get('result')
+        if result not in ('WIN', 'LOSS'):
+            return 0.0
+        odds = _odds_value(_field(p, 'Pick Odds', ''))
+        if odds is None:
+            return 0.0 if result == 'WIN' else -stake
+        if result == 'LOSS':
+            return -stake
+        if odds > 0:
+            return stake * (odds / 100.0)
+        if odds < 0:
+            return stake * (100.0 / abs(odds))
+        return 0.0
+
+    def _segment_stats(segment_picks):
+        seg_decided = [x for x in segment_picks if x.get('result') in ('WIN', 'LOSS')]
+        seg_wins = len([x for x in seg_decided if x.get('result') == 'WIN'])
+        seg_losses = len([x for x in seg_decided if x.get('result') == 'LOSS'])
+        seg_profit = round(sum(_profit_for_pick(x) for x in seg_decided), 2)
+        seg_roi = round((seg_profit / (len(seg_decided) * stake)) * 100, 2) if seg_decided else None
+        return {
+            'total': len(segment_picks),
+            'decided': len(seg_decided),
+            'wins': seg_wins,
+            'losses': seg_losses,
+            'profit': seg_profit,
+            'roi_pct': seg_roi,
+            'stake_per_pick': stake,
+        }
+
+    by_conf = sorted(
+        evaluated,
+        key=lambda p: _parse_confidence(_field(p, 'Model Confidence', '')) or -1,
+        reverse=True,
+    )
+    best_conf = by_conf[:1]
+    top3_conf = by_conf[:3]
+
+    segments = {
+        'all_picks': _segment_stats(evaluated),
+        'best_confidence_pick': _segment_stats(best_conf),
+        'top3_confidence_picks': _segment_stats(top3_conf),
+        'plus_money_picks': _segment_stats(plus),
+    }
+
     summary = {
         'date': parsed['date'],
         'total_picks': len(evaluated),
@@ -530,6 +578,7 @@ def _evaluate_picks(parsed):
         'plus_money_wins': plus_wins,
         'plus_money_losses': plus_losses,
         'plus_money_win_rate': round((plus_wins / len(plus_decided)) * 100, 1) if plus_decided else None,
+        'segments': segments,
     }
 
     return evaluated, summary
@@ -1126,32 +1175,125 @@ def _upsert_history(history, summary):
 
 
 def _render_dashboard(history):
-    if history:
-        total_picks = sum(h.get('total_picks', 0) for h in history)
-        total_decided = sum(h.get('decided', 0) for h in history)
-        total_wins = sum(h.get('wins', 0) for h in history)
-        total_losses = sum(h.get('losses', 0) for h in history)
-        overall_wr = round((total_wins / total_decided) * 100, 1) if total_decided else None
-        total_pm_decided = sum(h.get('plus_money_decided', 0) for h in history)
-        total_pm_wins = sum(h.get('plus_money_wins', 0) for h in history)
-        total_pm_losses = sum(h.get('plus_money_losses', 0) for h in history)
-        overall_pm_wr = round((total_pm_wins / total_pm_decided) * 100, 1) if total_pm_decided else None
-    else:
-        total_picks = total_decided = total_wins = total_losses = 0
-        total_pm_decided = total_pm_wins = total_pm_losses = 0
-        overall_wr = overall_pm_wr = None
+    category_defs = [
+        ('all_picks', 'All Picks', '#5cc9ff'),
+        ('best_confidence_pick', 'Best Confidence Pick', '#a78bfa'),
+        ('top3_confidence_picks', 'Top 3 Confidence Picks', '#34d399'),
+        ('plus_money_picks', 'Plus Money Picks', '#f59e0b'),
+    ]
+
+    def _legacy_segment(h, key):
+        if key == 'all_picks':
+            decided = h.get('decided', 0)
+            wins = h.get('wins', 0)
+            losses = h.get('losses', 0)
+            return {
+                'total': h.get('total_picks', 0),
+                'decided': decided,
+                'wins': wins,
+                'losses': losses,
+                'profit': 0.0,
+                'roi_pct': None,
+                'stake_per_pick': 100.0,
+            }
+        if key == 'plus_money_picks':
+            decided = h.get('plus_money_decided', 0)
+            wins = h.get('plus_money_wins', 0)
+            losses = h.get('plus_money_losses', 0)
+            return {
+                'total': h.get('plus_money_total', 0),
+                'decided': decided,
+                'wins': wins,
+                'losses': losses,
+                'profit': 0.0,
+                'roi_pct': None,
+                'stake_per_pick': 100.0,
+            }
+        return {
+            'total': 0,
+            'decided': 0,
+            'wins': 0,
+            'losses': 0,
+            'profit': 0.0,
+            'roi_pct': None,
+            'stake_per_pick': 100.0,
+        }
+
+    def _seg(h, key):
+        return (h.get('segments') or {}).get(key) or _legacy_segment(h, key)
+
+    totals = {}
+    for key, _label, _color in category_defs:
+        decided = sum(_seg(h, key).get('decided', 0) for h in history)
+        wins = sum(_seg(h, key).get('wins', 0) for h in history)
+        losses = sum(_seg(h, key).get('losses', 0) for h in history)
+        profit = round(sum(float(_seg(h, key).get('profit', 0.0) or 0.0) for h in history), 2)
+        roi = round((profit / (decided * 100.0)) * 100, 2) if decided else None
+        totals[key] = {
+            'decided': decided,
+            'wins': wins,
+            'losses': losses,
+            'profit': profit,
+            'roi_pct': roi,
+            'total': sum(_seg(h, key).get('total', 0) for h in history),
+        }
+
+    def _svg_line(values, color):
+        w, h, pad = 360, 120, 10
+        if not values:
+            return f"<svg viewBox='0 0 {w} {h}' class='spark'><line x1='{pad}' y1='{h-pad}' x2='{w-pad}' y2='{h-pad}' stroke='#31508e' /></svg>"
+        vmin, vmax = min(values), max(values)
+        span = (vmax - vmin) if vmax != vmin else 1
+        pts = []
+        for i, v in enumerate(values):
+            x = pad + (i * (w - 2 * pad) / max(1, len(values) - 1))
+            y = h - pad - ((v - vmin) / span) * (h - 2 * pad)
+            pts.append(f"{x:.1f},{y:.1f}")
+        return f"<svg viewBox='0 0 {w} {h}' class='spark'><line x1='{pad}' y1='{h-pad}' x2='{w-pad}' y2='{h-pad}' stroke='#31508e' /><polyline fill='none' stroke='{color}' stroke-width='2.5' points='{' '.join(pts)}' /></svg>"
+
+    asc = sorted(history, key=lambda x: x.get('date', ''))
+    chart_cards = []
+    for key, label, color in category_defs:
+        running = 0.0
+        series = []
+        for h in asc:
+            running += float(_seg(h, key).get('profit', 0.0) or 0.0)
+            series.append(round(running, 2))
+        t = totals[key]
+        roi_txt = f"{t['roi_pct']}%" if t['roi_pct'] is not None else '—'
+        chart_cards.append(
+            f"""
+            <div class='chart-card'>
+              <h3>{label}</h3>
+              <div class='chart-meta'>Record: {t['wins']}-{t['losses']} • Profit: ${t['profit']:.2f} • ROI: {roi_txt}</div>
+              {_svg_line(series, color)}
+              <div class='chart-foot'>Cumulative profit (flat $100 per decided pick)</div>
+            </div>
+            """
+        )
 
     rows = []
     for h in history:
-        wr = f"{h.get('win_rate')}%" if h.get('win_rate') is not None else '—'
-        pwr = f"{h.get('plus_money_win_rate')}%" if h.get('plus_money_win_rate') is not None else '—'
         d = h.get('date', '')
+        s_all = _seg(h, 'all_picks')
+        s_best = _seg(h, 'best_confidence_pick')
+        s_top3 = _seg(h, 'top3_confidence_picks')
+        s_pm = _seg(h, 'plus_money_picks')
         rows.append(
-            f"<tr><td><a href='/{d}.html'>{d}</a></td><td>{h.get('wins',0)}-{h.get('losses',0)}</td><td>{wr}</td><td>{h.get('plus_money_wins',0)}-{h.get('plus_money_losses',0)}</td><td>{pwr}</td><td>{h.get('pending',0)}</td></tr>"
+            f"<tr>"
+            f"<td><a href='/{d}.html'>{d}</a></td>"
+            f"<td>{s_all.get('wins',0)}-{s_all.get('losses',0)} (${float(s_all.get('profit',0) or 0):.2f})</td>"
+            f"<td>{s_best.get('wins',0)}-{s_best.get('losses',0)} (${float(s_best.get('profit',0) or 0):.2f})</td>"
+            f"<td>{s_top3.get('wins',0)}-{s_top3.get('losses',0)} (${float(s_top3.get('profit',0) or 0):.2f})</td>"
+            f"<td>{s_pm.get('wins',0)}-{s_pm.get('losses',0)} (${float(s_pm.get('profit',0) or 0):.2f})</td>"
+            f"<td>{h.get('pending',0)}</td>"
+            f"</tr>"
         )
 
-    overall_wr_txt = f"{overall_wr}%" if overall_wr is not None else '—'
-    overall_pm_txt = f"{overall_pm_wr}%" if overall_pm_wr is not None else '—'
+    all_total = totals['all_picks']
+    pm_total = totals['plus_money_picks']
+    all_roi_txt = f"{all_total['roi_pct']}%" if all_total['roi_pct'] is not None else '—'
+    pm_roi_txt = f"{pm_total['roi_pct']}%" if pm_total['roi_pct'] is not None else '—'
 
     return f'''<!doctype html>
 <html lang="en">
@@ -1184,6 +1326,12 @@ def _render_dashboard(history):
     .k {{ border:1px dashed #31508e; border-radius:10px; padding:10px; }}
     .k span {{ display:block; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }}
     .k strong {{ font-size:20px; }}
+    .chart-grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:10px; }}
+    .chart-card {{ border:1px dashed #31508e; border-radius:10px; padding:10px; background:rgba(255,255,255,.02); }}
+    .chart-card h3 {{ margin:0 0 6px; font-size:16px; }}
+    .chart-meta {{ color:#cfe1ff; font-size:12px; margin-bottom:6px; }}
+    .chart-foot {{ color:var(--muted); font-size:11px; margin-top:4px; }}
+    .spark {{ width:100%; height:120px; display:block; }}
     table {{ width:100%; border-collapse:collapse; }}
     th, td {{ border-bottom:1px solid #2a3f70; padding:10px 8px; text-align:left; }}
     th {{ color:#cfe0ff; font-size:12px; text-transform:uppercase; letter-spacing:.08em; }}
@@ -1196,23 +1344,30 @@ def _render_dashboard(history):
   <main class="wrap">
     <div class="card">
       <h1>Performance Dashboard</h1>
-      <div class="meta">Auto-tracked from published daily picks.</div>
+      <div class="meta">Auto-tracked from published daily picks. Assumption: flat <strong>$100 stake</strong> on each decided pick in each strategy bucket.</div>
       <div class="links"><a href="/">Home</a> <a href="/media-kit.html">Media Kit</a> <a href="/rate-card.html">Rate Card</a></div>
       {_render_ad_slot('dashboard-top', 'Dashboard Sponsorship')}
       <div class="grid">
-        <div class="k"><span>Total Picks</span><strong>{total_picks}</strong></div>
-        <div class="k"><span>Decided</span><strong>{total_decided}</strong></div>
-        <div class="k"><span>Overall Record</span><strong>{total_wins}-{total_losses}</strong></div>
-        <div class="k"><span>Overall Win %</span><strong>{overall_wr_txt}</strong></div>
-        <div class="k"><span>Plus Money Record</span><strong>{total_pm_wins}-{total_pm_losses}</strong></div>
-        <div class="k"><span>Plus Money Win %</span><strong>{overall_pm_txt}</strong></div>
+        <div class="k"><span>Total Picks Logged</span><strong>{all_total['total']}</strong></div>
+        <div class="k"><span>All Picks Record</span><strong>{all_total['wins']}-{all_total['losses']}</strong></div>
+        <div class="k"><span>All Picks Profit</span><strong>${all_total['profit']:.2f}</strong></div>
+        <div class="k"><span>All Picks ROI</span><strong>{all_roi_txt}</strong></div>
+        <div class="k"><span>Plus Money Record</span><strong>{pm_total['wins']}-{pm_total['losses']}</strong></div>
+        <div class="k"><span>Plus Money ROI</span><strong>{pm_roi_txt}</strong></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">Season Strategy Charts</h2>
+      <div class="chart-grid">
+        {''.join(chart_cards)}
       </div>
     </div>
 
     <div class="card">
       <h2 style="margin-top:0">Daily Performance</h2>
       <table>
-        <thead><tr><th>Date</th><th>Record</th><th>Win %</th><th>Plus Money</th><th>Plus %</th><th>Pending</th></tr></thead>
+        <thead><tr><th>Date</th><th>All Picks</th><th>Best Confidence</th><th>Top 3 Confidence</th><th>Plus Money</th><th>Pending</th></tr></thead>
         <tbody>
           {''.join(rows) if rows else '<tr><td colspan="6">No history yet.</td></tr>'}
         </tbody>
