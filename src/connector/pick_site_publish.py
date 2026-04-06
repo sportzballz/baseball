@@ -172,11 +172,12 @@ def _render_rate_card():
 def _toolbar_css():
     return '''
     .nav-toolbar { margin-top:12px; display:grid; grid-template-columns:1.2fr 1.4fr .8fr; gap:10px; align-items:start; }
-    .toolbar-group { border:1px solid #304b87; border-radius:10px; padding:10px; background:rgba(255,255,255,.03); }
+    .toolbar-group { border:1px solid #304b87; border-radius:10px; padding:10px; background:rgba(255,255,255,.03); min-height:58px; display:flex; flex-direction:column; justify-content:flex-start; }
     .toolbar-group summary { cursor:pointer; color:#dff0ff; font-size:12px; text-transform:uppercase; letter-spacing:.08em; font-weight:800; list-style:none; text-align:center; border:1px solid #3f61a0; border-radius:10px; padding:10px 12px; background:linear-gradient(135deg, rgba(99,210,255,.18), rgba(124,255,199,.10)); }
     .toolbar-group summary::-webkit-details-marker { display:none; }
     .toolbar-group[open] summary { margin-bottom:8px; }
     .toolbar-group summary a { color:#dff0ff; text-decoration:none; font-size:12px; text-transform:uppercase; letter-spacing:.08em; font-weight:800; }
+    .nav-toolbar > .toolbar-group > summary { min-height:44px; display:flex; align-items:center; justify-content:center; }
     .toolbar-links { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
     .toolbar-links a { color:#dfeeff; text-decoration:none; border:1px solid #3b5a95; border-radius:8px; padding:7px 10px; font-size:13px; background:rgba(255,255,255,.02); }
     .toolbar-links a:hover { border-color:var(--accent, #63d2ff); }
@@ -212,12 +213,7 @@ def _render_global_toolbar(latest_date: str, archive_dates):
     return f'''
       <div class="nav-toolbar">
         <details class="toolbar-group">
-          <summary>⚾ Latest Daily Picks</summary>
-          <div class="toolbar-links">
-            <a href="{latest_href}">Daily Picks</a>
-            <a href="{latest_plus_href}">Plus Money Picks</a>
-            <a href="{latest_totals_href}">Run Total Picks</a>
-          </div>
+          <summary><a href="/">⚾ Latest Daily Picks</a></summary>
         </details>
         <details class="toolbar-group">
           <summary>🗂️ Archive</summary>
@@ -422,6 +418,18 @@ def _umpire_note(ump):
     if hp:
         return f"Home plate assignment ({hp}) is in place, which sharp bettors will monitor for zone tendencies once game action starts."
     return f"Crew assignment is posted ({ump}), adding context for in-game strike-zone texture and pace."
+
+
+def _lineup_status_note(text):
+    t = (text or "").strip()
+    if not t or t.lower() in ("n/a", "unavailable"):
+        return "Starting lineup status is unavailable at publish time."
+    tl = t.lower()
+    if "not announced" in tl:
+        return f"Lineup status check: {t}"
+    if "both starting lineups were announced" in tl:
+        return "Both starting lineups are posted, reducing pregame uncertainty around batting-order context."
+    return f"Lineup status: {t}"
 
 
 def _parse_markdown(md_text: str):
@@ -728,6 +736,7 @@ def _analysis_paragraph(pick, idx, date_text=''):
     l_sig_count = 0 if not l_sig or l_sig == 'n/a' else len([s for s in l_sig.split(',') if s.strip()])
     w_inj = _field(pick, f'{winner} Injuries', 'n/a')
     l_inj = _field(pick, f'{loser} Injuries', 'n/a')
+    lineups = _field(pick, 'Starting Lineups', 'n/a')
 
     analyst = _pick_analyst(pick, idx, date_text)
 
@@ -742,6 +751,7 @@ def _analysis_paragraph(pick, idx, date_text=''):
         f"Voice: {analyst['voice']}. "
         f"{_weather_note(venue, weather)} "
         f"{_umpire_note(ump)} "
+        f"{_lineup_status_note(lineups)} "
         f"{_injury_note(winner, loser, w_inj, l_inj)} "
         f"{_line_movement_note(line_move)}"
     )
@@ -832,6 +842,7 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None, frozen_commen
             <li><strong>Umpire Crew:</strong> {html.escape(_field(p,'Umpire Crew','n/a'))}</li>
             <li><strong>{html.escape(winner)} Injuries:</strong> {html.escape(_field(p,f'{winner} Injuries','n/a'))}</li>
             <li><strong>{html.escape(loser)} Injuries:</strong> {html.escape(_field(p,f'{loser} Injuries','n/a'))}</li>
+            <li><strong>Starting Lineups:</strong> {html.escape(_field(p,'Starting Lineups','n/a'))}</li>
             <li><strong>Line Movement:</strong> {html.escape(_field(p,'Line Movement','n/a'))}</li>
           </ul>
         </details>
@@ -867,7 +878,6 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None, frozen_commen
     .kicker{{font:600 12px/1.2 Inter,system-ui,sans-serif;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}}
     h1{{margin:8px 0 10px;font-size:clamp(30px,5vw,46px);line-height:1.05}}
     .sub{{color:var(--muted);font-family:Inter,system-ui,sans-serif;font-size:14px}}
-    .intro{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;font-size:18px}}
     .ad-slot{{background:rgba(255,255,255,.03);border:1px dashed #3b5a96;border-radius:12px;padding:12px 14px;margin:0 0 14px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}}
     .ad-label{{font:700 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#9cc4ff}}
     .ad-copy{{color:#d9e6ff;font:500 14px/1.3 Inter,system-ui,sans-serif}}
@@ -908,7 +918,6 @@ def _render_daily_html(parsed, evaluated_picks=None, summary=None, frozen_commen
       <div class="sub">Model: {html.escape(model)} • Updated {html.escape(now)}</div>
     </header>
     {toolbar_html}
-    <section class="intro">Today’s card in a warmer, notebook-style voice — balancing matchup context, weather, umpire texture, and price discipline.</section>
     {_render_ad_slot('daily-top', 'Daily Notebook Sponsorship')}
     {tracker_html}
     {''.join(cards)}
@@ -977,6 +986,7 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None, frozen_c
             <li><strong>Umpire Crew:</strong> {html.escape(_field(p,'Umpire Crew','n/a'))}</li>
             <li><strong>{html.escape(winner)} Injuries:</strong> {html.escape(_field(p,f'{winner} Injuries','n/a'))}</li>
             <li><strong>{html.escape(loser)} Injuries:</strong> {html.escape(_field(p,f'{loser} Injuries','n/a'))}</li>
+            <li><strong>Starting Lineups:</strong> {html.escape(_field(p,'Starting Lineups','n/a'))}</li>
             <li><strong>Line Movement:</strong> {html.escape(_field(p,'Line Movement','n/a'))}</li>
           </ul>
         </details>
@@ -1027,7 +1037,6 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None, frozen_c
     .kicker{{font:600 12px/1.2 Inter,system-ui,sans-serif;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}}
     h1{{margin:8px 0 10px;font-size:clamp(30px,5vw,46px);line-height:1.05}}
     .sub{{color:var(--muted);font-family:Inter,system-ui,sans-serif;font-size:14px}}
-    .intro{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;font-size:18px}}
     .ad-slot{{background:rgba(255,255,255,.03);border:1px dashed #3b5a96;border-radius:12px;padding:12px 14px;margin:0 0 14px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}}
     .ad-label{{font:700 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#9cc4ff}}
     .ad-copy{{color:#d9e6ff;font:500 14px/1.3 Inter,system-ui,sans-serif}}
@@ -1074,7 +1083,6 @@ def _render_plus_money_html(parsed, evaluated_picks=None, summary=None, frozen_c
       </div>
     </header>
     {toolbar_html}
-    <section class="intro">All underdog selections (positive odds) for the day, ordered by confidence.</section>
     {_render_ad_slot('plus-money-top', 'Plus Money Card Sponsorship')}
     {pm_summary_html}
     {''.join(cards)}
@@ -1156,7 +1164,6 @@ def _render_run_totals_html(parsed, evaluated_picks=None, latest_date=None, arch
     .kicker{{font:600 12px/1.2 Inter,system-ui,sans-serif;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}}
     h1{{margin:8px 0 10px;font-size:clamp(30px,5vw,46px);line-height:1.05}}
     .sub{{color:var(--muted);font-family:Inter,system-ui,sans-serif;font-size:14px}}
-    .intro{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;font-size:18px}}
     .ad-slot{{background:rgba(255,255,255,.03);border:1px dashed #3b5a96;border-radius:12px;padding:12px 14px;margin:0 0 14px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}}
     .ad-label{{font:700 11px/1 Inter,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#9cc4ff}}
     .ad-copy{{color:#d9e6ff;font:500 14px/1.3 Inter,system-ui,sans-serif}}
@@ -1194,7 +1201,6 @@ def _render_run_totals_html(parsed, evaluated_picks=None, latest_date=None, arch
       </div>
     </header>
     {toolbar_html}
-    <section class="intro">Totals-only leans built from confidence, pricing, weather/venue context, and market movement.</section>
     {_render_ad_slot('run-totals-top', 'Run Totals Sponsorship')}
     {''.join(cards)}
     <footer>Published by SportzBallz.io</footer>
@@ -1272,7 +1278,6 @@ def _render_run_line_html(parsed, evaluated_picks=None, frozen_commentary=None, 
     .kicker{{font:600 12px/1.2 Inter,system-ui,sans-serif;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}}
     h1{{margin:8px 0 10px;font-size:clamp(30px,5vw,46px);line-height:1.05}}
     .sub{{color:var(--muted);font-family:Inter,system-ui,sans-serif;font-size:14px}}
-    .intro{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;font-size:18px}}
     .pick-card{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 14px 0;box-shadow:0 12px 28px rgba(0,0,0,.24)}}
     .pick-head h2{{margin:4px 0 8px;font-size:30px;line-height:1.15}}
     .pick-head{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
@@ -1305,7 +1310,6 @@ def _render_run_line_html(parsed, evaluated_picks=None, frozen_commentary=None, 
       </div>
     </header>
     {toolbar_html}
-    <section class="intro">Run line tab is active. Current model leans are side-based until dedicated spread-market ingestion is fully wired.</section>
     {''.join(cards)}
   </main>
 </body>
@@ -1534,12 +1538,7 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
 
       <div class="nav-toolbar">
         <details class="toolbar-group">
-          <summary>⚾ Latest Daily Picks</summary>
-          <div class="toolbar-links">
-            <a href="{latest_href}">Daily Picks</a>
-            <a href="{latest_plus_href}">Plus Money Picks</a>
-            <a href="{latest_totals_href}">Run Total Picks</a>
-          </div>
+          <summary><a href="/">⚾ Latest Daily Picks</a></summary>
         </details>
         <details class="toolbar-group">
           <summary>🗂️ Archive</summary>

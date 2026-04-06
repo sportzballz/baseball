@@ -224,11 +224,31 @@ def _format_odds(odds):
     return "----"
 
 
+def _lineup_announced(team_token):
+    token = str(team_token or "").strip()
+    # Historical marker convention from prediction payload:
+    # leading "." means lineup not yet posted for that team.
+    # A leading "$" can also be present for in-game winner marker.
+    token = token.lstrip("$")
+    return not token.startswith('.')
+
+
+def _lineup_status_text(winner_name, loser_name, winner_announced, loser_announced):
+    if winner_announced and loser_announced:
+        return "Both starting lineups were announced at publish time."
+    if (not winner_announced) and (not loser_announced):
+        return "Starting lineups were not announced for either team at publish time."
+    if winner_announced and (not loser_announced):
+        return f"{winner_name} lineup announced; {loser_name} lineup not announced at publish time."
+    return f"{winner_name} lineup not announced; {loser_name} lineup announced at publish time."
+
+
 def _fallback_commentary(context):
     venue = context["venue"]
     weather = context["weather_summary"]
     movement = context["line_movement_text"]
     ump = context["umpire_summary"]
+    lineup_status = context.get("lineup_status_text", "Starting lineup status unavailable at publish time.")
     style = context.get("style", "betting desk")
     winner_signals = context.get("winner_signals", "No model signal list available.")
     loser_signals = context.get("loser_signals", "No model signal list available.")
@@ -239,7 +259,8 @@ def _fallback_commentary(context):
             f"The model sits at {context['confidence']} confidence with {context['data_points']} data-point leverage, which gives the pick real footing. "
             f"On the baseball side, the edge profile for {context['winner']} is driven by {winner_signals}. "
             f"The counter-case for {context['loser']} shows up in {loser_signals}, but the market signal ({movement}) still leans playable. "
-            f"Umpire context ({ump}) is a late-variable worth watching, but this spot grades as a disciplined position rather than a flyer."
+            f"Umpire context ({ump}) is a late-variable worth watching, but this spot grades as a disciplined position rather than a flyer. "
+            f"Lineup status: {lineup_status}"
         )
     if style == "scouting report":
         return (
@@ -247,7 +268,8 @@ def _fallback_commentary(context):
             f"Model confidence ({context['confidence']}, data points {context['data_points']}) supports the same direction. "
             f"Signal stack for {context['winner']}: {winner_signals}. "
             f"Opposition signal stack for {context['loser']}: {loser_signals}. "
-            f"Add weather ({weather}), umpire texture ({ump}), and line behavior ({movement}) and this profile stays actionable."
+            f"Add weather ({weather}), umpire texture ({ump}), and line behavior ({movement}) and this profile stays actionable. "
+            f"Lineup status: {lineup_status}"
         )
     if style == "game-script breakdown":
         return (
@@ -255,14 +277,16 @@ def _fallback_commentary(context):
             f"The model calls it {context['confidence']} with {context['data_points']} data points and a listed number of {context['odds']}. "
             f"Early/ongoing pressure indicators for {context['winner']} show up in {winner_signals}. "
             f"Pushback factors for {context['loser']} are {loser_signals}. "
-            f"Environment ({weather}), crew ({ump}), and market movement ({movement}) all point to the same side unless live conditions materially shift."
+            f"Environment ({weather}), crew ({ump}), and market movement ({movement}) all point to the same side unless live conditions materially shift. "
+            f"Lineup status: {lineup_status}"
         )
 
     return (
         f"Price-first view: {context['winner']} over {context['loser']} at {context['odds']} with model confidence {context['confidence']} ({context['data_points']}). "
         f"The strongest support for {context['winner']} comes from: {winner_signals}. "
         f"The best resistance case for {context['loser']} comes from: {loser_signals}. "
-        f"Venue/weather ({venue}, {weather}), umpire notes ({ump}), and market movement ({movement}) keep this in the value bucket."
+        f"Venue/weather ({venue}, {weather}), umpire notes ({ump}), and market movement ({movement}) keep this in the value bucket. "
+        f"Lineup status: {lineup_status}"
     )
 
 
@@ -298,6 +322,9 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
     lines.append("")
 
     for idx, p in enumerate(valid, start=1):
+        winner_lineup_announced = _lineup_announced(p.winning_team)
+        loser_lineup_announced = _lineup_announced(p.losing_team)
+
         winner_abbr = _normalize_abbr(p.winning_team)
         loser_abbr = _normalize_abbr(p.losing_team)
 
@@ -343,6 +370,9 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
             "line_movement_text": line_move["text"],
             "total_line_text": total_market["text"],
             "total_movement_text": total_market["movement_text"],
+            "winner_lineup_announced": winner_lineup_announced,
+            "loser_lineup_announced": loser_lineup_announced,
+            "lineup_status_text": _lineup_status_text(winner_name, loser_name, winner_lineup_announced, loser_lineup_announced),
             "winning_pitcher": p.winning_pitcher,
             "losing_pitcher": p.losing_pitcher,
         }
@@ -361,6 +391,7 @@ def write_daily_pick_markdown(predictions, odds_data, model_name):
         lines.append(f"- **Umpire Crew:** {context['umpire_summary']}")
         lines.append(f"- **{winner_name} Injuries:** {context['winner_injuries']}")
         lines.append(f"- **{loser_name} Injuries:** {context['loser_injuries']}")
+        lines.append(f"- **Starting Lineups:** {context['lineup_status_text']}")
         lines.append(f"- **Line Movement:** {context['line_movement_text']}")
         lines.append(f"- **Total Line:** {context['total_line_text']}")
         lines.append(f"- **Total Movement:** {context['total_movement_text']}")
