@@ -10,6 +10,28 @@ LOCK_DIR="$REPO_ROOT/.run-lock"
 
 mkdir -p "$LOG_DIR"
 
+# If both cron and LaunchAgent are configured, prefer LaunchAgent.
+# We currently ignore cron-triggered invocations to avoid duplicate runs.
+is_invoked_by_cron() {
+  local p="$PPID"
+  local i=0
+  while [[ -n "$p" && "$p" != "1" && $i -lt 8 ]]; do
+    local comm
+    comm="$(ps -p "$p" -o comm= 2>/dev/null | xargs || true)"
+    if [[ "$comm" == "cron" || "$comm" == "/usr/sbin/cron" ]]; then
+      return 0
+    fi
+    p="$(ps -p "$p" -o ppid= 2>/dev/null | xargs || true)"
+    i=$((i+1))
+  done
+  return 1
+}
+
+if is_invoked_by_cron; then
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Ignoring cron invocation; LaunchAgent is the active scheduler." >> "$LOG_DIR/cron-runner.log"
+  exit 0
+fi
+
 # Prevent overlapping runs
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] Another run is already in progress. Exiting." >> "$LOG_DIR/cron-runner.log"
