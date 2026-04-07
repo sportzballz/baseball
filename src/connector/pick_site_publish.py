@@ -375,6 +375,32 @@ def _run_total_lean(pick):
     }
 
 
+def _run_total_result_for_pick(pick, lean):
+    game = pick.get('_game') or {}
+    home_score = game.get('home_score')
+    away_score = game.get('away_score')
+    is_final = bool(game.get('is_final'))
+
+    if not (is_final and home_score is not None and away_score is not None):
+        return 'PENDING'
+
+    total_runs = int(home_score) + int(away_score)
+    line = lean.get('line')
+    if line is None:
+        return 'UNKNOWN'
+
+    if total_runs > float(line):
+        actual_side = 'OVER'
+    elif total_runs < float(line):
+        actual_side = 'UNDER'
+    else:
+        actual_side = 'PUSH'
+
+    if actual_side == 'PUSH':
+        return 'UNKNOWN'
+    return 'WIN' if actual_side == lean.get('pick') else 'LOSS'
+
+
 def _weather_note(venue, weather):
     w = weather or ""
     if "dome/retractable roof" in w.lower() or "not applicable" in w.lower():
@@ -544,7 +570,13 @@ def _parse_markdown(md_text: str):
 
 
 def _field(pick, key, default='n/a'):
-    return pick['fields'].get(key, default)
+    fields = pick.get('fields') if isinstance(pick, dict) else None
+    if isinstance(fields, dict):
+        return fields.get(key, default)
+    # Some derived rows (e.g., run totals) store display keys at top-level.
+    if isinstance(pick, dict):
+        return pick.get(key, default)
+    return default
 
 
 def _massage_commentary_with_llm(commentary_text, pick, date_text=''):
@@ -1203,9 +1235,9 @@ def _render_run_totals_html(parsed, evaluated_picks=None, latest_date=None, arch
     for p in source:
         lean = _run_total_lean(p)
         if lean:
-            leans.append(lean)
+            leans.append((p, lean))
 
-    leans.sort(key=lambda x: x['confidence'], reverse=True)
+    leans.sort(key=lambda x: x[1]['confidence'], reverse=True)
 
     date_str = parsed['date']
     latest_date = latest_date or date_str
@@ -1215,13 +1247,20 @@ def _render_run_totals_html(parsed, evaluated_picks=None, latest_date=None, arch
     now = datetime.now().strftime('%Y-%m-%d %I:%M %p')
 
     cards = []
-    for i, l in enumerate(leans, 1):
+    for i, (src_pick, l) in enumerate(leans, 1):
         price = l['over_odds'] if l['pick'] == 'OVER' else l['under_odds']
+        result = _run_total_result_for_pick(src_pick, l)
+        result_class = 'res-pending'
+        if result == 'WIN':
+            result_class = 'res-win'
+        elif result == 'LOSS':
+            result_class = 'res-loss'
         cards.append(f'''
       <article class="pick-card">
         <div class="pick-head">
           <div class="pick-num">Run Total {i}</div>
           <h2>{html.escape(l['winner'])} vs {html.escape(l['loser'])} — {l['pick']} {l['line']}</h2>
+          <span class="res {result_class}">{result}</span>
         </div>
         <div class="meta-grid">
           <div><span>Lean</span><strong>{l['pick']} {l['line']}</strong></div>
@@ -1276,6 +1315,10 @@ def _render_run_totals_html(parsed, evaluated_picks=None, latest_date=None, arch
     .pick-head h2{{margin:4px 0 8px;font-size:30px;line-height:1.15}}
     .seo-line{{font:600 12px/1.3 Inter,system-ui,sans-serif;color:#a9c6ff;letter-spacing:.02em;margin-top:2px}}
     .pick-head{{display:flex;align-items:center;gap:10px;flex-wrap:wrap}}
+    .res{{display:inline-flex;align-items:center;justify-content:center;padding:5px 9px;border-radius:999px;border:1px solid #35518f;font:700 11px/1 Inter,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#dce8ff;background:rgba(255,255,255,.04)}}
+    .res-win{{color:#7CFFB3;border-color:#2f8f57;background:rgba(52,211,153,.12)}}
+    .res-loss{{color:#ff9ca0;border-color:#a13d47;background:rgba(239,68,68,.14)}}
+    .res-pending{{color:#cfe1ff;border-color:#3c5c97;background:rgba(59,130,246,.12)}}
     .pick-num{{font:600 12px/1 Inter,system-ui,sans-serif;color:var(--accent);letter-spacing:.12em;text-transform:uppercase}}
     .meta-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 12px;padding:10px 0 2px}}
     .meta-grid div{{border:1px dashed #31508e;border-radius:10px;padding:8px 10px;background:rgba(255,255,255,.02)}}
@@ -1545,6 +1588,7 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
         line = lean.get('line')
         side = lean.get('pick')
         price = lean.get('over_odds') if side == 'OVER' else lean.get('under_odds')
+        result = _run_total_result_for_pick(p, lean)
         reasons = ', '.join(lean.get('reasons') or []) or 'balanced conditions and market context'
         rt_analysis = f"Run-total lens: {side} {line} in {p.get('winner','TBD')} vs {p.get('loser','TBD')}. Supporting context includes {reasons}."
         total_items.append(f'''
@@ -1552,6 +1596,7 @@ def _render_top_index(latest_date: str, archive_dates, latest_picks=None, frozen
             <div class="pick-head">
               <div class="pick-num">Run Total {i}</div>
               <h3>{html.escape(p.get('winner','TBD'))} vs {html.escape(p.get('loser','TBD'))} — {side} {line}</h3>
+              <span class="res {_result_class(result)}">{result}</span>
             </div>
             <div class="meta-grid">
               <div><span>Lean</span><strong>{side} {line}</strong></div>
