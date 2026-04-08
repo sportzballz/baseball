@@ -397,7 +397,7 @@ def _run_total_result_for_pick(pick, lean):
         actual_side = 'PUSH'
 
     if actual_side == 'PUSH':
-        return 'UNKNOWN'
+        return 'PUSH'
     return 'WIN' if actual_side == lean.get('pick') else 'LOSS'
 
 
@@ -798,7 +798,7 @@ def _evaluate_picks(parsed):
             rt['actual_total_side'] = actual_side
 
             if actual_side == 'PUSH':
-                rt['result'] = 'UNKNOWN'
+                rt['result'] = 'PUSH'
             else:
                 rt['result'] = 'WIN' if actual_side == lean['pick'] else 'LOSS'
 
