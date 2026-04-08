@@ -67,12 +67,14 @@ def call_rewriter(batch, model_name):
     client = OpenAI(api_key=api_key)
 
     system_prompt = (
-        "You are an elite MLB editor. Rewrite commentary for clarity, conviction, and readability while preserving factual meaning. "
-        "Keep each rewrite to one paragraph and avoid adding fabricated facts, numbers, players, injuries, or outcomes."
+        "You are a grizzled MLB betting analyst and veteran beat writer. Rewrite commentary so it pops: sharper voice, tighter rhythm, "
+        "clear edge, no fluff, still factual. Keep each rewrite to one paragraph and preserve factual meaning. "
+        "Do not invent facts, numbers, players, injuries, weather, line movement, or outcomes."
     )
 
     user_prompt = (
-        "For each item below, in the voice of a grizzled mlb analyst, make this commentary better. "
+        "For each item below: in the voice of a grizzled MLB analyst, make this commentary better and make it pop. "
+        "Keep it punchy and publication-ready while preserving all factual meaning. "
         "Return STRICT JSON only as an array of objects with fields: id, commentary.\n\n"
         f"Input:\n{json.dumps(batch, ensure_ascii=False)}"
     )
