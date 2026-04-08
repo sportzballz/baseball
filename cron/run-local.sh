@@ -55,6 +55,8 @@ set +a
 MODEL="${MODEL:-dutch}"
 PYTHON_BIN="${PYTHON_BIN:-}"
 COMMENTARY_POLISH_JOB="${COMMENTARY_POLISH_JOB:-true}"
+BASEBALL_POLISH_CRON_ID="${BASEBALL_POLISH_CRON_ID:-5a28aa6c-8486-469c-93a2-e7628e4138a6}"
+LOCAL_USE_LLM_FOR_INITIAL="${LOCAL_USE_LLM_FOR_INITIAL:-false}"
 
 if [[ -z "$PYTHON_BIN" ]]; then
   if [[ -x "$REPO_ROOT/.venv/bin/python" ]]; then
@@ -79,6 +81,11 @@ echo "[$TIMESTAMP] Starting model '$MODEL' with $PYTHON_BIN" >> "$RUN_LOG"
   if [[ "$COMMENTARY_POLISH_JOB" =~ ^(1|true|yes|on)$ ]]; then
     export AUTO_PUBLISH_SITE=false
   fi
+  if [[ ! "$LOCAL_USE_LLM_FOR_INITIAL" =~ ^(1|true|yes|on)$ ]]; then
+    # Force fallback commentary for local generation pass.
+    export OPENAI_API_KEY=""
+    export OPENROUTER_API_KEY=""
+  fi
   "$PYTHON_BIN" "$MODEL_ENTRY"
 ) >> "$RUN_LOG" 2>&1
 
@@ -87,11 +94,13 @@ if [[ $EXIT_CODE -eq 0 ]]; then
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] Completed successfully" >> "$RUN_LOG"
 
   if [[ "$COMMENTARY_POLISH_JOB" =~ ^(1|true|yes|on)$ ]]; then
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting commentary polish job" >> "$RUN_LOG"
-    (
-      cd "$REPO_ROOT"
-      "$PYTHON_BIN" "$REPO_ROOT/cron/polish_html_commentary.py"
-    ) >> "$RUN_LOG" 2>&1 || echo "[$(date '+%Y-%m-%d %H:%M:%S')] Commentary polish job failed" >> "$RUN_LOG"
+    if [[ -z "$BASEBALL_POLISH_CRON_ID" ]]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] Commentary polish cron id missing (BASEBALL_POLISH_CRON_ID). Skipping polish trigger." >> "$RUN_LOG"
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] Triggering OpenClaw polish cron job: $BASEBALL_POLISH_CRON_ID" >> "$RUN_LOG"
+      openclaw cron run "$BASEBALL_POLISH_CRON_ID" --expect-final >> "$RUN_LOG" 2>&1 \
+        || echo "[$(date '+%Y-%m-%d %H:%M:%S')] Commentary polish cron trigger failed" >> "$RUN_LOG"
+    fi
   fi
 else
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] Failed with exit code $EXIT_CODE" >> "$RUN_LOG"
