@@ -81,6 +81,15 @@ echo "[$TIMESTAMP] Starting model '$MODEL' with $PYTHON_BIN" >> "$RUN_LOG"
 EXIT_CODE=$?
 if [[ $EXIT_CODE -eq 0 ]]; then
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] Completed successfully" >> "$RUN_LOG"
+
+  COMMENTARY_POLISH_JOB="${COMMENTARY_POLISH_JOB:-true}"
+  if [[ "$COMMENTARY_POLISH_JOB" =~ ^(1|true|yes|on)$ ]]; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting commentary polish job" >> "$RUN_LOG"
+    (
+      cd "$REPO_ROOT"
+      "$PYTHON_BIN" "$REPO_ROOT/cron/polish_html_commentary.py"
+    ) >> "$RUN_LOG" 2>&1 || echo "[$(date '+%Y-%m-%d %H:%M:%S')] Commentary polish job failed" >> "$RUN_LOG"
+  fi
 else
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] Failed with exit code $EXIT_CODE" >> "$RUN_LOG"
 fi
