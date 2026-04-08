@@ -44,7 +44,7 @@ def extract_ledes(text: str):
     return items
 
 
-def call_rewriter(batch, model_name):
+def resolve_openai_key():
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         env_paths = [
@@ -63,57 +63,100 @@ def call_rewriter(batch, model_name):
                 break
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY is not set")
+    return api_key
 
-    client = OpenAI(api_key=api_key)
 
+def rewrite_single_lede(client, model_name, lede_text: str):
     system_prompt = (
         "You are a grizzled MLB betting analyst and veteran beat writer. Rewrite commentary so it pops: sharper voice, tighter rhythm, "
-        "clear edge, no fluff, still factual. Keep each rewrite to one paragraph and preserve factual meaning. "
-        "Do not invent facts, numbers, players, injuries, weather, line movement, or outcomes."
+        "clear edge, no fluff, still factual. Keep it to one paragraph and preserve factual meaning. "
+        "Do not invent facts, numbers, players, injuries, weather, line movement, or outcomes. "
+        "Avoid robotic phrasing like 'prediction model', 'confidence rating', or 'data points'."
+    )
+
+    few_shot_user = (
+        "Rewrite this in your style:\n"
+        "The Orioles are favored at -148 with a confidence rating of 0.545 based on 17 of 22 data points. "
+        "The White Sox have offensive issues and lineup instability."
+    )
+    few_shot_assistant = (
+        "Baltimore at -148 isn\'t a bargain-bin ticket, but the market move says the right side has teeth. "
+        "The Orioles bring the cleaner profile tonight—steadier bats, fewer empty trips, and less lineup chaos—"
+        "while Chicago\'s still searching for consistent run production."
     )
 
     user_prompt = (
-        "For each item below: in the voice of a grizzled MLB analyst, make this commentary better and make it pop. "
-        "Keep it punchy and publication-ready while preserving all factual meaning. "
-        "Return STRICT JSON only as an array of objects with fields: id, commentary.\n\n"
-        f"Input:\n{json.dumps(batch, ensure_ascii=False)}"
+        "In the voice of a grizzled MLB analyst, make this commentary better and make it pop. "
+        "Keep all facts intact. One paragraph only.\n\n"
+        f"Original commentary:\n{lede_text}"
     )
 
     resp = client.chat.completions.create(
         model=model_name,
-        temperature=0.5,
+        temperature=0.45,
         messages=[
             {"role": "system", "content": system_prompt},
+            {"role": "user", "content": few_shot_user},
+            {"role": "assistant", "content": few_shot_assistant},
             {"role": "user", "content": user_prompt},
         ],
     )
 
+    return (resp.choices[0].message.content or "").strip()
+
+
+def judge_rewrite(client, judge_model, original: str, rewritten: str):
+    judge_prompt = (
+        "You are grading rewrite quality for sportsbook editorial. Return STRICT JSON object with fields: "
+        "fidelity (true/false), pop_score (1-10 int), reasons (array of short strings).\n\n"
+        f"Original:\n{original}\n\nRewrite:\n{rewritten}"
+    )
+
+    resp = client.chat.completions.create(
+        model=judge_model,
+        temperature=0,
+        messages=[
+            {"role": "system", "content": "Be strict. Prefer factual fidelity over style."},
+            {"role": "user", "content": judge_prompt},
+        ],
+    )
+
     raw = (resp.choices[0].message.content or "").strip()
-
-    # Parse loose JSON payload.
     try:
-        parsed = json.loads(raw)
+        obj = json.loads(raw)
     except Exception:
-        start = raw.find("[")
-        end = raw.rfind("]")
-        if start >= 0 and end > start:
-            parsed = json.loads(raw[start : end + 1])
+        l = raw.find("{")
+        r = raw.rfind("}")
+        if l >= 0 and r > l:
+            obj = json.loads(raw[l : r + 1])
         else:
-            raise RuntimeError("LLM returned non-JSON payload")
+            return {"fidelity": False, "pop_score": 0, "reasons": ["judge_parse_failed"]}
 
-    if not isinstance(parsed, list):
-        raise RuntimeError("LLM payload must be a JSON array")
+    fidelity = bool(obj.get("fidelity"))
+    pop = int(obj.get("pop_score") or 0)
+    reasons = obj.get("reasons") if isinstance(obj.get("reasons"), list) else []
+    return {"fidelity": fidelity, "pop_score": pop, "reasons": reasons}
 
-    out = {}
-    for item in parsed:
-        if not isinstance(item, dict):
-            continue
-        i = item.get("id")
-        txt = str(item.get("commentary", "")).strip()
-        if i is None or not txt:
-            continue
-        out[str(i)] = txt
-    return out
+
+def call_rewriter_single(client, model_name, judge_model, item):
+    original = item["text"]
+    rewritten = rewrite_single_lede(client, model_name, original)
+
+    # Basic guardrails before LLM judge.
+    if not rewritten or len(rewritten.split()) < 35:
+        return None, "too_short_or_empty"
+
+    if re.search(r"\b(confidence rating|data points|in this matchup|today\'s matchup)\b", rewritten, re.I):
+        # common bland/templated phrases; send to judge anyway but likely reject
+        pass
+
+    grade = judge_rewrite(client, judge_model, original, rewritten)
+    if not grade["fidelity"]:
+        return None, f"fidelity_fail:{','.join(grade['reasons'][:2])}"
+    if grade["pop_score"] < 6:
+        return None, f"pop_too_low:{grade['pop_score']}"
+
+    return rewritten, f"accepted:pop_{grade['pop_score']}"
 
 
 def apply_rewrites(original_html: str, ledes, rewrites):
@@ -175,7 +218,8 @@ def main():
     parser = argparse.ArgumentParser(description="Polish published MLB HTML commentary using ChatGPT voice pass")
     parser.add_argument("--date", default="", help="Target date YYYY-MM-DD (default: today ET)")
     parser.add_argument("--site-root", default="/Users/asmith/.openclaw/workspace/sportzballz.io")
-    parser.add_argument("--model", default=os.environ.get("OPENAI_COMMENTARY_MODEL", "gpt-4o-mini"))
+    parser.add_argument("--model", default=os.environ.get("OPENAI_COMMENTARY_MODEL", "gpt-4o"))
+    parser.add_argument("--judge-model", default=os.environ.get("OPENAI_COMMENTARY_JUDGE_MODEL", "gpt-4o-mini"))
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -186,7 +230,6 @@ def main():
         print(f"No target HTML files found for {date_str}")
         return 0
 
-    payload = []
     per_file = {}
 
     for p in files:
@@ -195,33 +238,34 @@ def main():
         if not ledes:
             continue
         per_file[p] = {"raw": raw, "ledes": ledes}
-        for item in ledes:
-            payload.append({
-                "id": str(item["index"]),
-                "file": p.name,
-                "commentary": item["text"],
-            })
 
-    if not payload:
+    if not per_file:
         print("No lede commentary blocks found to polish")
         return 0
 
-    # Batch by file for safer id mapping and smaller payloads.
+    client = OpenAI(api_key=resolve_openai_key())
+
     changed_files = []
     for p, info in per_file.items():
-        batch = [
-            {"id": str(item["index"]), "commentary": item["text"]}
-            for item in info["ledes"]
-        ]
-        rewrites = call_rewriter(batch, args.model)
+        rewrites = {}
+        accepted = 0
+        rejected = 0
+        for item in info["ledes"]:
+            out, status = call_rewriter_single(client, args.model, args.judge_model, item)
+            if out:
+                rewrites[str(item["index"])] = out
+                accepted += 1
+            else:
+                rejected += 1
+
         updated_html, changed = apply_rewrites(info["raw"], info["ledes"], rewrites)
         if changed > 0:
             if not args.dry_run:
                 p.write_text(updated_html, encoding="utf-8")
             changed_files.append(p)
-            print(f"{p.name}: polished {changed} commentary blocks")
+            print(f"{p.name}: polished {changed} commentary blocks (accepted={accepted}, rejected={rejected})")
         else:
-            print(f"{p.name}: no meaningful commentary changes")
+            print(f"{p.name}: no meaningful commentary changes (accepted={accepted}, rejected={rejected})")
 
     if not changed_files:
         print("No file changes to publish")
