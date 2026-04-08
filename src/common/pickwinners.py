@@ -10,6 +10,11 @@ from connector.pick_site_publish import publish_daily_site
 from  common.objects import AdvantageScore
 
 
+def _lineup_announced(team_token):
+    token = str(team_token or "").strip().lstrip("$")
+    return not token.startswith(".")
+
+
 def main(model, model_hitting_fn, model_pitching_fn, model_vs_fn):
     teams = get_teams_list()
     lineups = get_starting_lineups()
@@ -69,9 +74,30 @@ def main(model, model_hitting_fn, model_pitching_fn, model_vs_fn):
         print("Skipping Slack posting in local mode")
 
     if effective_mode in ("local", "both"):
+        local_winners = winners
+        require_both_lineups = os.environ.get(
+            "LOCAL_REQUIRE_BOTH_LINEUPS", "true"
+        ).strip().lower() in ("1", "true", "yes", "on")
+        if require_both_lineups and not in_aws_lambda:
+            local_winners = [
+                w
+                for w in winners
+                if _lineup_announced(getattr(w, "winning_team", ""))
+                and _lineup_announced(getattr(w, "losing_team", ""))
+            ]
+            skipped = len(winners) - len(local_winners)
+            if skipped > 0:
+                print(
+                    f"Local lineup gate enabled: skipped {skipped} picks missing one/both announced lineups"
+                )
+
+        if not local_winners:
+            print("No local picks passed lineup gate; skipping markdown/html publish")
+            return
+
         # Write rich daily markdown commentary (weather, umpires, injuries, line movement)
         try:
-            output_path = write_daily_pick_markdown(winners, odds_data, model)
+            output_path = write_daily_pick_markdown(local_winners, odds_data, model)
             if output_path:
                 print(f"Wrote pick commentary: {output_path}")
 
