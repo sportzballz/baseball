@@ -54,6 +54,7 @@ set +a
 
 MODEL="${MODEL:-dutch}"
 PYTHON_BIN="${PYTHON_BIN:-}"
+COMMENTARY_POLISH_JOB="${COMMENTARY_POLISH_JOB:-true}"
 
 if [[ -z "$PYTHON_BIN" ]]; then
   if [[ -x "$REPO_ROOT/.venv/bin/python" ]]; then
@@ -75,6 +76,9 @@ RUN_LOG="$LOG_DIR/${MODEL}-$(date '+%Y-%m-%d').log"
 echo "[$TIMESTAMP] Starting model '$MODEL' with $PYTHON_BIN" >> "$RUN_LOG"
 (
   cd "$SRC_DIR"
+  if [[ "$COMMENTARY_POLISH_JOB" =~ ^(1|true|yes|on)$ ]]; then
+    export AUTO_PUBLISH_SITE=false
+  fi
   "$PYTHON_BIN" "$MODEL_ENTRY"
 ) >> "$RUN_LOG" 2>&1
 
@@ -82,7 +86,6 @@ EXIT_CODE=$?
 if [[ $EXIT_CODE -eq 0 ]]; then
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] Completed successfully" >> "$RUN_LOG"
 
-  COMMENTARY_POLISH_JOB="${COMMENTARY_POLISH_JOB:-true}"
   if [[ "$COMMENTARY_POLISH_JOB" =~ ^(1|true|yes|on)$ ]]; then
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting commentary polish job" >> "$RUN_LOG"
     (

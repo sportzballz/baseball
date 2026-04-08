@@ -190,8 +190,21 @@ def apply_rewrites(original_html: str, ledes, rewrites):
     return "".join(parts), changed
 
 
-def git_commit_push(site_root: Path, files, date_str: str):
-    rels = [str(p.relative_to(site_root)) for p in files]
+def git_commit_push(site_root: Path, files, date_str: str, polished: bool):
+    rels = []
+    seen = set()
+    for p in files:
+        try:
+            rel = str(p.relative_to(site_root))
+        except Exception:
+            continue
+        if rel in seen:
+            continue
+        seen.add(rel)
+        rels.append(rel)
+
+    if not rels:
+        return False
 
     add = subprocess.run(["git", "add", *rels], cwd=str(site_root), capture_output=True, text=True)
     if add.returncode != 0:
@@ -203,7 +216,7 @@ def git_commit_push(site_root: Path, files, date_str: str):
     if not status.stdout.strip():
         return False
 
-    msg = f"Polish MLB commentary voice {date_str}"
+    msg = f"Publish daily picks + commentary polish {date_str}" if polished else f"Publish daily picks {date_str}"
     commit = subprocess.run(["git", "commit", "-m", msg], cwd=str(site_root), capture_output=True, text=True)
     if commit.returncode != 0:
         raise RuntimeError(commit.stderr.strip() or commit.stdout.strip() or "git commit failed")
@@ -267,17 +280,29 @@ def main():
         else:
             print(f"{p.name}: no meaningful commentary changes (accepted={accepted}, rejected={rejected})")
 
-    if not changed_files:
-        print("No file changes to publish")
-        return 0
-
     if args.dry_run:
         print("Dry run enabled; skipping git publish")
         return 0
 
-    pushed = git_commit_push(site_root, changed_files, date_str)
+    publish_targets = [
+        site_root / 'index.html',
+        site_root / 'dashboard.html',
+        site_root / 'data' / 'performance-history.json',
+        site_root / 'media-kit.html',
+        site_root / 'rate-card.html',
+        site_root / 'robots.txt',
+        site_root / 'sitemap.xml',
+        *target_files(site_root, date_str),
+    ]
+
+    pushed = git_commit_push(site_root, publish_targets, date_str, polished=bool(changed_files))
     if pushed:
-        print(f"Published polished commentary for {date_str}")
+        if changed_files:
+            print(f"Published daily site with polished commentary for {date_str}")
+        else:
+            print(f"Published daily site for {date_str} (no commentary changes accepted)")
+    else:
+        print("No file changes to publish")
 
     return 0
 
